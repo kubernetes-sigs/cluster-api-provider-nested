@@ -1,14 +1,24 @@
-# See the OWNERS docs at https://go.k8s.io/owners#owners_aliases
+# See the OWNERS docs: https://git.k8s.io/community/docs/devel/owners.md
 
 aliases:
-  # TODO: remove this alias, it will go stale in your repo, and in your repo
-  # you should have your own set of approvers (see OWNERS)
-  # in the original template repo, we must maintain this list to approve changes
-  # to the template itself
-  github-admin-team:
-    - cblecker
-    - fejta
-    - idvoretskyi
-    - mrbobbytables
-    - nikhita
-    - spiffxp
+  sig-cluster-lifecycle-leads:
+  - neolit123
+  - justinsb
+  - timothysc
+  - fabriziopandini
+  cluster-api-admins:
+  - justinsb
+  - detiber
+  - davidewatson
+  - vincepri
+  cluster-api-maintainers:
+  - justinsb
+  - detiber
+  - ncdc
+  - vincepri
+  - CecileRobertMichon
+  cluster-api-provider-nested-maintainers:
+  - christopherhein
+  - Fei-Guo
+  - resouer
+  - zhuangqh
