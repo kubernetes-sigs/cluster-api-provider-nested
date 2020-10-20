@@ -1,0 +1,7 @@
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+kind: NestedPKI
+metadata:
+  name: nestedpki-sample
+spec:
+  # Add fields here
+  foo: bar

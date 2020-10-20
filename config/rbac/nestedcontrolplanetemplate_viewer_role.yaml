@@ -1,0 +1,20 @@
+# permissions for end users to view nestedcontrolplanetemplates.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nestedcontrolplanetemplate-viewer-role
+rules:
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
+  - nestedcontrolplanetemplates
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
+  - nestedcontrolplanetemplates/status
+  verbs:
+  - get

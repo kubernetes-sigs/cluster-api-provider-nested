@@ -1,0 +1,112 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: nestedcontrolplanetemplates.controlplane.cluster.x-k8s.io
+spec:
+  group: controlplane.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    - capn
+    - capi
+    kind: NestedControlPlaneTemplate
+    listKind: NestedControlPlaneTemplateList
+    plural: nestedcontrolplanetemplates
+    shortNames:
+    - ncpt
+    singular: nestedcontrolplanetemplate
+  scope: Cluster
+  versions:
+  - name: v1alpha3
+    schema:
+      openAPIV3Schema:
+        description: NestedControlPlaneTemplate is the Schema for the nestedcontrolplanetemplates
+          API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: NestedControlPlaneTemplateSpec defines the desired state
+              of NestedControlPlaneTemplate
+            properties:
+              components:
+                description: Components allows you to specify the multiple components
+                  necessary to provision a Virtual Control Plane
+                items:
+                  description: Addon names and references an addon to be installed.
+                    Only one of `KustomizeRef` or `ManifestRef` should be provided.
+                  properties:
+                    kustomizeRef:
+                      description: KustomizeRef may be a folder-path or git URL /w
+                        optional subpath
+                      type: string
+                    manifestRef:
+                      description: ManifestRef may be a file-path or HTTP/S served
+                        YAML file
+                      type: string
+                    name:
+                      description: Name provides the name of the addon. It is used
+                        for detecting upgrades and uninstalls as the AddonInstallerConfiguration
+                        changes.
+                      type: string
+                  required:
+                  - kustomizeRef
+                  - manifestRef
+                  - name
+                  type: object
+                type: array
+              default:
+                description: Default allows you to set this NestedTemplate as a a
+                  default template, by setting this to true any new NestedClusters
+                  will be created without a TemplateRef will be deployed with this
+                  template.
+                type: boolean
+              version:
+                description: KubernetesVersion allows you to specify the Kubernetes
+                  version this template will provision
+                properties:
+                  major:
+                    default: "1"
+                    description: Major allows you to specify the major Kubernetes
+                      version
+                    type: string
+                  minor:
+                    description: Minor allows you to specify the minor Kubernetes
+                      version
+                    type: string
+                  patch:
+                    description: Patch allows you to specify the patch Kubernetes
+                      version
+                    type: string
+                required:
+                - major
+                - minor
+                - patch
+                type: object
+            required:
+            - version
+            type: object
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

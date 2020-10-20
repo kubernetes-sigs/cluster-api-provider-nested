@@ -1,0 +1,17 @@
+domain: cluster.x-k8s.io
+multigroup: true
+repo: sigs.k8s.io/cluster-api-provider-nested
+resources:
+- group: controlplane
+  kind: NestedControlPlane
+  version: v1alpha3
+- group: controlplane
+  kind: NestedControlPlaneTemplate
+  version: v1alpha3
+- group: controlplane
+  kind: NestedEtcd
+  version: v1alpha3
+- group: controlplane
+  kind: NestedPKI
+  version: v1alpha3
+version: "2"

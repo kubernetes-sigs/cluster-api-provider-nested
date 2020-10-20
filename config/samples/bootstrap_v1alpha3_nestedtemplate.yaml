@@ -1,0 +1,7 @@
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+kind: NestedTemplate
+metadata:
+  name: nestedtemplate-sample
+spec:
+  # Add fields here
+  foo: bar
