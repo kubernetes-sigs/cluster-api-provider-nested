@@ -1,0 +1,3 @@
+version: "2"
+domain: x-k8s.io
+repo: sigs.k8s.io/cluster-api-provider-nested
