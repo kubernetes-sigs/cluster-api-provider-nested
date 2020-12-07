@@ -1,0 +1,24 @@
+# permissions for end users to edit nestedcontrolplanes.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nestedcontrolplane-editor-role
+rules:
+- apiGroups:
+  - controlplane.cluster.x.k8s.io
+  resources:
+  - nestedcontrolplanes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - controlplane.cluster.x.k8s.io
+  resources:
+  - nestedcontrolplanes/status
+  verbs:
+  - get
