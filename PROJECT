@@ -1,3 +1,9 @@
-version: "2"
-domain: x-k8s.io
+domain: cluster.x.k8s.io
+layout: go.kubebuilder.io/v2
+projectName: capn
 repo: sigs.k8s.io/cluster-api-provider-nested
+resources:
+- group: controlplane
+  kind: NestedControlPlane
+  version: v1alpha4
+version: 3-alpha
