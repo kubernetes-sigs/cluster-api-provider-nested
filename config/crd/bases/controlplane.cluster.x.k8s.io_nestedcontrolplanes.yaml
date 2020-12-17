@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.3.0
   creationTimestamp: null
-  name: nestedcontrolplanes.controlplane.cluster.x.k8s.io
+  name: nestedcontrolplanes.controlplane.cluster.x-k8s.io
 spec:
-  group: controlplane.cluster.x.k8s.io
+  group: controlplane.cluster.x-k8s.io
   names:
     kind: NestedControlPlane
     listKind: NestedControlPlaneList
