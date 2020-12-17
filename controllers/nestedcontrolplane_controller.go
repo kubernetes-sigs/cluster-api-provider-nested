@@ -34,8 +34,8 @@ type NestedControlPlaneReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=controlplane.cluster.x.k8s.io,resources=nestedcontrolplanes,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=controlplane.cluster.x.k8s.io,resources=nestedcontrolplanes/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrolplanes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrolplanes/status,verbs=get;update;patch
 
 func (r *NestedControlPlaneReconciler) Reconcile(_ context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = r.Log.WithValues("nestedcontrolplane", req.NamespacedName)
