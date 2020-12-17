@@ -25,6 +25,7 @@ import (
 
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
@@ -34,6 +35,9 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+
+	controlplanev1alpha4 "sigs.k8s.io/cluster-api-provider-nested/apis/controlplane/v1alpha4"
+	controlplanecontrollers "sigs.k8s.io/cluster-api-provider-nested/controllers/controlplane"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -56,8 +60,9 @@ var (
 func init() {
 	klog.InitFlags(nil)
 
-	_ = clientgoscheme.AddToScheme(scheme)
-	_ = clusterv1.AddToScheme(scheme)
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(clusterv1.AddToScheme(scheme))
+	utilruntime.Must(controlplanev1alpha4.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -141,6 +146,14 @@ func main() {
 	}
 
 	// TODO(community): Register controllers and webhooks here.
+	if err = (&controlplanecontrollers.NestedControlPlaneReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("controlplane").WithName("NestedControlPlane"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "NestedControlPlane")
+		os.Exit(1)
+	}
 
 	// +kubebuilder:scaffold:builder
 	setupLog.Info("Starting manager", "version", version.Get().String())
