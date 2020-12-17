@@ -24,7 +24,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	controlplanev1alpha4 "sigs.k8s.io/cluster-api-provider-nested/api/v1alpha4"
+	controlplanev1alpha4 "sigs.k8s.io/cluster-api-provider-nested/apis/controlplane/v1alpha4"
 )
 
 // NestedControlPlaneReconciler reconciles a NestedControlPlane object
