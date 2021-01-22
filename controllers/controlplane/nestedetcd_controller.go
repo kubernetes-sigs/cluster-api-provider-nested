@@ -27,26 +27,27 @@ import (
 	controlplanev1alpha4 "sigs.k8s.io/cluster-api-provider-nested/apis/controlplane/v1alpha4"
 )
 
-// NestedControlPlaneReconciler reconciles a NestedControlPlane object
-type NestedControlPlaneReconciler struct {
+// NestedEtcdReconciler reconciles a NestedEtcd object
+type NestedEtcdReconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrolplanes,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrolplanes/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedetcds,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedetcds/status,verbs=get;update;patch
 
-func (r *NestedControlPlaneReconciler) Reconcile(_ context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.Log.WithValues("nestedcontrolplane", req.NamespacedName)
+func (r *NestedEtcdReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	_ = r.Log.WithValues("nestedetcd", req.NamespacedName)
 
 	// your logic here
 
 	return ctrl.Result{}, nil
 }
 
-func (r *NestedControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager) error {
+// SetupWithManager sets up the controller with the Manager.
+func (r *NestedEtcdReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&controlplanev1alpha4.NestedControlPlane{}).
+		For(&controlplanev1alpha4.NestedEtcd{}).
 		Complete(r)
 }
