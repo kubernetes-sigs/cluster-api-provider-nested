@@ -26,3 +26,23 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
+  - nestedetcds
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
+  - nestedetcds/status
+  verbs:
+  - get
+  - patch
+  - update

@@ -1,10 +1,15 @@
 domain: cluster.x-k8s.io
 layout: go.kubebuilder.io/v3
-projectName: cluster-api-provider-nested
 multigroup: true
+projectName: cluster-api-provider-nested
 repo: sigs.k8s.io/cluster-api-provider-nested
 resources:
 - group: controlplane
   kind: NestedControlPlane
+  version: v1alpha4
+- api:
+    crdVersion: v1
+  group: controlplane
+  kind: NestedEtcd
   version: v1alpha4
 version: 3-alpha
