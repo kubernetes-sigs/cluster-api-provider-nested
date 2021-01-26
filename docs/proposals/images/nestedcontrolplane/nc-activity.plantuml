@@ -1,0 +1,81 @@
+@startuml
+skinparam roundcorner 20
+skinparam ParticipantPadding 20
+skinparam BoxPadding 50
+skinparam Shadowing false
+skinparam NoteBorderColor #444
+skinparam NoteBackgroundColor #fff
+skinparam NoteFontColor #444
+skinparam EntityBackgroundColor #fff
+skinparam EntityBorderColor #444
+skinparam ArrowFontColor #444
+skinparam ArrowColor #444
+skinparam ArrowLollipopColor #444
+skinparam ArrowThickness 1
+skinparam ControlBorderColor #444
+skinparam ControlBackgroundColor #fff
+skinparam ParticipantBorderColor #444
+skinparam ParticipantBackgroundColor #fff
+skinparam ParticipantFontSize 17
+skinparam ParticipantFontColor #444
+skinparam ActorBorderColor #444
+skinparam ActorFontColor #444
+skinparam ActorFontSize 17
+skinparam ActorBackgroundColor #fff
+skinparam GroupBorderColor #444
+skinparam GroupBorderThickness 1
+skinparam GroupHeaderFontColor #444
+skinparam GroupFontColor #444
+skinparam SequenceLifeLineBorderColor #444
+skinparam ActivityBorderColor #444
+skinparam ActivityBackgroundColor #fff
+skinparam ActivityDiamondBorderColor #444
+skinparam ActivityDiamondBackgroundColor #fff
+
+title NestedCluster Creation
+
+start
+
+if (NC exists?) then (no)
+    :return nil;
+    end
+else (yes)
+endif
+
+if (deletionTimestamp?) then (yes)
+    :handle deletion;
+    end
+else (no)
+endif
+
+if (owningCluster exists?) then (no)
+    :return nil;
+    end
+else (yes)
+endif
+
+if (cluster paused?) then (yes)
+    :return nil;
+    end
+else (no)
+endif
+
+if (controlPlane exists?) then (no)
+    :return failed to get control plane;
+    end
+endif
+
+:set cluster.Status.Ready == ncp.Status.Ready;
+:set cluster.Spec.ControlPlaneEndpoint == ncp.Spec.ControlPlaneEndpoint;
+
+:patch cluster;
+if (errors?) then (yes)
+    :return error;
+    end
+endif
+
+:return nil;
+
+end
+
+@enduml

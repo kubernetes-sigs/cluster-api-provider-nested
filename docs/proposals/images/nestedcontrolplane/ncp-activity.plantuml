@@ -1,0 +1,117 @@
+@startuml
+skinparam roundcorner 20
+skinparam ParticipantPadding 20
+skinparam BoxPadding 50
+skinparam Shadowing false
+skinparam NoteBorderColor #444
+skinparam NoteBackgroundColor #fff
+skinparam NoteFontColor #444
+skinparam EntityBackgroundColor #fff
+skinparam EntityBorderColor #444
+skinparam ArrowFontColor #444
+skinparam ArrowColor #444
+skinparam ArrowLollipopColor #444
+skinparam ArrowThickness 1
+skinparam ControlBorderColor #444
+skinparam ControlBackgroundColor #fff
+skinparam ParticipantBorderColor #444
+skinparam ParticipantBackgroundColor #fff
+skinparam ParticipantFontSize 17
+skinparam ParticipantFontColor #444
+skinparam ActorBorderColor #444
+skinparam ActorFontColor #444
+skinparam ActorFontSize 17
+skinparam ActorBackgroundColor #fff
+skinparam GroupBorderColor #444
+skinparam GroupBorderThickness 1
+skinparam GroupHeaderFontColor #444
+skinparam GroupFontColor #444
+skinparam SequenceLifeLineBorderColor #444
+skinparam ActivityBorderColor #444
+skinparam ActivityBackgroundColor #fff
+skinparam ActivityDiamondBorderColor #444
+skinparam ActivityDiamondBackgroundColor #fff
+
+title NestedControlPlane Creation
+
+start
+
+if (NCP exists?) then (no)
+    :return nil;
+    end
+else (yes)
+endif
+
+if (deletionTimestamp?) then (yes)
+    :handle deletion;
+    end
+endif
+
+if (component CRs exist?) then (no)
+    :emit event;
+    :return retryAfter;
+    end
+else (yes)
+    if (has ownerReferences?) then (no)
+        :setup OwnerReferences back;
+    endif
+endif
+
+if (cluster CA/Certs exists?) then (no)
+    :call secret.NewCertificatesForInitialControlPlane;
+    :store certs as secrets;
+    if (errors?) then (yes)
+        :return err;
+        end
+    elseif (error with Conflicts?) then (yes)
+        :return retryAfter;
+        end
+    else (no)
+    endif
+endif
+
+if (ControlPlaneEndpoint set?) then (no)
+    :return nil;
+    end
+endif
+
+
+if (admin kubeconfig exists?) then (no)
+    :get ControlPlaneEndpoint;
+    :create kubeconfig;
+    if (errors?) then (yes)
+        :return err;
+        end
+    endif
+elseif (kubeconfig owned?) then (no)
+    :adopt kubeconfig;
+else (yes)
+    if (certs need rotation?) then (yes)
+        :regenerate and store;
+        if (errors?) then (yes)
+        :return err;
+        end
+    endif
+    endif
+endif
+
+if (conditions updated?) then (no)
+    if (etcd managed?) then (yes)
+        :try to fetch common status fields;
+        if (errors?) then (yes)
+            :set etcd as unknown state;
+        endif
+    endif
+    :get nested component statuses;
+    :update NestedControlPlane status;
+    if (errors?) then (yes)
+        :return err;
+        end
+    endif
+endif
+
+:return nil;
+
+end
+
+@enduml
