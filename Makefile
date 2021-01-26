@@ -143,7 +143,7 @@ apidiff: $(GO_APIDIFF) ## Check for API differences
 generate: ## Generate code
 	$(MAKE) generate-manifests
 	$(MAKE) generate-go
-	$(MAKE) generate-bindata
+	# $(MAKE) generate-bindata
 
 .PHONY: generate-go
 generate-go: ## Runs Go related generate targets
@@ -163,8 +163,8 @@ generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
 		output:webhook:dir=./config/webhook \
 		webhook
 	## Copy files in CI folders.
-	cp -f ./config/rbac/*.yaml ./config/ci/rbac/
-	cp -f ./config/manager/manager*.yaml ./config/ci/manager/
+	# cp -f ./config/rbac/*.yaml ./config/ci/rbac/
+	# cp -f ./config/manager/manager*.yaml ./config/ci/manager/
 
 .PHONY: modules
 modules: ## Runs go mod to ensure modules are up to date.
@@ -184,8 +184,8 @@ docker-pull-prerequisites:
 .PHONY: docker-build
 docker-build: docker-pull-prerequisites ## Build the docker images for controller managers
 	DOCKER_BUILDKIT=1 docker build --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
-	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/manager/manager_image_patch.yaml"
-	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/manager/manager_pull_policy.yaml"
+	# $(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/manager/manager_image_patch.yaml"
+	# $(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/manager/manager_pull_policy.yaml"
 
 .PHONY: docker-push
 docker-push: ## Push the docker images

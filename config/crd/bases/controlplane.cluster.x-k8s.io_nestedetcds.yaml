@@ -13,10 +13,19 @@ spec:
     kind: NestedEtcd
     listKind: NestedEtcdList
     plural: nestedetcds
+    shortNames:
+    - netcd
     singular: nestedetcd
   scope: Namespaced
   versions:
-  - name: v1alpha4
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha4
     schema:
       openAPIV3Schema:
         description: NestedEtcd is the Schema for the nestedetcds API
@@ -97,9 +106,6 @@ spec:
                 type: boolean
               phase:
                 type: string
-              ready:
-                description: Ready is set if all resources have been created
-                type: boolean
             required:
             - healthy
             type: object
