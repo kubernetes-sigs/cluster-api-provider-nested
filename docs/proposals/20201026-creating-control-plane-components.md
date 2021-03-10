@@ -146,7 +146,7 @@ The component controller will create the component under the in-tree mode, which
 
 Each component's controller will generate necessary certificates for the component and store them to the [secret resources](https://cluster-api.sigs.k8s.io/tasks/certs/using-custom-certificates.html) defined by CAPI. Also, The KAS controller will store the content of the kubeconfig file in a secret named `[clustername]-kubeconfig`.
 
-![Control Plane Creating Process](in-tree.png)
+![Control Plane Creating Process](images/componentcontrollers/in-tree.png)
 
 The creating process will include six steps:
 
@@ -164,7 +164,7 @@ The creating process will include six steps:
 
 If users intend to use an external controller to create the NCP component, they may need to implement a new component controller that can interact with the component CR and the external controller to create the component. For example, if the user wanted to use the [etcd-cluster-operator](https://github.com/improbable-eng/etcd-cluster-operator) that requires the [EtcdCluster](https://github.com/improbable-eng/etcd-cluster-operator/blob/master/api/v1alpha1/etcdcluster_types.go) CR. They need to implement a custom controller that watches the `NestedEtcd` resource, creates the necessary CRs for that implementation, and updates the required status fields on `NestedEtcd` to allow dependent services to be provisioned. This can be done using the [kubebuilder-declarative-pattern](https://github.com/kubernetes-sigs/kubebuilder-declarative-pattern) like is done for in-tree component controllers.
 
-![Creating a Control Plane using out-of-tree provisioners](out-of-tree.png)
+![Creating a Control Plane using out-of-tree provisioners](images/componentcontrollers/out-of-tree.png)
 
 In the following example, we assume that the user intends to use Etcd-cluster-operator(ECO) as the Etcd controller. The creating process will include seven steps:
 
@@ -203,11 +203,11 @@ type NestedEtcdStatus struct {
     // Ready is set if all resources have been created
     Ready bool `json:"ready,omitempty"`
 
-    // EtcdDomain defines how to address the etcd instance
+    // Addresses defines how to address the etcd instance
     Addresses []NestedEtcdAddress `json:"addresses,omitempty"`
 
     // CommonStatus allows addons status monitoring 
-    addonv1alpha1. CommonStatus `json:",inline"`
+    addonv1alpha1.CommonStatus `json:",inline"`
 }
 
 // EtcdAddress defines the observed addresses for etcd
