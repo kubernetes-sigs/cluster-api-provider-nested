@@ -7,6 +7,26 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - apps
+  resources:
+  - statefulset
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - statefulset/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - controlplane.cluster.x-k8s.io
   resources:
   - nestedcontrolplanes

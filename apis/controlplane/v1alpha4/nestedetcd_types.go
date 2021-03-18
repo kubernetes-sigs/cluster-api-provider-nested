@@ -21,19 +21,23 @@ import (
 	addonv1alpha1 "sigs.k8s.io/kubebuilder-declarative-pattern/pkg/patterns/addon/pkg/apis/v1alpha1"
 )
 
+type NestedEtcdPhase string
+
+const (
+	NestedEtcdReady   NestedEtcdPhase = "ready"
+	NestedEtcdUnready NestedEtcdPhase = "unready"
+)
+
 // NestedEtcdSpec defines the desired state of NestedEtcd
 type NestedEtcdSpec struct {
-	// NestedComponentSpec contains the common and user-specified information that are
-	// required for creating the component
+	// NestedComponentSpec contains the common and user-specified information
+	// that are required for creating the component
 	// +optional
 	NestedComponentSpec `json:",inline"`
 }
 
 // NestedEtcdStatus defines the observed state of NestedEtcd
 type NestedEtcdStatus struct {
-	// Ready is set if all resources have been created
-	Ready bool `json:"ready,omitempty"`
-
 	// EtcdDomain defines how to address the etcd instance
 	Addresses []NestedEtcdAddress `json:"addresses,omitempty"`
 
@@ -56,6 +60,10 @@ type NestedEtcdAddress struct {
 }
 
 //+kubebuilder:object:root=true
+//+kubebuilder:resource:scope=Namespaced,path=nestedetcds,shortName=netcd
+//+kubebuilder:categories=capi,capn
+//+kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
+//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 //+kubebuilder:subresource:status
 
 // NestedEtcd is the Schema for the nestedetcds API

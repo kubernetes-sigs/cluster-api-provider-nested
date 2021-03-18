@@ -22,7 +22,8 @@ import (
 )
 
 type NestedComponentSpec struct {
-	// NestedComponentSpec defines the common information for creating the component
+	// NestedComponentSpec defines the common information for creating the
+	// component
 	// +optional
 	addonv1alpha1.CommonSpec `json:",inline"`
 
@@ -30,11 +31,12 @@ type NestedComponentSpec struct {
 	// +optional
 	addonv1alpha1.PatchSpec `json:",inline"`
 
-	// Resources defines the amount of computing resources that will be used by this component
+	// Resources defines the amount of computing resources that will be used
+	// by this component
 	// +optional
-	Resources corev1.ResourceRequirements `json:"resources",omitempty`
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 
 	// Replicas defines the number of replicas in the component's workload
 	// +optional
-	Replicas int32 `json:"replicas",omitempty`
+	Replicas int32 `json:"replicas,omitempty"`
 }
