@@ -17,29 +17,82 @@ limitations under the License.
 package v1alpha4
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
-
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // NestedControlPlaneSpec defines the desired state of NestedControlPlane
 type NestedControlPlaneSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+	// +optional
+	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
 
-	// Foo is an example field of NestedControlPlane. Edit NestedControlPlane_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// EtcdRef is the reference to the NestedEtcd
+	EtcdRef *corev1.ObjectReference `json:"etcd,omitempty"`
+
+	// APIServerRef is the reference to the NestedAPIServer
+	// +optional
+	APIServerRef *corev1.ObjectReference `json:"apiserver,omitempty"`
+
+	// ContollerManagerRef is the reference to the NestedControllerManager
+	// +optional
+	ControllerManagerRef *corev1.ObjectReference `json:"controllerManager,omitempty"`
 }
 
 // NestedControlPlaneStatus defines the observed state of NestedControlPlane
 type NestedControlPlaneStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Etcd stores the connection information from the downstream etcd
+	// implementation if the NestedEtcd type isn't used this
+	// allows other component controllers to fetch the endpoints.
+	// +optional
+	Etcd *NestedControlPlaneStatusEtcd `json:"etcd,omitempty"`
+
+	// APIServer stores the connection information from the control plane
+	// this should contain anything shared between control plane components
+	// +optional
+	APIServer *NestedControlPlaneStatusAPIServer `json:"apiserver,omitempty"`
+
+	// Initialized denotes whether or not the control plane finished initializing.
+	// +optional
+	Initialized bool `json:"initialized"`
+
+	// Ready denotes that the NestedControlPlane API Server is ready to
+	// receive requests
+	// +kubebuilder:default=false
+	Ready bool `json:"ready"`
+
+	// ErrorMessage indicates that there is a terminal problem reconciling the
+	// state, and will be set to a descriptive error message.
+	// +optional
+	FailureMessage *string `json:"failureMessage,omitempty"`
+
+	// Conditions specifies the conditions for the managed control plane
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+}
+
+// NestedControlPlaneStatusEtcd defines the status of the etcd component to
+// allow other component controllers to take over the deployment
+type NestedControlPlaneStatusEtcd struct {
+	// Addresses defines how to address the etcd instance
+	Addresses []NestedEtcdAddress `json:"addresses,omitempty"`
+}
+
+// NestedControlPlaneStatusAPIServer defines the status of the APIServer
+// component, this allows the next set of component controllers to take over
+// the deployment
+type NestedControlPlaneStatusAPIServer struct {
+	// ServiceCIDRs which is provided to kube-apiserver and kube-controller-manager
+	// +optional
+	ServiceCIDR string `json:"serviceCidr,omitempty"`
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
+//+kubebuilder:resource:scope=Namespaced,shortName=ncp
+//+kubebuilder:categories=capi,capn
+//+kubebuilder:printcolumn:name="Ready",type="boolean",JSONPath=".status.rady"
+//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+//+kubebuilder:subresource:status
 
 // NestedControlPlane is the Schema for the nestedcontrolplanes API
 type NestedControlPlane struct {
