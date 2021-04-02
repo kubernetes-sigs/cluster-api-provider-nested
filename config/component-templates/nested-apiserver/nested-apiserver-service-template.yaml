@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{.nestedAPIServerName}}
+  namespace: {{.nestedAPIServerNamespace}}
+  labels: 
+    component-name: {{.nestedAPIServerName}}
+spec:
+  selector:
+    component-name: {{.nestedAPIServerName}}
+  type: NodePort
+  ports:
+  - port: 6443
+    protocol: TCP
+    targetPort: api

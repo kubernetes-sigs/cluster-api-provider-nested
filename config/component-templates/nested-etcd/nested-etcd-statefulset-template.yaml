@@ -1,26 +1,25 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{.nestedetcdName}}
-  namespace: {{.nestedetcdNamespace}}
+  name: {{.nestedEtcdName}}
+  namespace: {{.nestedEtcdNamespace}}
 spec:
-  replicas: {{.nestedetcdStsReplicas}}
   revisionHistoryLimit: 10
-  serviceName: {{.nestedetcdName}}
+  serviceName: {{.nestedEtcdName}}
   selector:
     matchLabels:
-      component-name: {{.nestedetcdName}}
+      component-name: {{.nestedEtcdName}}
   # etcd will not be updated, unless it is deleted
   updateStrategy:
     type: OnDelete
   template:
     metadata:
       labels:
-        component-name: {{.nestedetcdName}}
+        component-name: {{.nestedEtcdName}}
     spec:
       subdomain: etcd
       containers:
-      - name: {{.nestedetcdName}}
+      - name: {{.nestedEtcdName}}
         image: virtualcluster/etcd-v3.4.0
         imagePullPolicy: Always
         command:
@@ -43,9 +42,9 @@ spec:
         - --peer-key-file=/etc/kubernetes/pki/etcd/tls.key
         - --listen-peer-urls=https://0.0.0.0:2380
         - --listen-client-urls=https://0.0.0.0:2379
-        - --initial-advertise-peer-urls=https://$(HOSTNAME).{{.nestedetcdName}}:2380
+        - --initial-advertise-peer-urls=https://$(HOSTNAME).{{.nestedEtcdName}}:2380
         # we use a headless service to encapsulate each pod
-        - --advertise-client-urls=https://$(HOSTNAME).{{.nestedetcdName}}:2379
+        - --advertise-client-urls=https://$(HOSTNAME).{{.nestedEtcdName}}:2379
         - --initial-cluster-state=new
         - --initial-cluster-token=vc-etcd
         - --data-dir=/var/lib/etcd/data

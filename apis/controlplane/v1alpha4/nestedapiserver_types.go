@@ -17,66 +17,54 @@ limitations under the License.
 package v1alpha4
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	addonv1alpha1 "sigs.k8s.io/kubebuilder-declarative-pattern/pkg/patterns/addon/pkg/apis/v1alpha1"
 )
 
-// NestedEtcdSpec defines the desired state of NestedEtcd
-type NestedEtcdSpec struct {
-	// NestedComponentSpec contains the common and user-specified information
-	// that are required for creating the component
+// NestedAPIServerSpec defines the desired state of NestedAPIServer
+type NestedAPIServerSpec struct {
+	// NestedComponentSpec contains the common and user-specified information that are
+	// required for creating the component
 	// +optional
 	NestedComponentSpec `json:",inline"`
 }
 
-// NestedEtcdStatus defines the observed state of NestedEtcd
-type NestedEtcdStatus struct {
-	// EtcdDomain defines how to address the etcd instance
-	Addresses []NestedEtcdAddress `json:"addresses,omitempty"`
+// NestedAPIServerStatus defines the observed state of NestedAPIServer
+type NestedAPIServerStatus struct {
+	// APIServerService is the reference to the service that expose the APIServer
+	// +optional
+	APIServerService *corev1.ObjectReference `json:"apiserverService,omitempty"`
 
 	// CommonStatus allows addons status monitoring
 	addonv1alpha1.CommonStatus `json:",inline"`
 }
 
-// EtcdAddress defines the observed addresses for etcd
-type NestedEtcdAddress struct {
-	// IP Address of the etcd instance.
-	// +optional
-	IP string `json:"ip,omitempty"`
-
-	// Hostname of the etcd instance
-	Hostname string `json:"hostname,omitempty"`
-
-	// Port of the etcd instance
-	// +optional
-	Port int32 `json:"port"`
-}
-
 //+kubebuilder:object:root=true
-//+kubebuilder:resource:scope=Namespaced,path=nestedetcds,shortName=netcd
+//+kubebuilder:resource:scope=Namespaced,path=nestedapiservers,shortName=napiserver
 //+kubebuilder:categories=capi,capn
 //+kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 //+kubebuilder:subresource:status
 
-// NestedEtcd is the Schema for the nestedetcds API
-type NestedEtcd struct {
+// NestedAPIServer is the Schema for the nestedapiservers API
+type NestedAPIServer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   NestedEtcdSpec   `json:"spec,omitempty"`
-	Status NestedEtcdStatus `json:"status,omitempty"`
+	Spec   NestedAPIServerSpec   `json:"spec,omitempty"`
+	Status NestedAPIServerStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// NestedEtcdList contains a list of NestedEtcd
-type NestedEtcdList struct {
+// NestedAPIServerList contains a list of NestedAPIServer
+type NestedAPIServerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []NestedEtcd `json:"items"`
+	Items           []NestedAPIServer `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&NestedEtcd{}, &NestedEtcdList{})
+	SchemeBuilder.Register(&NestedAPIServer{}, &NestedAPIServerList{})
 }

@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{.nestedAPIServerName}}
+  namespace: {{.nestedAPIServerNamespace}} 
+spec:
+  revisionHistoryLimit: 10
+  serviceName: {{.nestedAPIServerName}}
+  selector:
+    matchLabels:
+      component-name: apiserver
+  # apiserver will not be updated, unless it is deleted
+  updateStrategy:
+    type: OnDelete
+  template:
+    metadata:
+      labels:
+        component-name: {{.nestedAPIServerName}}
+    spec:
+      hostname: apiserver
+      subdomain: apiserver-svc
+      containers:
+      - name: {{.nestedAPIServerName}}
+        image: virtualcluster/apiserver-v1.16.2
+        imagePullPolicy: Always
+        command:
+        - kube-apiserver
+        args:
+        - --bind-address=0.0.0.0
+        - --allow-privileged=true
+        - --anonymous-auth=true
+        - --client-ca-file=/etc/kubernetes/pki/root/tls.crt
+        - --tls-cert-file=/etc/kubernetes/pki/apiserver/tls.crt
+        - --tls-private-key-file=/etc/kubernetes/pki/apiserver/tls.key
+        - --kubelet-https=true
+        - --kubelet-client-certificate=/etc/kubernetes/pki/apiserver/tls.crt
+        - --kubelet-client-key=/etc/kubernetes/pki/apiserver/tls.key
+        - --enable-bootstrap-token-auth=true
+        - --etcd-servers=https://{{.nestedEtcdName}}-0.{{.nestedEtcdName}}:2379
+        - --etcd-cafile=/etc/kubernetes/pki/root/tls.crt
+        - --etcd-certfile=/etc/kubernetes/pki/apiserver/tls.crt
+        - --etcd-keyfile=/etc/kubernetes/pki/apiserver/tls.key
+        - --service-account-key-file=/etc/kubernetes/pki/service-account/tls.key
+        - --service-cluster-ip-range=10.32.0.0/16
+        - --service-node-port-range=30000-32767
+        - --authorization-mode=Node,RBAC
+        - --runtime-config=api/all
+        - --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota
+        - --apiserver-count=1
+        - --endpoint-reconciler-type=master-count
+        - --v=2
+        ports:
+        - containerPort: 6443
+          protocol: TCP
+          name: api
+        livenessProbe:
+          # since we set anonymous-auth to false, we use tcp instead of https
+          tcpSocket:
+            port: 6443
+          failureThreshold: 8
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 15
+        readinessProbe:
+          httpGet:
+            port: 6443
+            path: /healthz
+            scheme: HTTPS
+          failureThreshold: 8
+          initialDelaySeconds: 5
+          periodSeconds: 2
+          timeoutSeconds: 30
+        volumeMounts:
+        - mountPath: /etc/kubernetes/pki/apiserver
+          name: {{.nestedControlPlaneName}}-apiserver-client-crt
+          readOnly: true
+        - mountPath: /etc/kubernetes/pki/root
+          name: {{.nestedControlPlaneName}}-apiserver
+          readOnly: true
+        - mountPath: /etc/kubernetes/pki/service-account
+          name: {{.nestedControlPlaneName}}-sa
+          readOnly: true
+      terminationGracePeriodSeconds: 30
+      dnsConfig:
+        searches:
+        - cluster.local
+      volumes:
+      - name: {{.nestedControlPlaneName}}-apiserver-client-crt
+        secret:
+          defaultMode: 420
+          secretName: {{.nestedControlPlaneName}}-apiserver-client-crt
+      - name: {{.nestedControlPlaneName}}-apiserver
+        secret:
+          defaultMode: 420
+          secretName: {{.nestedControlPlaneName}}-apiserver
+      - name: {{.nestedControlPlaneName}}-sa
+        secret:
+          defaultMode: 420
+          secretName: {{.nestedControlPlaneName}}-sa

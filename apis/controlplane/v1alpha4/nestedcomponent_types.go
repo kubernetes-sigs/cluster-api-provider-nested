@@ -21,6 +21,7 @@ import (
 	addonv1alpha1 "sigs.k8s.io/kubebuilder-declarative-pattern/pkg/patterns/addon/pkg/apis/v1alpha1"
 )
 
+// NestedComponentSpec defines the common fields for nested components
 type NestedComponentSpec struct {
 	// NestedComponentSpec defines the common information for creating the
 	// component
@@ -40,3 +41,18 @@ type NestedComponentSpec struct {
 	// +optional
 	Replicas int32 `json:"replicas,omitempty"`
 }
+
+type ComponentPhase string
+
+const (
+	Ready   ComponentPhase = "Ready"
+	Unready ComponentPhase = "Unready"
+)
+
+type ComponentKind string
+
+const (
+	APIServer         ComponentKind = "NestedAPIServer"
+	Etcd              ComponentKind = "NestedEtcd"
+	ControllerManager ComponentKind = "NestedControllerManager"
+)
