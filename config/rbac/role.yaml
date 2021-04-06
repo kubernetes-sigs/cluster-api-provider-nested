@@ -71,6 +71,32 @@ rules:
 - apiGroups:
   - controlplane.cluster.x-k8s.io
   resources:
+  - nestedcontrollermanagers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
+  - nestedcontrollermanagers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
+  - nestedcontrollermanagers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
   - nestedcontrolplanes
   verbs:
   - create

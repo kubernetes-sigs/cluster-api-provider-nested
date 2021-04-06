@@ -8,7 +8,7 @@ spec:
   serviceName: {{.nestedAPIServerName}}
   selector:
     matchLabels:
-      component-name: apiserver
+      component-name: {{.nestedAPIServerName}}
   # apiserver will not be updated, unless it is deleted
   updateStrategy:
     type: OnDelete
