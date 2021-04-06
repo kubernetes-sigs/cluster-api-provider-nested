@@ -20,11 +20,8 @@ import (
 	"reflect"
 	"testing"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	controlplanev1alpha4 "sigs.k8s.io/cluster-api-provider-nested/apis/controlplane/v1alpha4"
-	addonv1alpha1 "sigs.k8s.io/kubebuilder-declarative-pattern/pkg/patterns/addon/pkg/apis/v1alpha1"
 )
 
 const (
@@ -202,111 +199,6 @@ func TestGenInitialClusterArgs(t *testing.T) {
 					t.Fatalf("\t%s\texpect %v, but get %v", failed, st.expect, get)
 				}
 				t.Logf("\t%s\texpect %v, get %v", succeed, st.expect, get)
-
-			}
-		}
-		t.Run(st.name, tf)
-	}
-}
-
-func TestIsNetcdReady(t *testing.T) {
-	tests := []struct {
-		name   string
-		status controlplanev1alpha4.NestedEtcdStatus
-		expect bool
-	}{
-		{
-			"ready",
-			controlplanev1alpha4.NestedEtcdStatus{
-				CommonStatus: addonv1alpha1.CommonStatus{
-					Phase: string(controlplanev1alpha4.NestedEtcdReady),
-				},
-			},
-			true,
-		},
-		{
-			"unready",
-			controlplanev1alpha4.NestedEtcdStatus{
-				CommonStatus: addonv1alpha1.CommonStatus{
-					Phase: string(controlplanev1alpha4.NestedEtcdUnready),
-				},
-			},
-			false,
-		},
-	}
-
-	for _, tt := range tests {
-		st := tt
-		tf := func(t *testing.T) {
-			t.Parallel()
-			t.Logf("\tTestCase: %s", st.name)
-			{
-				get := IsNetcdReady(st.status)
-				if get != st.expect {
-					t.Fatalf("\t%s\texpect %v, but get %v", failed, st.expect, get)
-				}
-				t.Logf("\t%s\texpect %v, get %v", succeed, st.expect, get)
-
-			}
-		}
-		t.Run(st.name, tf)
-	}
-}
-
-func TestYamlToObject(t *testing.T) {
-	tests := []struct {
-		name   string
-		yaml   string
-		expect runtime.Object
-	}{
-		{
-			"pod",
-			`
-apiVersion: v1
-kind: Pod
-metadata:
-   name: busybox
-spec:
-   containers:
-   - name: busybox
-     image: busybox
-     command: 
-     - top`,
-			&corev1.Pod{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Pod",
-					APIVersion: "v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "busybox",
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:    "busybox",
-							Image:   "busybox",
-							Command: []string{"top"},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		st := tt
-		tf := func(t *testing.T) {
-			t.Parallel()
-			t.Logf("\tTestCase: %s", st.name)
-			{
-				get, err := yamlToObject([]byte(st.yaml))
-				if err != nil {
-					t.Fatalf("case %s failed: %v", st.name, err)
-				}
-				if !reflect.DeepEqual(get, st.expect) {
-					t.Fatalf("\t%s\texpect %v, but get %v\n", failed, get, st.expect)
-				}
-				t.Logf("\tTestcase: %s %s\t", st.name, succeed)
 
 			}
 		}

@@ -163,6 +163,14 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "NestedEtcd")
 		os.Exit(1)
 	}
+	if err = (&controlplanecontrollers.NestedAPIServerReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("controlplane").WithName("NestedAPIServer"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "NestedAPIServer")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 	setupLog.Info("Starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
