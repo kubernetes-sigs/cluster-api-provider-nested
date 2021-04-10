@@ -17,4 +17,9 @@ resources:
   group: controlplane
   kind: NestedAPIServer
   version: v1alpha4
+- api:
+    crdVersion: v1
+  group: controlplane
+  kind: NestedControllerManager
+  version: v1alpha4
 version: 3-alpha

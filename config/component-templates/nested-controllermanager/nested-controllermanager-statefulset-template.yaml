@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{.nestedControllerManagerName}}
+  namespace: {{.nestedControllerManagerNamespace}}
+spec:
+  selector:
+    matchLabels:
+      component-name: {{.nestedControllerManagerName}}
+  updateStrategy:
+    type: OnDelete
+  template:
+    metadata:
+      labels:
+        component-name: {{.nestedControllerManagerName}}
+    spec:
+      containers:
+      - name: {{.nestedControllerManagerName}}
+        image: virtualcluster/controller-manager-v1.16.2
+        imagePullPolicy: Always
+        command:
+        - kube-controller-manager
+        args:
+        - --bind-address=0.0.0.0
+        - --cluster-cidr=10.200.0.0/16
+        - --cluster-signing-cert-file=/etc/kubernetes/pki/root/tls.crt
+        - --cluster-signing-key-file=/etc/kubernetes/pki/root/tls.key
+        - --kubeconfig=/etc/kubernetes/kubeconfig/controller-manager-kubeconfig
+        - --authorization-kubeconfig=/etc/kubernetes/kubeconfig/controller-manager-kubeconfig
+        - --authentication-kubeconfig=/etc/kubernetes/kubeconfig/controller-manager-kubeconfig
+        # control plane contains only one instance for now
+        - --leader-elect=false
+        - --root-ca-file=/etc/kubernetes/pki/root/tls.crt
+        - --service-account-private-key-file=/etc/kubernetes/pki/service-account/tls.key
+        - --service-cluster-ip-range=10.32.0.0/24
+        - --use-service-account-credentials=true
+        - --experimental-cluster-signing-duration=87600h
+        - --node-monitor-grace-period=200s
+        - --v=2
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 10252
+            scheme: HTTP
+          failureThreshold: 8
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 15
+        readinessProbe:
+          httpGet:
+            port: 10252
+            path: /healthz
+            scheme: HTTP
+          failureThreshold: 8
+          initialDelaySeconds: 15
+          periodSeconds: 2
+          timeoutSeconds: 15
+        volumeMounts:
+        - mountPath: /etc/kubernetes/pki/root
+          name: {{.nestedControlPlaneName}}-apiserver
+          readOnly: true
+        - mountPath: /etc/kubernetes/pki/service-account
+          name: {{.nestedControlPlaneName}}-sa
+          readOnly: true
+        - mountPath: /etc/kubernetes/kubeconfig
+          name: {{.nestedControllerManagerName}}-kubeconfig
+          readOnly: true
+      volumes:
+      - name: {{.nestedControlPlaneName}}-apiserver
+        secret:
+          defaultMode: 420
+          secretName: {{.nestedControlPlaneName}}-apiserver
+      - name: {{.nestedControlPlaneName}}-sa
+        secret:
+          defaultMode: 420
+          secretName: {{.nestedControlPlaneName}}-sa
+      - name: {{.nestedControllerManagerName}}-kubeconfig
+        secret:
+          defaultMode: 420
+          secretName: {{.nestedControllerManagerName}}-kubeconfig

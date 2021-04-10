@@ -60,20 +60,21 @@ func createNestedComponentSts(ctx context.Context,
 			"will use the default template.")
 		ncSts, err = genStatefulSetObject(ncMeta, ncSpec, ncKind, clusterName, cli, log)
 		if err != nil {
-			return fmt.Errorf("fail to generate the "+
-				"NestedEtcd Statefulset object: %v", err)
+			return fmt.Errorf("fail to generate the Statefulset object: %v", err)
 		}
 
-		ncSvc, err = genServiceObject(ncMeta, ncSpec, ncKind, clusterName, log)
-		if err != nil {
-			return fmt.Errorf("fail to generate the "+
-				"NesteEtcd Service object: %v", err)
+		if ncKind != clusterv1.ControllerManager {
+			// no need to create the service for the NestedControllerManager
+			ncSvc, err = genServiceObject(ncMeta, ncSpec, ncKind, clusterName, log)
+			if err != nil {
+				return fmt.Errorf("fail to generate the Service object: %v", err)
+			}
 		}
 
 	} else {
 		panic("NOT IMPLEMENT YET")
 	}
-	// 2. set the NestedEtcd object as the owner of the StatefulSet
+	// 2. set the NestedComponent object as the owner of the StatefulSet
 	or := metav1.NewControllerRef(&ncMeta,
 		clusterv1.GroupVersion.WithKind(string(ncKind)))
 	ncSts.SetOwnerReferences([]metav1.OwnerReference{*or})
@@ -81,9 +82,10 @@ func createNestedComponentSts(ctx context.Context,
 	if err := cli.Create(ctx, &ncSvc); err != nil {
 		return err
 	}
-	log.Info("successfully create the service for NestedEtcd StatefulSet")
+	log.Info("successfully create the service for the StatefulSet",
+		"component", ncKind)
 
-	// 4. create the NestedEtcd StatefulSet
+	// 4. create the NestedComponent StatefulSet
 	return cli.Create(ctx, &ncSts)
 }
 
