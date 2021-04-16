@@ -105,7 +105,7 @@ func (r *NestedEtcdReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	if netcdSts.Status.ReadyReplicas == netcdSts.Status.Replicas {
 		log.Info("The NestedEtcd StatefulSet is ready")
-		if IsComponentReady(netcd.Status.CommonStatus) {
+		if !IsComponentReady(netcd.Status.CommonStatus) {
 			// As the NestedEtcd StatefulSet is ready, update NestedEtcd status
 			ip, err := getNestedEtcdSvcClusterIP(ctx, r.Client, netcd)
 			if err != nil {
@@ -149,7 +149,7 @@ func (r *NestedEtcdReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 func (r *NestedEtcdReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if err := mgr.GetFieldIndexer().IndexField(context.TODO(),
 		&appsv1.StatefulSet{},
-		statefulsetOwnerKey,
+		statefulsetOwnerKeyNEtcd,
 		func(rawObj ctrlcli.Object) []string {
 			// grab the statefulset object, extract the owner
 			sts := rawObj.(*appsv1.StatefulSet)

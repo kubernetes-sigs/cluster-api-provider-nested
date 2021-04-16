@@ -57,7 +57,7 @@ spec:
           timeoutSeconds: 15
         volumeMounts:
         - mountPath: /etc/kubernetes/pki/root
-          name: {{.nestedControlPlaneName}}-apiserver
+          name: {{.nestedControlPlaneName}}-ca
           readOnly: true
         - mountPath: /etc/kubernetes/pki/service-account
           name: {{.nestedControlPlaneName}}-sa
@@ -66,10 +66,10 @@ spec:
           name: {{.nestedControllerManagerName}}-kubeconfig
           readOnly: true
       volumes:
-      - name: {{.nestedControlPlaneName}}-apiserver
+      - name: {{.nestedControlPlaneName}}-ca
         secret:
           defaultMode: 420
-          secretName: {{.nestedControlPlaneName}}-apiserver
+          secretName: {{.nestedControlPlaneName}}-ca
       - name: {{.nestedControlPlaneName}}-sa
         secret:
           defaultMode: 420
