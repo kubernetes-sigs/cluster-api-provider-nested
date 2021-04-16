@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{.nestedetcdName}}
-  namespace: {{.nestedetcdNamespace}}
+  name: {{.nestedEtcdName}}
+  namespace: {{.nestedEtcdNamespace}}
   labels:
-    component-name: {{.nestedetcdName}} 
+    component-name: {{.nestedEtcdName}} 
 spec:
   publishNotReadyAddresses: true
   clusterIP: None
   selector:
-    component-name: {{.nestedetcdName}}
+    component-name: {{.nestedEtcdName}}

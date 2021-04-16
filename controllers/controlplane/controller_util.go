@@ -19,6 +19,7 @@ package controlplane
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -69,6 +70,11 @@ func createNestedComponentSts(ctx context.Context,
 			if err != nil {
 				return fmt.Errorf("fail to generate the Service object: %v", err)
 			}
+			if err := cli.Create(ctx, &ncSvc); err != nil {
+				return err
+			}
+			log.Info("successfully create the service for the StatefulSet",
+				"component", ncKind)
 		}
 
 	} else {
@@ -78,12 +84,6 @@ func createNestedComponentSts(ctx context.Context,
 	or := metav1.NewControllerRef(&ncMeta,
 		clusterv1.GroupVersion.WithKind(string(ncKind)))
 	ncSts.SetOwnerReferences([]metav1.OwnerReference{*or})
-
-	if err := cli.Create(ctx, &ncSvc); err != nil {
-		return err
-	}
-	log.Info("successfully create the service for the StatefulSet",
-		"component", ncKind)
 
 	// 4. create the NestedComponent StatefulSet
 	return cli.Create(ctx, &ncSts)
@@ -101,8 +101,6 @@ func genServiceObject(ncMeta metav1.ObjectMeta,
 			templateURL = defaultKASServiceURL
 		case clusterv1.Etcd:
 			templateURL = defaultEtcdServiceURL
-		case clusterv1.ControllerManager:
-			panic("NOT IMPLEMENT YET")
 		default:
 			panic("Unreachable")
 		}
@@ -119,14 +117,15 @@ func genServiceObject(ncMeta metav1.ObjectMeta,
 	var templateCtx map[string]string
 	switch ncKind {
 	case clusterv1.APIServer:
-		panic("NOT IMPLEMENT YET")
+		templateCtx = map[string]string{
+			"nestedAPIServerName":      ncMeta.GetName(),
+			"nestedAPIServerNamespace": ncMeta.GetNamespace(),
+		}
 	case clusterv1.Etcd:
 		templateCtx = map[string]string{
 			"nestedEtcdName":      ncMeta.GetName(),
 			"nestedEtcdNamespace": ncMeta.GetNamespace(),
 		}
-	case clusterv1.ControllerManager:
-		panic("NOT IMPLEMENT YET")
 	default:
 		panic("Unreachable")
 	}
@@ -170,7 +169,7 @@ func genStatefulSetObject(
 		case clusterv1.Etcd:
 			templateURL = defaultEtcdStatefulSetURL
 		case clusterv1.ControllerManager:
-			panic("NOT IMPLEMENT YET")
+			templateURL = defaultKCMStatefulSetURL
 		default:
 			panic("Unreachable")
 		}
@@ -207,7 +206,11 @@ func genStatefulSetObject(
 			"nestedEtcdName":           etcdName,
 		}
 	case clusterv1.ControllerManager:
-		panic("NOT IMPLEMENT YET")
+		templateCtx = map[string]string{
+			"nestedControllerManagerName":      ncMeta.GetName(),
+			"nestedControllerManagerNamespace": ncMeta.GetNamespace(),
+			"nestedControlPlaneName":           clusterName,
+		}
 	default:
 		panic("Unreachable")
 	}
@@ -309,7 +312,12 @@ func substituteTemplate(context interface{}, tmpl string) (string, error) {
 
 // fetchTemplate fetches the component template through the tmplateURL
 func fetchTemplate(templateURL string) (string, error) {
-	rep, err := http.Get(templateURL)
+	// TODO mount host CA to manager pods
+	client := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}}
+
+	rep, err := client.Get(templateURL)
 	if err != nil {
 		return "", err
 	}

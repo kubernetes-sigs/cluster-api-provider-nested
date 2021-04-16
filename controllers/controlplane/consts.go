@@ -17,17 +17,22 @@ limitations under the License.
 package controlplane
 
 const (
-	statefulsetOwnerKey       = ".metadata.controller"
+	statefulsetOwnerKeyNEtcd  = ".metadata.netcd.controller"
+	statefulsetOwnerKeyNKas   = ".metadata.nkas.controller"
+	statefulsetOwnerKeyNKcm   = ".metadata.nkcm.controller"
 	defaultEtcdStatefulSetURL = "https://raw.githubusercontent.com/kubernetes-sigs/" +
 		"cluster-api-provider-nested/master/config/component-templates/" +
-		"nestedetcd/nested-etcd-statefulset-template.yaml"
+		"nested-etcd/nested-etcd-statefulset-template.yaml"
 	defaultEtcdServiceURL = "https://raw.githubusercontent.com/kubernetes-sigs/" +
 		"cluster-api-provider-nested/master/config/component-templates/" +
-		"nestedetcd/nested-etcd-service-template.yaml"
+		"nested-etcd/nested-etcd-service-template.yaml"
 	defaultKASStatefulSetURL = "https://raw.githubusercontent.com/kubernetes-sigs/" +
 		"cluster-api-provider-nested/master/config/component-templates/" +
-		"nestedetcd/nested-apiserver-statefulset-template.yaml"
+		"nested-apiserver/nested-apiserver-statefulset-template.yaml"
 	defaultKASServiceURL = "https://raw.githubusercontent.com/kubernetes-sigs/" +
 		"cluster-api-provider-nested/master/config/component-templates/" +
-		"nestedetcd/nested-apiserver-service-template.yaml"
+		"nested-apiserver/nested-apiserver-service-template.yaml"
+	defaultKCMStatefulSetURL = "https://raw.githubusercontent.com/kubernetes-sigs/" +
+		"cluster-api-provider-nested/master/config/component-templates/" +
+		"nested-controllermanager/nested-controllermanager-statefulset-template.yaml"
 )

@@ -106,7 +106,7 @@ func (r *NestedAPIServerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// Mark the NestedAPIServer as Ready if the StatefulSet is ready
 	if nkasSts.Status.ReadyReplicas == nkasSts.Status.Replicas {
 		log.Info("The NestedAPIServer StatefulSet is ready")
-		if IsComponentReady(nkas.Status.CommonStatus) {
+		if !IsComponentReady(nkas.Status.CommonStatus) {
 			// As the NestedAPIServer StatefulSet is ready, update
 			// NestedAPIServer status
 			nkas.Status.Phase = string(clusterv1.Ready)
@@ -146,7 +146,7 @@ func (r *NestedAPIServerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 func (r *NestedAPIServerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if err := mgr.GetFieldIndexer().IndexField(context.TODO(),
 		&appsv1.StatefulSet{},
-		statefulsetOwnerKey,
+		statefulsetOwnerKeyNKas,
 		func(rawObj ctrlcli.Object) []string {
 			// grab the statefulset object, extract the owner
 			sts := rawObj.(*appsv1.StatefulSet)
@@ -167,5 +167,6 @@ func (r *NestedAPIServerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.NestedAPIServer{}).
+		Owns(&appsv1.StatefulSet{}).
 		Complete(r)
 }

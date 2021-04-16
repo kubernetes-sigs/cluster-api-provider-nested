@@ -72,10 +72,10 @@ spec:
           timeoutSeconds: 30
         volumeMounts:
         - mountPath: /etc/kubernetes/pki/apiserver
-          name: {{.nestedControlPlaneName}}-apiserver-client-crt
+          name: {{.nestedControlPlaneName}}-apiserver
           readOnly: true
         - mountPath: /etc/kubernetes/pki/root
-          name: {{.nestedControlPlaneName}}-apiserver
+          name: {{.nestedControlPlaneName}}-ca
           readOnly: true
         - mountPath: /etc/kubernetes/pki/service-account
           name: {{.nestedControlPlaneName}}-sa
@@ -85,14 +85,14 @@ spec:
         searches:
         - cluster.local
       volumes:
-      - name: {{.nestedControlPlaneName}}-apiserver-client-crt
-        secret:
-          defaultMode: 420
-          secretName: {{.nestedControlPlaneName}}-apiserver-client-crt
       - name: {{.nestedControlPlaneName}}-apiserver
         secret:
           defaultMode: 420
           secretName: {{.nestedControlPlaneName}}-apiserver
+      - name: {{.nestedControlPlaneName}}-ca
+        secret:
+          defaultMode: 420
+          secretName: {{.nestedControlPlaneName}}-ca
       - name: {{.nestedControlPlaneName}}-sa
         secret:
           defaultMode: 420

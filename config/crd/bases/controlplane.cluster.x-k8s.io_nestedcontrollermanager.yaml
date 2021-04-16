@@ -6,17 +6,26 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1-0.20201002000720-57250aac17f6
   creationTimestamp: null
-  name: nestedcontrollermanagers.controlplane.cluster.x-k8s.io
+  name: nestedcontrollermanager.controlplane.cluster.x-k8s.io
 spec:
   group: controlplane.cluster.x-k8s.io
   names:
     kind: NestedControllerManager
     listKind: NestedControllerManagerList
-    plural: nestedcontrollermanagers
+    plural: nestedcontrollermanager
+    shortNames:
+    - nkcm
     singular: nestedcontrollermanager
   scope: Namespaced
   versions:
-  - name: v1alpha4
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha4
     schema:
       openAPIV3Schema:
         description: NestedControllerManager is the Schema for the nestedcontrollermanagers API

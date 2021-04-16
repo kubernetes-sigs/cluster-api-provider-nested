@@ -106,7 +106,7 @@ func (r *NestedControllerManagerReconciler) Reconcile(ctx context.Context, req c
 	// Mark the NestedControllerManager as Ready if the StatefulSet is ready
 	if nkcmSts.Status.ReadyReplicas == nkcmSts.Status.Replicas {
 		log.Info("The NestedControllerManager StatefulSet is ready")
-		if IsComponentReady(nkcm.Status.CommonStatus) {
+		if !IsComponentReady(nkcm.Status.CommonStatus) {
 			// As the NestedControllerManager StatefulSet is ready, update
 			// NestedControllerManager status
 			nkcm.Status.Phase = string(clusterv1.Ready)
@@ -139,7 +139,7 @@ func (r *NestedControllerManagerReconciler) Reconcile(ctx context.Context, req c
 func (r *NestedControllerManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if err := mgr.GetFieldIndexer().IndexField(context.TODO(),
 		&appsv1.StatefulSet{},
-		statefulsetOwnerKey,
+		statefulsetOwnerKeyNKcm,
 		func(rawObj ctrlcli.Object) []string {
 			// grab the statefulset object, extract the owner
 			sts := rawObj.(*appsv1.StatefulSet)
@@ -147,9 +147,9 @@ func (r *NestedControllerManagerReconciler) SetupWithManager(mgr ctrl.Manager) e
 			if owner == nil {
 				return nil
 			}
-			// make sure it's a NestedAPIServer
+			// make sure it's a NestedControllerManager
 			if owner.APIVersion != clusterv1.GroupVersion.String() ||
-				owner.Kind != string(clusterv1.APIServer) {
+				owner.Kind != string(clusterv1.ControllerManager) {
 				return nil
 			}
 
@@ -160,5 +160,6 @@ func (r *NestedControllerManagerReconciler) SetupWithManager(mgr ctrl.Manager) e
 	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&controlplanev1alpha4.NestedControllerManager{}).
+		Owns(&appsv1.StatefulSet{}).
 		Complete(r)
 }
