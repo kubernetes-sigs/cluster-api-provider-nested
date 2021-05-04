@@ -53,8 +53,7 @@ type NestedEtcdAddress struct {
 }
 
 //+kubebuilder:object:root=true
-//+kubebuilder:resource:scope=Namespaced,path=nestedetcds,shortName=netcd
-//+kubebuilder:categories=capi,capn
+//+kubebuilder:resource:scope=Namespaced,shortName=netcd,categories=capi;capn
 //+kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 //+kubebuilder:subresource:status
@@ -79,4 +78,36 @@ type NestedEtcdList struct {
 
 func init() {
 	SchemeBuilder.Register(&NestedEtcd{}, &NestedEtcdList{})
+}
+
+var _ addonv1alpha1.CommonObject = &NestedEtcd{}
+var _ addonv1alpha1.Patchable = &NestedEtcd{}
+
+// ComponentName returns the name of the component for use with
+// addonv1alpha1.CommonObjec
+func (c *NestedEtcd) ComponentName() string {
+	return string(Etcd)
+}
+
+// CommonSpec returns the addons spec of the object allowing common funcs like
+// Channel & Version to be usabl
+func (c *NestedEtcd) CommonSpec() addonv1alpha1.CommonSpec {
+	return c.Spec.CommonSpec
+}
+
+// GetCommonStatus will return the common status for checking is a component
+// was successfully deployed
+func (c *NestedEtcd) GetCommonStatus() addonv1alpha1.CommonStatus {
+	return c.Status.CommonStatus
+}
+
+// SetCommonStatus will set the status so that abstract representations can set
+// Ready and Phases
+func (c *NestedEtcd) SetCommonStatus(s addonv1alpha1.CommonStatus) {
+	c.Status.CommonStatus = s
+}
+
+// PatchSpec returns the patches to be applie
+func (c *NestedEtcd) PatchSpec() addonv1alpha1.PatchSpec {
+	return c.Spec.PatchSpec
 }

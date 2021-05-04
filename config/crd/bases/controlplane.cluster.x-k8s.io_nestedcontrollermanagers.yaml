@@ -6,13 +6,16 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1-0.20201002000720-57250aac17f6
   creationTimestamp: null
-  name: nestedcontrollermanager.controlplane.cluster.x-k8s.io
+  name: nestedcontrollermanagers.controlplane.cluster.x-k8s.io
 spec:
   group: controlplane.cluster.x-k8s.io
   names:
+    categories:
+    - capi
+    - capn
     kind: NestedControllerManager
     listKind: NestedControllerManagerList
-    plural: nestedcontrollermanager
+    plural: nestedcontrollermanagers
     shortNames:
     - nkcm
     singular: nestedcontrollermanager

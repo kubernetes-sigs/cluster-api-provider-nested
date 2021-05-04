@@ -1,45 +1,52 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{.nestedAPIServerName}}
-  namespace: {{.nestedAPIServerNamespace}} 
+  name: {{.clusterName}}-apiserver
+  namespace: {{.componentNamespace}} 
 spec:
   revisionHistoryLimit: 10
-  serviceName: {{.nestedAPIServerName}}
+  serviceName: {{.componentName}}
   selector:
     matchLabels:
-      component-name: {{.nestedAPIServerName}}
+      component-name: {{.componentName}}
   # apiserver will not be updated, unless it is deleted
   updateStrategy:
     type: OnDelete
   template:
     metadata:
       labels:
-        component-name: {{.nestedAPIServerName}}
+        component-name: {{.componentName}}
     spec:
       hostname: apiserver
-      subdomain: apiserver-svc
+      subdomain: {{.clusterName}}-apiserver
       containers:
-      - name: {{.nestedAPIServerName}}
+      - name: {{.componentName}}
         image: virtualcluster/apiserver-v1.16.2
         imagePullPolicy: Always
         command:
         - kube-apiserver
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         args:
         - --bind-address=0.0.0.0
         - --allow-privileged=true
         - --anonymous-auth=true
-        - --client-ca-file=/etc/kubernetes/pki/root/tls.crt
+        - --client-ca-file=/etc/kubernetes/pki/apiserver/ca/tls.crt
         - --tls-cert-file=/etc/kubernetes/pki/apiserver/tls.crt
         - --tls-private-key-file=/etc/kubernetes/pki/apiserver/tls.key
         - --kubelet-https=true
-        - --kubelet-client-certificate=/etc/kubernetes/pki/apiserver/tls.crt
-        - --kubelet-client-key=/etc/kubernetes/pki/apiserver/tls.key
+        - --kubelet-certificate-authority=/etc/kubernetes/pki/apiserver/ca/tls.crt
+        - --kubelet-client-certificate=/etc/kubernetes/pki/kubelet/tls.crt
+        - --kubelet-client-key=/etc/kubernetes/pki/kubelet/tls.key
+        - --kubelet-preferred-address-types=InternalIP,ExternalIP
         - --enable-bootstrap-token-auth=true
-        - --etcd-servers=https://{{.nestedEtcdName}}-0.{{.nestedEtcdName}}:2379
-        - --etcd-cafile=/etc/kubernetes/pki/root/tls.crt
-        - --etcd-certfile=/etc/kubernetes/pki/apiserver/tls.crt
-        - --etcd-keyfile=/etc/kubernetes/pki/apiserver/tls.key
+        - --etcd-servers=https://{{.clusterName}}-etcd-0.{{.clusterName}}-etcd.$(NAMESPACE):2379
+        - --etcd-cafile=/etc/kubernetes/pki/etcd/ca/tls.crt
+        - --etcd-certfile=/etc/kubernetes/pki/etcd/tls.crt
+        - --etcd-keyfile=/etc/kubernetes/pki/etcd/tls.key
         - --service-account-key-file=/etc/kubernetes/pki/service-account/tls.key
         - --service-cluster-ip-range=10.32.0.0/16
         - --service-node-port-range=30000-32767
@@ -71,29 +78,50 @@ spec:
           periodSeconds: 2
           timeoutSeconds: 30
         volumeMounts:
-        - mountPath: /etc/kubernetes/pki/apiserver
-          name: {{.nestedControlPlaneName}}-apiserver
+        - mountPath: /etc/kubernetes/pki/etcd/ca
+          name: {{.clusterName}}-etcd-ca
           readOnly: true
-        - mountPath: /etc/kubernetes/pki/root
-          name: {{.nestedControlPlaneName}}-ca
+        - mountPath: /etc/kubernetes/pki/etcd
+          name: {{.clusterName}}-etcd-client
+          readOnly: true
+        - mountPath: /etc/kubernetes/pki/apiserver/ca
+          name: {{.clusterName}}-ca
+          readOnly: true
+        - mountPath: /etc/kubernetes/pki/apiserver
+          name: {{.clusterName}}-apiserver-client
+          readOnly: true
+        - mountPath: /etc/kubernetes/pki/kubelet
+          name: {{.clusterName}}-kubelet-client
           readOnly: true
         - mountPath: /etc/kubernetes/pki/service-account
-          name: {{.nestedControlPlaneName}}-sa
+          name: {{.clusterName}}-sa
           readOnly: true
       terminationGracePeriodSeconds: 30
       dnsConfig:
         searches:
         - cluster.local
       volumes:
-      - name: {{.nestedControlPlaneName}}-apiserver
+      - name: {{.clusterName}}-apiserver-client
         secret:
           defaultMode: 420
-          secretName: {{.nestedControlPlaneName}}-apiserver
-      - name: {{.nestedControlPlaneName}}-ca
+          secretName: {{.clusterName}}-apiserver-client
+      - name: {{.clusterName}}-etcd-ca
         secret:
           defaultMode: 420
-          secretName: {{.nestedControlPlaneName}}-ca
-      - name: {{.nestedControlPlaneName}}-sa
+          secretName: {{.clusterName}}-etcd
+      - name: {{.clusterName}}-etcd-client
         secret:
           defaultMode: 420
-          secretName: {{.nestedControlPlaneName}}-sa
+          secretName: {{.clusterName}}-etcd-client
+      - name: {{.clusterName}}-kubelet-client
+        secret:
+          defaultMode: 420
+          secretName: {{.clusterName}}-kubelet-client
+      - name: {{.clusterName}}-ca
+        secret:
+          defaultMode: 420
+          secretName: {{.clusterName}}-ca
+      - name: {{.clusterName}}-sa
+        secret:
+          defaultMode: 420
+          secretName: {{.clusterName}}-sa

@@ -10,6 +10,9 @@ metadata:
 spec:
   group: controlplane.cluster.x-k8s.io
   names:
+    categories:
+    - capi
+    - capn
     kind: NestedControlPlane
     listKind: NestedControlPlaneList
     plural: nestedcontrolplanes
@@ -19,7 +22,7 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.rady
+    - jsonPath: .status.ready
       name: Ready
       type: boolean
     - jsonPath: .metadata.creationTimestamp
@@ -65,20 +68,6 @@ spec:
                   uid:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                     type: string
-                type: object
-              controlPlaneEndpoint:
-                description: ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
-                properties:
-                  host:
-                    description: The hostname on which the API server is serving.
-                    type: string
-                  port:
-                    description: The port on which the API server is serving.
-                    format: int32
-                    type: integer
-                required:
-                - host
-                - port
                 type: object
               controllerManager:
                 description: ContollerManagerRef is the reference to the NestedControllerManager

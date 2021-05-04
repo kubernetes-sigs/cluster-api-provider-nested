@@ -18,6 +18,7 @@ package controlplane
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
@@ -69,11 +70,26 @@ func (r *NestedControllerManagerReconciler) Reconcile(ctx context.Context, req c
 		return ctrl.Result{Requeue: true}, nil
 	}
 
+	var ncp clusterv1.NestedControlPlane
+	if err := r.Get(ctx, types.NamespacedName{Namespace: nkcm.GetNamespace(), Name: owner.Name}, &ncp); err != nil {
+		log.Info("the owner could not be found, will retry later",
+			"namespace", nkcm.GetNamespace(),
+			"name", owner.Name)
+		return ctrl.Result{}, ctrlcli.IgnoreNotFound(err)
+	}
+
+	cluster, err := ncp.GetOwnerCluster(ctx, r.Client)
+	if err != nil || cluster == nil {
+		log.Error(err, "Failed to retrieve owner Cluster from the control plane")
+		return ctrl.Result{}, err
+	}
+
 	// 2. create the NestedControllerManager StatefulSet if not found
+	nkcmName := fmt.Sprintf("%s-controller-manager", cluster.GetName())
 	var nkcmSts appsv1.StatefulSet
 	if err := r.Get(ctx, types.NamespacedName{
 		Namespace: nkcm.GetNamespace(),
-		Name:      nkcm.GetName(),
+		Name:      nkcmName,
 	}, &nkcmSts); err != nil {
 		if apierrors.IsNotFound(err) {
 			// as the statefulset is not found, mark the NestedControllerManager
@@ -91,7 +107,7 @@ func (r *NestedControllerManagerReconciler) Reconcile(ctx context.Context, req c
 			// the statefulset is not found, create one
 			if err := createNestedComponentSts(ctx,
 				r.Client, nkcm.ObjectMeta, nkcm.Spec.NestedComponentSpec,
-				clusterv1.ControllerManager, owner.Name, log); err != nil {
+				clusterv1.ControllerManager, owner.Name, cluster.GetName(), log); err != nil {
 				log.Error(err, "fail to create NestedControllerManager StatefulSet")
 				return ctrl.Result{}, err
 			}

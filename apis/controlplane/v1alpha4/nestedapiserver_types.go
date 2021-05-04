@@ -41,8 +41,7 @@ type NestedAPIServerStatus struct {
 }
 
 //+kubebuilder:object:root=true
-//+kubebuilder:resource:scope=Namespaced,path=nestedapiservers,shortName=nkas
-//+kubebuilder:categories=capi,capn
+//+kubebuilder:resource:scope=Namespaced,shortName=nkas,categories=capi;capn
 //+kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 //+kubebuilder:subresource:status
@@ -67,4 +66,36 @@ type NestedAPIServerList struct {
 
 func init() {
 	SchemeBuilder.Register(&NestedAPIServer{}, &NestedAPIServerList{})
+}
+
+var _ addonv1alpha1.CommonObject = &NestedAPIServer{}
+var _ addonv1alpha1.Patchable = &NestedAPIServer{}
+
+// ComponentName returns the name of the component for use with
+// addonv1alpha1.CommonObject
+func (c *NestedAPIServer) ComponentName() string {
+	return string(APIServer)
+}
+
+// CommonSpec returns the addons spec of the object allowing common funcs like
+// Channel & Version to be usable
+func (c *NestedAPIServer) CommonSpec() addonv1alpha1.CommonSpec {
+	return c.Spec.CommonSpec
+}
+
+// GetCommonStatus will return the common status for checking is a component
+// was successfully deployed
+func (c *NestedAPIServer) GetCommonStatus() addonv1alpha1.CommonStatus {
+	return c.Status.CommonStatus
+}
+
+// SetCommonStatus will set the status so that abstract representations can set
+// Ready and Phases
+func (c *NestedAPIServer) SetCommonStatus(s addonv1alpha1.CommonStatus) {
+	c.Status.CommonStatus = s
+}
+
+// PatchSpec returns the patches to be applied
+func (c *NestedAPIServer) PatchSpec() addonv1alpha1.PatchSpec {
+	return c.Spec.PatchSpec
 }

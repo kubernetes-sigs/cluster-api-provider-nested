@@ -1,15 +1,16 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{.nestedAPIServerName}}
-  namespace: {{.nestedAPIServerNamespace}}
+  name: {{.clusterName}}-apiserver
+  namespace: {{.componentNamespace}}
   labels: 
-    component-name: {{.nestedAPIServerName}}
+    component-name: {{.componentName}}
 spec:
   selector:
-    component-name: {{.nestedAPIServerName}}
-  type: NodePort
+    component-name: {{.componentName}}
+  type: ClusterIP
   ports:
-  - port: 6443
+  - name: api
+    port: 6443
     protocol: TCP
     targetPort: api

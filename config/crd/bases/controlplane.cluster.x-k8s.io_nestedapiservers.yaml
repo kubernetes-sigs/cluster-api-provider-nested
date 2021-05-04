@@ -10,6 +10,9 @@ metadata:
 spec:
   group: controlplane.cluster.x-k8s.io
   names:
+    categories:
+    - capi
+    - capn
     kind: NestedAPIServer
     listKind: NestedAPIServerList
     plural: nestedapiservers

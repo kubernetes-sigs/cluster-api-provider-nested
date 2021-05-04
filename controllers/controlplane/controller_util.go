@@ -19,12 +19,11 @@ package controlplane
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
-	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"text/template"
+
+	openuri "github.com/utahta/go-openuri"
 
 	"github.com/go-logr/logr"
 
@@ -47,26 +46,31 @@ func createNestedComponentSts(ctx context.Context,
 	cli ctrlcli.Client, ncMeta metav1.ObjectMeta,
 	ncSpec clusterv1.NestedComponentSpec,
 	ncKind clusterv1.ComponentKind,
-	clusterName string, log logr.Logger) error {
+	controlPlaneName, clusterName string, log logr.Logger) error {
 	var (
 		ncSts appsv1.StatefulSet
 		ncSvc corev1.Service
 		err   error
 	)
+	// Setup the ownerReferences for all objects
+	or := metav1.NewControllerRef(&ncMeta,
+		clusterv1.GroupVersion.WithKind(string(ncKind)))
+
 	// 1. Using the template defined by version/channel to create the
 	// StatefulSet and the Service
 	// TODO check the template version/channel, if not set, use the default.
 	if ncSpec.Version == "" && ncSpec.Channel == "" {
 		log.V(4).Info("The Version and Channel are not set, " +
 			"will use the default template.")
-		ncSts, err = genStatefulSetObject(ncMeta, ncSpec, ncKind, clusterName, cli, log)
+		ncSts, err = genStatefulSetObject(ncMeta, ncSpec, ncKind, controlPlaneName, clusterName, cli, log)
 		if err != nil {
 			return fmt.Errorf("fail to generate the Statefulset object: %v", err)
 		}
 
 		if ncKind != clusterv1.ControllerManager {
 			// no need to create the service for the NestedControllerManager
-			ncSvc, err = genServiceObject(ncMeta, ncSpec, ncKind, clusterName, log)
+			ncSvc, err = genServiceObject(ncMeta, ncSpec, ncKind, controlPlaneName, clusterName, log)
+			ncSvc.SetOwnerReferences([]metav1.OwnerReference{*or})
 			if err != nil {
 				return fmt.Errorf("fail to generate the Service object: %v", err)
 			}
@@ -81,8 +85,6 @@ func createNestedComponentSts(ctx context.Context,
 		panic("NOT IMPLEMENT YET")
 	}
 	// 2. set the NestedComponent object as the owner of the StatefulSet
-	or := metav1.NewControllerRef(&ncMeta,
-		clusterv1.GroupVersion.WithKind(string(ncKind)))
 	ncSts.SetOwnerReferences([]metav1.OwnerReference{*or})
 
 	// 4. create the NestedComponent StatefulSet
@@ -93,7 +95,7 @@ func createNestedComponentSts(ctx context.Context,
 // NestedComponent
 func genServiceObject(ncMeta metav1.ObjectMeta,
 	ncSpec clusterv1.NestedComponentSpec, ncKind clusterv1.ComponentKind,
-	clusterName string, log logr.Logger) (ncSvc corev1.Service, retErr error) {
+	controlPlaneName, clusterName string, log logr.Logger) (ncSvc corev1.Service, retErr error) {
 	var templateURL string
 	if ncSpec.Version == "" && ncSpec.Channel == "" {
 		switch ncKind {
@@ -114,21 +116,7 @@ func genServiceObject(ncMeta metav1.ObjectMeta,
 		return
 	}
 
-	var templateCtx map[string]string
-	switch ncKind {
-	case clusterv1.APIServer:
-		templateCtx = map[string]string{
-			"nestedAPIServerName":      ncMeta.GetName(),
-			"nestedAPIServerNamespace": ncMeta.GetNamespace(),
-		}
-	case clusterv1.Etcd:
-		templateCtx = map[string]string{
-			"nestedEtcdName":      ncMeta.GetName(),
-			"nestedEtcdNamespace": ncMeta.GetNamespace(),
-		}
-	default:
-		panic("Unreachable")
-	}
+	templateCtx := getTemplateArgs(ncMeta, controlPlaneName, clusterName)
 
 	svcStr, err := substituteTemplate(templateCtx, svcTmpl)
 	if err != nil {
@@ -157,7 +145,7 @@ func genServiceObject(ncMeta metav1.ObjectMeta,
 func genStatefulSetObject(
 	ncMeta metav1.ObjectMeta,
 	ncSpec clusterv1.NestedComponentSpec,
-	ncKind clusterv1.ComponentKind, clusterName string,
+	ncKind clusterv1.ComponentKind, controlPlaneName, clusterName string,
 	cli ctrlcli.Client, log logr.Logger) (ncSts appsv1.StatefulSet, retErr error) {
 	var templateURL string
 	if ncSpec.Version == "" && ncSpec.Channel == "" {
@@ -185,35 +173,7 @@ func genStatefulSetObject(
 		return
 	}
 	// 2 substitute the statefulset template
-	var templateCtx map[string]string
-	switch ncKind {
-	case clusterv1.Etcd:
-		templateCtx = map[string]string{
-			"nestedEtcdName":         ncMeta.GetName(),
-			"nestedEtcdNamespace":    ncMeta.GetNamespace(),
-			"nestedControlPlaneName": clusterName,
-		}
-	case clusterv1.APIServer:
-		etcdName, err := getEtcdName(cli, ncMeta.GetOwnerReferences(), ncMeta.GetNamespace())
-		if err != nil {
-			retErr = err
-			return
-		}
-		templateCtx = map[string]string{
-			"nestedAPIServerName":      ncMeta.GetName(),
-			"nestedAPIServerNamespace": ncMeta.GetNamespace(),
-			"nestedControlPlaneName":   clusterName,
-			"nestedEtcdName":           etcdName,
-		}
-	case clusterv1.ControllerManager:
-		templateCtx = map[string]string{
-			"nestedControllerManagerName":      ncMeta.GetName(),
-			"nestedControllerManagerNamespace": ncMeta.GetNamespace(),
-			"nestedControlPlaneName":           clusterName,
-		}
-	default:
-		panic("Unreachable")
-	}
+	templateCtx := getTemplateArgs(ncMeta, controlPlaneName, clusterName)
 	stsStr, err := substituteTemplate(templateCtx, stsTmpl)
 	if err != nil {
 		retErr = fmt.Errorf("fail to substitute the default template "+
@@ -249,7 +209,7 @@ func genStatefulSetObject(
 
 	// 6 set the "--initial-cluster" command line flag for the Etcd container
 	if ncKind == clusterv1.Etcd {
-		icaVal := genInitialClusterArgs(1, ncMeta.GetName(), ncMeta.GetName())
+		icaVal := genInitialClusterArgs(1, clusterName, clusterName, ncMeta.GetNamespace())
 		stsArgs := append(stsObj.Spec.Template.Spec.Containers[0].Args,
 			"--initial-cluster", icaVal)
 		stsObj.Spec.Template.Spec.Containers[0].Args = stsArgs
@@ -261,27 +221,13 @@ func genStatefulSetObject(
 	return
 }
 
-// getEtcdName gets the name of the NestedEtcd through the NestedControlPlane
-func getEtcdName(cli ctrlcli.Client,
-	ors []metav1.OwnerReference, ns string) (string, error) {
-	var or *metav1.OwnerReference
-	for _, orf := range ors {
-		if orf.Kind == "NestedControlPlane" {
-			or = &orf
-		}
-		break
+func getTemplateArgs(ncMeta metav1.ObjectMeta, controlPlaneName, clusterName string) map[string]string {
+	return map[string]string{
+		"componentName":      ncMeta.GetName(),
+		"componentNamespace": ncMeta.GetNamespace(),
+		"clusterName":        clusterName,
+		"controlPlaneName":   controlPlaneName,
 	}
-	if or == nil {
-		return "", errors.New("OwnerReference is not set")
-	}
-	var ncp clusterv1.NestedControlPlane
-	if err := cli.Get(context.TODO(), types.NamespacedName{
-		Name:      or.Name,
-		Namespace: ns,
-	}, &ncp); err != nil {
-		return "", err
-	}
-	return ncp.Spec.EtcdRef.Name, nil
 }
 
 // yamlToObject deserialize the yaml to the runtime object
@@ -312,19 +258,13 @@ func substituteTemplate(context interface{}, tmpl string) (string, error) {
 
 // fetchTemplate fetches the component template through the tmplateURL
 func fetchTemplate(templateURL string) (string, error) {
-	// TODO mount host CA to manager pods
-	client := &http.Client{Transport: &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}}
-
-	rep, err := client.Get(templateURL)
+	rep, err := openuri.Open(templateURL)
 	if err != nil {
 		return "", err
 	}
+	defer rep.Close()
 
-	defer rep.Body.Close()
-
-	bodyBytes, err := ioutil.ReadAll(rep.Body)
+	bodyBytes, err := ioutil.ReadAll(rep)
 	if err != nil {
 		return "", err
 	}
@@ -350,14 +290,14 @@ func getOwner(ncMeta metav1.ObjectMeta) metav1.OwnerReference {
 // genAPIServerSvcRef generates the ObjectReference that points to the
 // APISrver service
 func genAPIServerSvcRef(cli ctrlcli.Client,
-	nkas clusterv1.NestedAPIServer) (corev1.ObjectReference, error) {
+	nkas clusterv1.NestedAPIServer, clusterName string) (corev1.ObjectReference, error) {
 	var (
 		svc    corev1.Service
 		objRef corev1.ObjectReference
 	)
 	if err := cli.Get(context.TODO(), types.NamespacedName{
 		Namespace: nkas.GetNamespace(),
-		Name:      nkas.GetName(),
+		Name:      fmt.Sprintf("%s-apiserver", clusterName),
 	}, &svc); err != nil {
 		return objRef, err
 	}
