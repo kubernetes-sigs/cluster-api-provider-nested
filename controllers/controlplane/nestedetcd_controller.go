@@ -222,10 +222,10 @@ func genInitialClusterArgs(replicas int32,
 		peerAddr := fmt.Sprintf("%s-etcd-%d=https://%s-etcd-%d.%s-etcd.%s.svc:%d",
 			stsName, i, stsName, i, svcName, svcNamespace, 2380)
 		if i == replicas-1 {
-			argsVal = argsVal + peerAddr
+			argsVal += peerAddr
 			break
 		}
-		argsVal = argsVal + peerAddr + ","
+		argsVal += peerAddr + ","
 	}
 
 	return argsVal

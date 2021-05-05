@@ -116,6 +116,8 @@ $(KUSTOMIZE): # Build kustomize from tools folder.
 
 envsubst: $(ENVSUBST) ## Build a local copy of envsubst.
 kustomize: $(KUSTOMIZE) ## Build a local copy of kustomize.
+controller-gen: $(CONTROLLER_GEN) ## Build a local copy of controller-gen.
+golangci-lint: $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
 
 ## --------------------------------------
 ## Linting
@@ -124,13 +126,9 @@ kustomize: $(KUSTOMIZE) ## Build a local copy of kustomize.
 .PHONY: lint lint-full
 lint: $(GOLANGCI_LINT) ## Lint codebase
 	$(GOLANGCI_LINT) run -v
-	cd $(E2E_FRAMEWORK_DIR); $(GOLANGCI_LINT) run -v
-	cd $(CAPD_DIR); $(GOLANGCI_LINT) run -v
 
 lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 	$(GOLANGCI_LINT) run -v --fast=false
-	cd $(E2E_FRAMEWORK_DIR); $(GOLANGCI_LINT) run -v --fast=false
-	cd $(CAPD_DIR); $(GOLANGCI_LINT) run -v --fast=false
 
 apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(shell git rev-parse origin/master) --print-compatible
@@ -140,20 +138,19 @@ apidiff: $(GO_APIDIFF) ## Check for API differences
 ## --------------------------------------
 
 .PHONY: generate
-generate: ## Generate code
-	$(MAKE) generate-manifests
+generate:
 	$(MAKE) generate-go
-	# $(MAKE) generate-bindata
+	$(MAKE) generate-manifests
 
 .PHONY: generate-go
-generate-go: ## Runs Go related generate targets
+generate-go: $(CONTROLLER_GEN) ## Runs Go related generate targets
 	go generate ./...
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./apis/...
 
 .PHONY: generate-manifests
-generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
+generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
 		paths=./apis/... \
 		paths=./controllers/... \
@@ -163,8 +160,8 @@ generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
 		output:webhook:dir=./config/webhook \
 		webhook
 	## Copy files in CI folders.
-	# cp -f ./config/rbac/*.yaml ./config/ci/rbac/
-	# cp -f ./config/manager/manager*.yaml ./config/ci/manager/
+	cp -f ./config/rbac/*.yaml ./config/ci/rbac/
+	cp -f ./config/manager/manager*.yaml ./config/ci/manager/
 
 .PHONY: modules
 modules: ## Runs go mod to ensure modules are up to date.
