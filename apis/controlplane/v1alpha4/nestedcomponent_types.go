@@ -28,7 +28,7 @@ type NestedComponentSpec struct {
 	// +optional
 	addonv1alpha1.CommonSpec `json:",inline"`
 
-	// PatchSpecs includes the user specifed settings
+	// PatchSpecs includes the user specified settings
 	// +optional
 	addonv1alpha1.PatchSpec `json:",inline"`
 
