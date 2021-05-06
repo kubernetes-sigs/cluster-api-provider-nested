@@ -48,9 +48,8 @@ func createNestedComponentSts(ctx context.Context,
 	ncKind clusterv1.ComponentKind,
 	controlPlaneName, clusterName string, log logr.Logger) error {
 	var (
-		ncSts appsv1.StatefulSet
-		ncSvc corev1.Service
-		err   error
+		ncSts *appsv1.StatefulSet
+		ncSvc *corev1.Service
 	)
 	// Setup the ownerReferences for all objects
 	or := metav1.NewControllerRef(&ncMeta,
@@ -59,43 +58,42 @@ func createNestedComponentSts(ctx context.Context,
 	// 1. Using the template defined by version/channel to create the
 	// StatefulSet and the Service
 	// TODO check the template version/channel, if not set, use the default.
-	if ncSpec.Version == "" && ncSpec.Channel == "" {
-		log.V(4).Info("The Version and Channel are not set, " +
-			"will use the default template.")
-		ncSts, err = genStatefulSetObject(ncMeta, ncSpec, ncKind, controlPlaneName, clusterName, cli, log)
-		if err != nil {
-			return fmt.Errorf("fail to generate the Statefulset object: %v", err)
-		}
-
-		if ncKind != clusterv1.ControllerManager {
-			// no need to create the service for the NestedControllerManager
-			ncSvc, err = genServiceObject(ncMeta, ncSpec, ncKind, controlPlaneName, clusterName, log)
-			ncSvc.SetOwnerReferences([]metav1.OwnerReference{*or})
-			if err != nil {
-				return fmt.Errorf("fail to generate the Service object: %v", err)
-			}
-			if err := cli.Create(ctx, &ncSvc); err != nil {
-				return err
-			}
-			log.Info("successfully create the service for the StatefulSet",
-				"component", ncKind)
-		}
-
-	} else {
+	if ncSpec.Version != "" && ncSpec.Channel != "" {
 		panic("NOT IMPLEMENT YET")
 	}
+
+	log.V(4).Info("The Version and Channel are not set, " +
+		"will use the default template.")
+	if err := genStatefulSetObject(ncMeta, ncSpec, ncKind, controlPlaneName, clusterName, log, ncSts); err != nil {
+		return fmt.Errorf("fail to generate the Statefulset object: %v", err)
+	}
+
+	if ncKind != clusterv1.ControllerManager {
+		// no need to create the service for the NestedControllerManager
+		if err := genServiceObject(ncMeta, ncSpec, ncKind, controlPlaneName, clusterName, log, ncSvc); err != nil {
+			return fmt.Errorf("fail to generate the Service object: %v", err)
+		}
+
+		ncSvc.SetOwnerReferences([]metav1.OwnerReference{*or})
+		if err := cli.Create(ctx, ncSvc); err != nil {
+			return err
+		}
+		log.Info("successfully create the service for the StatefulSet",
+			"component", ncKind)
+	}
+
 	// 2. set the NestedComponent object as the owner of the StatefulSet
 	ncSts.SetOwnerReferences([]metav1.OwnerReference{*or})
 
 	// 4. create the NestedComponent StatefulSet
-	return cli.Create(ctx, &ncSts)
+	return cli.Create(ctx, ncSts)
 }
 
 // genServiceObject generates the Service object corresponding to the
 // NestedComponent
 func genServiceObject(ncMeta metav1.ObjectMeta,
 	ncSpec clusterv1.NestedComponentSpec, ncKind clusterv1.ComponentKind,
-	controlPlaneName, clusterName string, log logr.Logger) (ncSvc corev1.Service, retErr error) {
+	controlPlaneName, clusterName string, log logr.Logger, svc *corev1.Service) error {
 	var templateURL string
 	if ncSpec.Version == "" && ncSpec.Channel == "" {
 		switch ncKind {
@@ -111,33 +109,23 @@ func genServiceObject(ncMeta metav1.ObjectMeta,
 	}
 	svcTmpl, err := fetchTemplate(templateURL)
 	if err != nil {
-		retErr = fmt.Errorf("fail to fetch the default template "+
+		return fmt.Errorf("fail to fetch the default template "+
 			"for the %s service: %v", ncKind, err)
-		return
 	}
 
 	templateCtx := getTemplateArgs(ncMeta, controlPlaneName, clusterName)
 
 	svcStr, err := substituteTemplate(templateCtx, svcTmpl)
 	if err != nil {
-		retErr = fmt.Errorf("fail to substitute the default template "+
+		return fmt.Errorf("fail to substitute the default template "+
 			"for the nestedetcd Service: %v", err)
-		return
 	}
-	rawSvcObj, err := yamlToObject([]byte(svcStr))
-	if err != nil {
-		retErr = fmt.Errorf("fail to convert yaml file to Serivce: %v", err)
-		return
+	if err := yamlToObject([]byte(svcStr), svc); err != nil {
+		return fmt.Errorf("fail to convert yaml file to Serivce: %v", err)
 	}
 	log.Info("deserialize yaml to runtime object(Service)")
-	svcObj, ok := rawSvcObj.(*corev1.Service)
-	if !ok {
-		retErr = fmt.Errorf("fail to convert runtime object to Serivce")
-		return
-	}
-	ncSvc = *svcObj
-	log.Info("convert runtime object to Service.")
-	return
+
+	return nil
 }
 
 // genStatefulSetObject generates the StatefulSet object corresponding to the
@@ -146,7 +134,7 @@ func genStatefulSetObject(
 	ncMeta metav1.ObjectMeta,
 	ncSpec clusterv1.NestedComponentSpec,
 	ncKind clusterv1.ComponentKind, controlPlaneName, clusterName string,
-	cli ctrlcli.Client, log logr.Logger) (ncSts appsv1.StatefulSet, retErr error) {
+	log logr.Logger, ncSts *appsv1.StatefulSet) error {
 	var templateURL string
 	if ncSpec.Version == "" && ncSpec.Channel == "" {
 		log.V(4).Info("The Version and Channel are not set, " +
@@ -168,57 +156,47 @@ func genStatefulSetObject(
 	// 1 fetch the statefulset template
 	stsTmpl, err := fetchTemplate(templateURL)
 	if err != nil {
-		retErr = fmt.Errorf("fail to fetch the default template "+
+		return fmt.Errorf("fail to fetch the default template "+
 			"for the %s StatefulSet: %v", ncKind, err)
-		return
 	}
 	// 2 substitute the statefulset template
 	templateCtx := getTemplateArgs(ncMeta, controlPlaneName, clusterName)
 	stsStr, err := substituteTemplate(templateCtx, stsTmpl)
 	if err != nil {
-		retErr = fmt.Errorf("fail to substitute the default template "+
+		return fmt.Errorf("fail to substitute the default template "+
 			"for the %s StatefulSet: %v", ncKind, err)
-		return
 	}
 	// 3 deserialize the yaml string to the StatefulSet object
-	rawObj, err := yamlToObject([]byte(stsStr))
-	if err != nil {
-		retErr = fmt.Errorf("fail to convert yaml file to StatefulSet: %v", err)
-		return
+
+	if err := yamlToObject([]byte(stsStr), ncSts); err != nil {
+		return fmt.Errorf("fail to convert yaml file to StatefulSet: %v", err)
 	}
 	log.V(5).Info("deserialize yaml to runtime object(StatefulSet)")
-	// 4 convert runtime Object to StatefulSet
-	stsObj, ok := rawObj.(*appsv1.StatefulSet)
-	if !ok {
-		retErr = fmt.Errorf("fail to convert runtime object to StatefulSet")
-		return
-	}
-	log.V(5).Info("convert runtime object to StatefulSet.")
+
 	// 5 apply NestedComponent.Spec.Resources and NestedComponent.Spec.Replicas
 	// to the NestedComponent StatefulSet
-	for i := range stsObj.Spec.Template.Spec.Containers {
-		stsObj.Spec.Template.Spec.Containers[i].Resources =
+	for i := range ncSts.Spec.Template.Spec.Containers {
+		ncSts.Spec.Template.Spec.Containers[i].Resources =
 			ncSpec.Resources
 	}
 	if ncSpec.Replicas != 0 {
-		stsObj.Spec.Replicas = &ncSpec.Replicas
+		ncSts.Spec.Replicas = &ncSpec.Replicas
 	}
 	log.V(5).Info("The NestedEtcd StatefulSet's Resources and "+
 		"Replicas fields are set",
-		"StatefulSet", stsObj.GetName())
+		"StatefulSet", ncSts.GetName())
 
 	// 6 set the "--initial-cluster" command line flag for the Etcd container
 	if ncKind == clusterv1.Etcd {
 		icaVal := genInitialClusterArgs(1, clusterName, clusterName, ncMeta.GetNamespace())
-		stsArgs := append(stsObj.Spec.Template.Spec.Containers[0].Args,
+		stsArgs := append(ncSts.Spec.Template.Spec.Containers[0].Args,
 			"--initial-cluster", icaVal)
-		stsObj.Spec.Template.Spec.Containers[0].Args = stsArgs
+		ncSts.Spec.Template.Spec.Containers[0].Args = stsArgs
 		log.V(5).Info("The '--initial-cluster' command line option is set")
 	}
 
 	// 7 TODO validate the patch and apply it to the template.
-	ncSts = *stsObj
-	return
+	return nil
 }
 
 func getTemplateArgs(ncMeta metav1.ObjectMeta, controlPlaneName, clusterName string) map[string]string {
@@ -231,14 +209,14 @@ func getTemplateArgs(ncMeta metav1.ObjectMeta, controlPlaneName, clusterName str
 }
 
 // yamlToObject deserialize the yaml to the runtime object
-func yamlToObject(yamlContent []byte) (runtime.Object, error) {
+func yamlToObject(yamlContent []byte, obj runtime.Object) error {
 	decode := serializer.NewCodecFactory(scheme.Scheme).
 		UniversalDeserializer().Decode
-	obj, _, err := decode(yamlContent, nil, nil)
+	_, _, err := decode(yamlContent, nil, obj)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return obj, nil
+	return nil
 }
 
 // substituteTemplate substitutes the template contents with the context

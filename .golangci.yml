@@ -15,12 +15,6 @@ linters:
     - godot
     - goerr113
     - nestif
-    # TODO(christopherhein) Reenable these and fix errors
-    - gosec
-    - nakedret
-    - unparam
-    - staticcheck
-    - scopelint
   # Run with --fast=false for more extensive checks
   fast: true
 issues:

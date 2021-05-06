@@ -49,8 +49,8 @@ func (kp KeyPairs) Lookup(ctx context.Context, cli client.Client, clusterName cl
 }
 
 // SaveGenerated will save any certificates that have been generated as Kubernetes secrets.
-func (c KeyPairs) SaveGenerated(ctx context.Context, ctrlclient client.Client, clusterName client.ObjectKey, owner metav1.OwnerReference) error {
-	for _, keyPair := range c {
+func (kp KeyPairs) SaveGenerated(ctx context.Context, ctrlclient client.Client, clusterName client.ObjectKey, owner metav1.OwnerReference) error {
+	for _, keyPair := range kp {
 		if !keyPair.Generated && !keyPair.New {
 			continue
 		}
