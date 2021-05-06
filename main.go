@@ -37,7 +37,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
 	controlplanev1alpha4 "sigs.k8s.io/cluster-api-provider-nested/apis/controlplane/v1alpha4"
+	infrastructurev1alpha4 "sigs.k8s.io/cluster-api-provider-nested/apis/infrastructure/v1alpha4"
 	controlplanecontrollers "sigs.k8s.io/cluster-api-provider-nested/controllers/controlplane"
+	infrastructurecontrollers "sigs.k8s.io/cluster-api-provider-nested/controllers/infrastructure"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -63,6 +65,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
 	utilruntime.Must(controlplanev1alpha4.AddToScheme(scheme))
+	utilruntime.Must(infrastructurev1alpha4.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -145,13 +148,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	// TODO(community): Register controllers and webhooks here.
 	if err = (&controlplanecontrollers.NestedControlPlaneReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("controlplane").WithName("NestedControlPlane"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NestedControlPlane")
+		os.Exit(1)
+	}
+	if err = (&infrastructurecontrollers.NestedClusterReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("infrastructure").WithName("NestedCluster"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "NestedCluster")
 		os.Exit(1)
 	}
 
@@ -180,6 +190,7 @@ func main() {
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
+
 	setupLog.Info("Starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")

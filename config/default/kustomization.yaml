@@ -1,16 +1,12 @@
-# Adds namespace to all resources.
+namePrefix: capn-
 namespace: capn-system
 
-# Value of this field is prepended to the
-# names of all resources, e.g. a deployment named
-# "wordpress" becomes "alices-wordpress".
-# Note that it should also match with the prefix (text before '-') of the namespace
-# field above.
-namePrefix: capn-
 
 # Labels to add to all resources and selectors.
-#commonLabels:
-#  someName: someValue
+commonLabels:
+  # Label to denote name of the infra provider
+  # https://cluster-api.sigs.k8s.io/clusterctl/provider-contract.html#labels
+  cluster.x-k8s.io/provider: "infrastructure-aws"
 
 bases:
 - ../crd

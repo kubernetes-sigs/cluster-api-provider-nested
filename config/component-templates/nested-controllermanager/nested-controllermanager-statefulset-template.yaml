@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{.nestedControllerManagerName}}
-  namespace: {{.nestedControllerManagerNamespace}}
+  name: {{.clusterName}}-controller-manager
+  namespace: {{.componentNamespace}}
 spec:
   selector:
     matchLabels:
-      component-name: {{.nestedControllerManagerName}}
+      component-name: {{.componentName}}
   updateStrategy:
     type: OnDelete
   template:
     metadata:
       labels:
-        component-name: {{.nestedControllerManagerName}}
+        component-name: {{.componentName}}
     spec:
       containers:
-      - name: {{.nestedControllerManagerName}}
+      - name: {{.componentName}}
         image: virtualcluster/controller-manager-v1.16.2
         imagePullPolicy: Always
         command:
@@ -30,7 +30,7 @@ spec:
         - --authentication-kubeconfig=/etc/kubernetes/kubeconfig/controller-manager-kubeconfig
         # control plane contains only one instance for now
         - --leader-elect=false
-        - --root-ca-file=/etc/kubernetes/pki/root/tls.crt
+        - --root-ca-file=/etc/kubernetes/pki/root/ca/tls.crt
         - --service-account-private-key-file=/etc/kubernetes/pki/service-account/tls.key
         - --service-cluster-ip-range=10.32.0.0/24
         - --use-service-account-credentials=true
@@ -56,25 +56,35 @@ spec:
           periodSeconds: 2
           timeoutSeconds: 15
         volumeMounts:
+        - mountPath: /etc/kubernetes/pki/root/ca
+          name: {{.clusterName}}-ca
+          readOnly: true
         - mountPath: /etc/kubernetes/pki/root
-          name: {{.nestedControlPlaneName}}-ca
+          name: {{.clusterName}}-apiserver-client
           readOnly: true
         - mountPath: /etc/kubernetes/pki/service-account
-          name: {{.nestedControlPlaneName}}-sa
+          name: {{.clusterName}}-sa
           readOnly: true
         - mountPath: /etc/kubernetes/kubeconfig
-          name: {{.nestedControllerManagerName}}-kubeconfig
+          name: {{.clusterName}}-kubeconfig
           readOnly: true
       volumes:
-      - name: {{.nestedControlPlaneName}}-ca
+      - name: {{.clusterName}}-ca
         secret:
           defaultMode: 420
-          secretName: {{.nestedControlPlaneName}}-ca
-      - name: {{.nestedControlPlaneName}}-sa
+          secretName: {{.clusterName}}-ca
+      - name: {{.clusterName}}-apiserver-client
         secret:
           defaultMode: 420
-          secretName: {{.nestedControlPlaneName}}-sa
-      - name: {{.nestedControllerManagerName}}-kubeconfig
+          secretName: {{.clusterName}}-apiserver-client
+      - name: {{.clusterName}}-sa
         secret:
           defaultMode: 420
-          secretName: {{.nestedControllerManagerName}}-kubeconfig
+          secretName: {{.clusterName}}-sa
+      - name: {{.clusterName}}-kubeconfig
+        secret:
+          defaultMode: 420
+          secretName: {{.clusterName}}-kubeconfig
+          items:
+          - key: value
+            path: controller-manager-kubeconfig

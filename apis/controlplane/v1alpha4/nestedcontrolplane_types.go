@@ -17,17 +17,23 @@ limitations under the License.
 package v1alpha4
 
 import (
+	"context"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	// NestedControlPlaneFinalizer is added to the NestedControlPlane to allow
+	// nested deletions to happen before the object is cleaned up
+	NestedControlPlaneFinalizer = "nested.controlplane.cluster.x-k8s.io"
 )
 
 // NestedControlPlaneSpec defines the desired state of NestedControlPlane
 type NestedControlPlaneSpec struct {
-	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
-	// +optional
-	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
-
 	// EtcdRef is the reference to the NestedEtcd
 	EtcdRef *corev1.ObjectReference `json:"etcd,omitempty"`
 
@@ -87,10 +93,9 @@ type NestedControlPlaneStatusAPIServer struct {
 	ServiceCIDR string `json:"serviceCidr,omitempty"`
 }
 
-// +kubebuilder:object:root=true
-//+kubebuilder:resource:scope=Namespaced,shortName=ncp
-//+kubebuilder:categories=capi,capn
-//+kubebuilder:printcolumn:name="Ready",type="boolean",JSONPath=".status.rady"
+//+kubebuilder:object:root=true
+//+kubebuilder:resource:scope=Namespaced,shortName=ncp,categories=capi;capn
+//+kubebuilder:printcolumn:name="Ready",type="boolean",JSONPath=".status.ready"
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 //+kubebuilder:subresource:status
 
@@ -114,4 +119,17 @@ type NestedControlPlaneList struct {
 
 func init() {
 	SchemeBuilder.Register(&NestedControlPlane{}, &NestedControlPlaneList{})
+}
+
+// GetOwnerCluster is a utility to return the owning clusterv1.Cluster
+func (r *NestedControlPlane) GetOwnerCluster(ctx context.Context, cli client.Client) (cluster *clusterv1.Cluster, err error) {
+	return util.GetOwnerCluster(ctx, cli, r.ObjectMeta)
+}
+
+func (in *NestedControlPlane) GetConditions() clusterv1.Conditions {
+	return in.Status.Conditions
+}
+
+func (in *NestedControlPlane) SetConditions(conditions clusterv1.Conditions) {
+	in.Status.Conditions = conditions
 }

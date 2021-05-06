@@ -1,0 +1,31 @@
+# This kustomization.yaml is not intended to be run by itself,
+# since it depends on service name and namespace that are out of this kustomize package.
+# It should be run by config/default
+resources:
+- bases/infrastructure.cluster.x-k8s.io_nestedclusters.yaml
+- bases/controlplane.cluster.x-k8s.io_nestedcontrolplanes.yaml
+- bases/controlplane.cluster.x-k8s.io_nestedetcds.yaml
+- bases/controlplane.cluster.x-k8s.io_nestedapiservers.yaml
+- bases/controlplane.cluster.x-k8s.io_nestedcontrollermanagers.yaml
+#+kubebuilder:scaffold:crdkustomizeresource
+
+patchesStrategicMerge:
+# [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
+# patches here are for enabling the conversion webhook for each CRD
+#+kubebuilder:scaffold:crdkustomizewebhookpatch
+
+# [CERTMANAGER] To enable webhook, uncomment all the sections with [CERTMANAGER] prefix.
+# patches here are for enabling the CA injection for each CRD
+#+kubebuilder:scaffold:crdkustomizecainjectionpatch
+
+# the following config is for teaching kustomize how to do kustomization for CRDs.
+configurations:
+# - kustomizeconfig.yaml
+
+
+commonLabels:
+  # When using CAPI we need to define the contract version labels so that the
+  # capi system can cross reference the proper controlplane & infra refs
+  # https://cluster-api.sigs.k8s.io/developer/providers/v1alpha2-to-v1alpha3.html#apply-the-contract-version-label-clusterx-k8sioversion-version1_version2_version3-to-your-crds
+  cluster.x-k8s.io/v1alpha3: v1alpha4
+  cluster.x-k8s.io/v1alpha4: v1alpha4

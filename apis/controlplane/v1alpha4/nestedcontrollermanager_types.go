@@ -36,8 +36,7 @@ type NestedControllerManagerStatus struct {
 }
 
 //+kubebuilder:object:root=true
-//+kubebuilder:resource:scope=Namespaced,path=nestedcontrollermanager,shortName=nkcm
-//+kubebuilder:categories=capi,capn
+//+kubebuilder:resource:scope=Namespaced,shortName=nkcm,categories=capi;capn
 //+kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 //+kubebuilder:subresource:status
@@ -62,4 +61,36 @@ type NestedControllerManagerList struct {
 
 func init() {
 	SchemeBuilder.Register(&NestedControllerManager{}, &NestedControllerManagerList{})
+}
+
+var _ addonv1alpha1.CommonObject = &NestedControllerManager{}
+var _ addonv1alpha1.Patchable = &NestedControllerManager{}
+
+// ComponentName returns the name of the component for use with
+// addonv1alpha1.CommonObject
+func (c *NestedControllerManager) ComponentName() string {
+	return string(ControllerManager)
+}
+
+// CommonSpec returns the addons spec of the object allowing common funcs like
+// Channel & Version to be usable
+func (c *NestedControllerManager) CommonSpec() addonv1alpha1.CommonSpec {
+	return c.Spec.CommonSpec
+}
+
+// GetCommonStatus will return the common status for checking is a component
+// was successfully deployed
+func (c *NestedControllerManager) GetCommonStatus() addonv1alpha1.CommonStatus {
+	return c.Status.CommonStatus
+}
+
+// SetCommonStatus will set the status so that abstract representations can set
+// Ready and Phases
+func (c *NestedControllerManager) SetCommonStatus(s addonv1alpha1.CommonStatus) {
+	c.Status.CommonStatus = s
+}
+
+// PatchSpec returns the patches to be applied
+func (c *NestedControllerManager) PatchSpec() addonv1alpha1.PatchSpec {
+	return c.Spec.PatchSpec
 }

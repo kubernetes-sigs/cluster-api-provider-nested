@@ -153,7 +153,7 @@ func TestGetOwner(t *testing.T) {
 			t.Parallel()
 			t.Logf("\tTestCase: %s", st.name)
 			{
-				get := getOwner(st.netcd)
+				get := getOwner(st.netcd.ObjectMeta)
 				if !reflect.DeepEqual(get, st.expect) {
 					t.Fatalf("\t%s\texpect %v, but get %v", failed, st.expect, get)
 				}
@@ -167,25 +167,28 @@ func TestGetOwner(t *testing.T) {
 
 func TestGenInitialClusterArgs(t *testing.T) {
 	tests := []struct {
-		name     string
-		replicas int32
-		stsName  string
-		svcName  string
-		expect   string
+		name         string
+		replicas     int32
+		stsName      string
+		svcName      string
+		svcNamespace string
+		expect       string
 	}{
 		{
 			"1 replicas",
 			1,
 			"netcdSts",
 			"netcdSvc",
-			"netcdSts-0=https://netcdSts-0.netcdSvc:2380",
+			"default",
+			"netcdSts-etcd-0=https://netcdSts-etcd-0.netcdSvc-etcd.default.svc:2380",
 		},
 		{
 			"2 replicas",
 			2,
 			"netcdSts",
 			"netcdSvc",
-			"netcdSts-0=https://netcdSts-0.netcdSvc:2380,netcdSts-1=https://netcdSts-1.netcdSvc:2380",
+			"default",
+			"netcdSts-etcd-0=https://netcdSts-etcd-0.netcdSvc-etcd.default.svc:2380,netcdSts-etcd-1=https://netcdSts-etcd-1.netcdSvc-etcd.default.svc:2380",
 		},
 	}
 	for _, tt := range tests {
@@ -194,7 +197,7 @@ func TestGenInitialClusterArgs(t *testing.T) {
 			t.Parallel()
 			t.Logf("\tTestCase: %s", st.name)
 			{
-				get := genInitialClusterArgs(st.replicas, st.stsName, st.svcName)
+				get := genInitialClusterArgs(st.replicas, st.stsName, st.svcName, st.svcNamespace)
 				if !reflect.DeepEqual(get, st.expect) {
 					t.Fatalf("\t%s\texpect %v, but get %v", failed, st.expect, get)
 				}

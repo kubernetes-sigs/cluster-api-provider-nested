@@ -18,6 +18,7 @@ package controlplane
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
@@ -25,11 +26,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/certs"
+	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcli "sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api-provider-nested/apis/controlplane/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-nested/certificate"
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 // NestedAPIServerReconciler reconciles a NestedAPIServer object
@@ -70,11 +76,26 @@ func (r *NestedAPIServerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{Requeue: true}, nil
 	}
 
+	var ncp clusterv1.NestedControlPlane
+	if err := r.Get(ctx, types.NamespacedName{Namespace: nkas.GetNamespace(), Name: owner.Name}, &ncp); err != nil {
+		log.Info("the owner could not be found, will retry later",
+			"namespace", nkas.GetNamespace(),
+			"name", owner.Name)
+		return ctrl.Result{}, ctrlcli.IgnoreNotFound(err)
+	}
+
+	cluster, err := ncp.GetOwnerCluster(ctx, r.Client)
+	if err != nil || cluster == nil {
+		log.Error(err, "Failed to retrieve owner Cluster from the control plane")
+		return ctrl.Result{}, err
+	}
+
 	// 2. create the NestedAPIServer StatefulSet if not found
+	nkasName := fmt.Sprintf("%s-apiserver", cluster.GetName())
 	var nkasSts appsv1.StatefulSet
 	if err := r.Get(ctx, types.NamespacedName{
 		Namespace: nkas.GetNamespace(),
-		Name:      nkas.GetName(),
+		Name:      nkasName,
 	}, &nkasSts); err != nil {
 		if apierrors.IsNotFound(err) {
 			// as the statefulset is not found, mark the NestedAPIServer as unready
@@ -88,10 +109,15 @@ func (r *NestedAPIServerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 					return ctrl.Result{}, err
 				}
 			}
+			if err := r.createAPIServerClientCrts(ctx, cluster, &ncp, &nkas); err != nil {
+				log.Error(err, "fail to create NestedAPIServer Client Certs")
+				return ctrl.Result{}, err
+			}
+
 			// the statefulset is not found, create one
 			if err := createNestedComponentSts(ctx,
 				r.Client, nkas.ObjectMeta, nkas.Spec.NestedComponentSpec,
-				clusterv1.APIServer, owner.Name, log); err != nil {
+				clusterv1.APIServer, owner.Name, cluster.GetName(), log); err != nil {
 				log.Error(err, "fail to create NestedAPIServer StatefulSet")
 				return ctrl.Result{}, err
 			}
@@ -110,7 +136,7 @@ func (r *NestedAPIServerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			// As the NestedAPIServer StatefulSet is ready, update
 			// NestedAPIServer status
 			nkas.Status.Phase = string(clusterv1.Ready)
-			objRef, err := genAPIServerSvcRef(r.Client, nkas)
+			objRef, err := genAPIServerSvcRef(r.Client, nkas, cluster.GetName())
 			if err != nil {
 				log.Error(err, "fail to generate NestedAPIServer Service Reference")
 				return ctrl.Result{}, err
@@ -169,4 +195,70 @@ func (r *NestedAPIServerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&clusterv1.NestedAPIServer{}).
 		Owns(&appsv1.StatefulSet{}).
 		Complete(r)
+}
+
+// createAPIServerClientCrts will find of create client certs for the etcd cluster
+func (r *NestedAPIServerReconciler) createAPIServerClientCrts(ctx context.Context, cluster *clusterv1alpha4.Cluster, ncp *clusterv1.NestedControlPlane, nkas *clusterv1.NestedAPIServer) error {
+	certificates := secret.NewCertificatesForInitialControlPlane(nil)
+	if err := certificates.Lookup(ctx, r.Client, util.ObjectKey(cluster)); err != nil {
+		return err
+	}
+	cacert := certificates.GetByPurpose(secret.ClusterCA)
+	if cacert == nil {
+		return fmt.Errorf("could not fetch ClusterCA")
+	}
+
+	cacrt, err := certs.DecodeCertPEM(cacert.KeyPair.Cert)
+	if err != nil {
+		return err
+	}
+
+	cakey, err := certs.DecodePrivateKeyPEM(cacert.KeyPair.Key)
+	if err != nil {
+		return err
+	}
+
+	// TODO(christopherhein) figure out how to get service clusterIPs
+	apiKeyPair, err := certificate.NewAPIServerCrtAndKey(&certificate.KeyPair{Cert: cacrt, Key: cakey}, nkas.GetName(), "", cluster.Spec.ControlPlaneEndpoint.Host)
+	if err != nil {
+		return err
+	}
+
+	kubeletKeyPair, err := certificate.NewAPIServerKubeletClientCertAndKey(&certificate.KeyPair{Cert: cacrt, Key: cakey})
+	if err != nil {
+		return err
+	}
+
+	fpcert := certificates.GetByPurpose(secret.FrontProxyCA)
+	if cacert == nil {
+		return fmt.Errorf("could not fetch FrontProxyCA")
+	}
+
+	fpcrt, err := certs.DecodeCertPEM(fpcert.KeyPair.Cert)
+	if err != nil {
+		return err
+	}
+
+	fpkey, err := certs.DecodePrivateKeyPEM(fpcert.KeyPair.Key)
+	if err != nil {
+		return err
+	}
+
+	frontProxyKeyPair, err := certificate.NewFrontProxyClientCertAndKey(&certificate.KeyPair{Cert: fpcrt, Key: fpkey})
+	if err != nil {
+		return err
+	}
+
+	certs := &certificate.KeyPairs{
+		apiKeyPair,
+		kubeletKeyPair,
+		frontProxyKeyPair,
+	}
+
+	controllerRef := metav1.NewControllerRef(ncp, clusterv1.GroupVersion.WithKind("NestedControlPlane"))
+	if err := certs.LookupOrSave(ctx, r.Client, util.ObjectKey(cluster), *controllerRef); err != nil {
+		return err
+	}
+
+	return nil
 }

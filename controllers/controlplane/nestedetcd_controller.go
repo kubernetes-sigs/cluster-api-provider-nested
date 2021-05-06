@@ -28,11 +28,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/util/certs"
+	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcli "sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api-provider-nested/apis/controlplane/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-nested/certificate"
+	"sigs.k8s.io/cluster-api/util"
 )
 
 // NestedEtcdReconciler reconciles a NestedEtcd object
@@ -71,10 +76,25 @@ func (r *NestedEtcdReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{Requeue: true}, nil
 	}
 
+	var ncp clusterv1.NestedControlPlane
+	if err := r.Get(ctx, types.NamespacedName{Namespace: netcd.GetNamespace(), Name: owner.Name}, &ncp); err != nil {
+		log.Info("the owner could not be found, will retry later",
+			"namespace", netcd.GetNamespace(),
+			"name", owner.Name)
+		return ctrl.Result{}, ctrlcli.IgnoreNotFound(err)
+	}
+
+	cluster, err := ncp.GetOwnerCluster(ctx, r.Client)
+	if err != nil || cluster == nil {
+		log.Error(err, "Failed to retrieve owner Cluster from the control plane")
+		return ctrl.Result{}, err
+	}
+
+	etcdName := fmt.Sprintf("%s-etcd", cluster.GetName())
 	var netcdSts appsv1.StatefulSet
 	if err := r.Get(ctx, types.NamespacedName{
 		Namespace: netcd.GetNamespace(),
-		Name:      netcd.GetName(),
+		Name:      etcdName,
 	}, &netcdSts); err != nil {
 		if apierrors.IsNotFound(err) {
 			// as the statefulset is not found, mark the NestedEtcd as unready
@@ -88,11 +108,17 @@ func (r *NestedEtcdReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 					return ctrl.Result{}, err
 				}
 			}
+
+			if err := r.createEtcdClientCrts(ctx, cluster, &ncp, &netcd); err != nil {
+				log.Error(err, "fail to create NestedEtcd Client Certs")
+				return ctrl.Result{}, err
+			}
+
 			// the statefulset is not found, create one
 			if err := createNestedComponentSts(ctx,
 				r.Client, netcd.ObjectMeta,
 				netcd.Spec.NestedComponentSpec,
-				clusterv1.Etcd, owner.Name, log); err != nil {
+				clusterv1.Etcd, owner.Name, cluster.GetName(), log); err != nil {
 				log.Error(err, "fail to create NestedEtcd StatefulSet")
 				return ctrl.Result{}, err
 			}
@@ -107,7 +133,7 @@ func (r *NestedEtcdReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		log.Info("The NestedEtcd StatefulSet is ready")
 		if !IsComponentReady(netcd.Status.CommonStatus) {
 			// As the NestedEtcd StatefulSet is ready, update NestedEtcd status
-			ip, err := getNestedEtcdSvcClusterIP(ctx, r.Client, netcd)
+			ip, err := getNestedEtcdSvcClusterIP(ctx, r.Client, cluster.GetName(), &netcd)
 			if err != nil {
 				log.Error(err, "fail to get NestedEtcd Service ClusterIP")
 				return ctrl.Result{}, err
@@ -176,25 +202,25 @@ func (r *NestedEtcdReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func getNestedEtcdSvcClusterIP(ctx context.Context, cli ctrlcli.Client,
-	netcd clusterv1.NestedEtcd) (string, error) {
+	clusterName string, netcd *clusterv1.NestedEtcd) (string, error) {
 	var svc corev1.Service
 	if err := cli.Get(ctx, types.NamespacedName{
 		Namespace: netcd.GetNamespace(),
-		Name:      netcd.GetName(),
+		Name:      fmt.Sprintf("%s-etcd", clusterName),
 	}, &svc); err != nil {
 		return "", err
 	}
 	return svc.Spec.ClusterIP, nil
 }
 
-// genInitialClusterArgs generates the values for `--inital-cluster` option of
+// genInitialClusterArgs generates the values for `--initial-cluster` option of
 // etcd based on the number of replicas specified in etcd StatefulSet
 func genInitialClusterArgs(replicas int32,
-	stsName, svcName string) (argsVal string) {
+	stsName, svcName, svcNamespace string) (argsVal string) {
 	for i := int32(0); i < replicas; i++ {
 		// use 2380 as the default port for etcd peer communication
-		peerAddr := fmt.Sprintf("%s-%d=https://%s-%d.%s:%d",
-			stsName, i, stsName, i, svcName, 2380)
+		peerAddr := fmt.Sprintf("%s-etcd-%d=https://%s-etcd-%d.%s-etcd.%s.svc:%d",
+			stsName, i, stsName, i, svcName, svcNamespace, 2380)
 		if i == replicas-1 {
 			argsVal = argsVal + peerAddr
 			break
@@ -203,4 +229,57 @@ func genInitialClusterArgs(replicas int32,
 	}
 
 	return argsVal
+}
+
+func getEtcdServers(name, namespace string, replicas int32) (etcdServers []string) {
+	var i int32
+	for ; i < replicas; i++ {
+		etcdServers = append(etcdServers, fmt.Sprintf("%s-etcd-%d.%s-etcd.%s", name, i, name, namespace))
+	}
+	etcdServers = append(etcdServers, name)
+	return etcdServers
+}
+
+// createEtcdClientCrts will find of create client certs for the etcd cluster
+func (r *NestedEtcdReconciler) createEtcdClientCrts(ctx context.Context, cluster *clusterv1alpha4.Cluster, ncp *clusterv1.NestedControlPlane, netcd *clusterv1.NestedEtcd) error {
+	certificates := secret.NewCertificatesForInitialControlPlane(nil)
+	if err := certificates.Lookup(ctx, r.Client, util.ObjectKey(cluster)); err != nil {
+		return err
+	}
+	cert := certificates.GetByPurpose(secret.EtcdCA)
+	if cert == nil {
+		return fmt.Errorf("could not fetch EtcdCA")
+	}
+
+	crt, err := certs.DecodeCertPEM(cert.KeyPair.Cert)
+	if err != nil {
+		return err
+	}
+
+	key, err := certs.DecodePrivateKeyPEM(cert.KeyPair.Key)
+	if err != nil {
+		return err
+	}
+
+	etcdKeyPair, err := certificate.NewEtcdServerCrtAndKey(&certificate.KeyPair{Cert: crt, Key: key}, getEtcdServers(cluster.GetName(), cluster.GetNamespace(), netcd.Spec.Replicas))
+	if err != nil {
+		return err
+	}
+
+	etcdHealthKeyPair, err := certificate.NewEtcdHealthcheckClientCertAndKey(&certificate.KeyPair{Cert: crt, Key: key})
+	if err != nil {
+		return err
+	}
+
+	certs := &certificate.KeyPairs{
+		etcdKeyPair,
+		etcdHealthKeyPair,
+	}
+
+	controllerRef := metav1.NewControllerRef(ncp, clusterv1.GroupVersion.WithKind("NestedControlPlane"))
+	if err := certs.LookupOrSave(ctx, r.Client, util.ObjectKey(cluster), *controllerRef); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -134,3 +134,29 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - nestedclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - nestedclusters/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - nestedclusters/status
+  verbs:
+  - get
+  - patch
+  - update

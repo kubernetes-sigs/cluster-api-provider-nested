@@ -20,19 +20,14 @@ const (
 	statefulsetOwnerKeyNEtcd  = ".metadata.netcd.controller"
 	statefulsetOwnerKeyNKas   = ".metadata.nkas.controller"
 	statefulsetOwnerKeyNKcm   = ".metadata.nkcm.controller"
-	defaultEtcdStatefulSetURL = "https://raw.githubusercontent.com/kubernetes-sigs/" +
-		"cluster-api-provider-nested/master/config/component-templates/" +
+	defaultEtcdStatefulSetURL = "./config/component-templates/" +
 		"nested-etcd/nested-etcd-statefulset-template.yaml"
-	defaultEtcdServiceURL = "https://raw.githubusercontent.com/kubernetes-sigs/" +
-		"cluster-api-provider-nested/master/config/component-templates/" +
+	defaultEtcdServiceURL = "./config/component-templates/" +
 		"nested-etcd/nested-etcd-service-template.yaml"
-	defaultKASStatefulSetURL = "https://raw.githubusercontent.com/kubernetes-sigs/" +
-		"cluster-api-provider-nested/master/config/component-templates/" +
+	defaultKASStatefulSetURL = "./config/component-templates/" +
 		"nested-apiserver/nested-apiserver-statefulset-template.yaml"
-	defaultKASServiceURL = "https://raw.githubusercontent.com/kubernetes-sigs/" +
-		"cluster-api-provider-nested/master/config/component-templates/" +
+	defaultKASServiceURL = "./config/component-templates/" +
 		"nested-apiserver/nested-apiserver-service-template.yaml"
-	defaultKCMStatefulSetURL = "https://raw.githubusercontent.com/kubernetes-sigs/" +
-		"cluster-api-provider-nested/master/config/component-templates/" +
+	defaultKCMStatefulSetURL = "./config/component-templates/" +
 		"nested-controllermanager/nested-controllermanager-statefulset-template.yaml"
 )
