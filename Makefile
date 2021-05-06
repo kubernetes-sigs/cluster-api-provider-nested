@@ -55,7 +55,10 @@ GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/golangci-lint)
 ENVSUBST := $(abspath $(TOOLS_BIN_DIR)/envsubst)
 
 # Define Docker related variables. Releases should modify and double check these vars.
+REGISTRY ?= gcr.io
+ifneq ($(shell gcloud config get-value project), )
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
+endif
 STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api-provider-nested
 PROD_REGISTRY ?= us.gcr.io/k8s-artifacts-prod/cluster-api-provider-nested
 IMAGE_NAME ?= cluster-api-nested-controller
