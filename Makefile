@@ -90,9 +90,11 @@ test: ## Run tests.
 ## --------------------------------------
 ## Binaries
 ## --------------------------------------
+.PHONY: binaries
+binaries: managers
 
 .PHONY: manager
-manager: ## Build manager binary
+manager-core: ## Build manager binary
 	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/manager sigs.k8s.io/cluster-api-provider-nested
 
 .PHONY: managers
@@ -163,6 +165,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		output:webhook:dir=./config/webhook \
 		webhook
 	## Copy files in CI folders.
+	mkdir -p ./config/ci/{rbac,manager}
 	cp -f ./config/rbac/*.yaml ./config/ci/rbac/
 	cp -f ./config/manager/manager*.yaml ./config/ci/manager/
 

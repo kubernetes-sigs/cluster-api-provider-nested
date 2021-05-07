@@ -14,7 +14,6 @@ limitations under the License.
 package certificate
 
 import (
-	cryptorand "crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
@@ -166,9 +165,4 @@ func NewFrontProxyClientCertAndKey(ca *KeyPair) (*KeyPair, error) {
 		return nil, errors.New("fail to assert rsa private key")
 	}
 	return &KeyPair{ProxyClient, frontProxyClientCert, rsaKey, true, true}, nil
-}
-
-// newPrivateKey creates an RSA private key
-func newPrivateKey() (*rsa.PrivateKey, error) {
-	return rsa.GenerateKey(cryptorand.Reader, 2048)
 }

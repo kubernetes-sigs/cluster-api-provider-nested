@@ -65,7 +65,7 @@ func (r *NestedControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Complete(r)
 }
 
-// Reconcile is ths main process which will handle updating teh NCP
+// Reconcile is ths main process which will handle updating the NCP
 func (r *NestedControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("nestedcontrolplane", req.NamespacedName)
 	log.Info("Reconciling NestedControlPlane...")
@@ -118,7 +118,7 @@ func (r *NestedControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// TODO(christopherhein) handle deletion
 	if !ncp.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Handle deletion reconciliation loop.
-		return r.reconcileDelete(ctx, log, cluster, ncp)
+		return r.reconcileDelete(ctx, log, ncp)
 	}
 
 	defer func() {
@@ -132,7 +132,7 @@ func (r *NestedControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.R
 }
 
 // reconcileDelete will delete the control plane and all it's nestedcomponents
-func (r *NestedControlPlaneReconciler) reconcileDelete(ctx context.Context, log logr.Logger, cluster *clusterv1.Cluster, ncp *controlplanev1.NestedControlPlane) (ctrl.Result, error) {
+func (r *NestedControlPlaneReconciler) reconcileDelete(ctx context.Context, log logr.Logger, ncp *controlplanev1.NestedControlPlane) (ctrl.Result, error) {
 	patchHelper, err := patch.NewHelper(ncp, r.Client)
 	if err != nil {
 		log.Error(err, "Failed to configure the patch helper")

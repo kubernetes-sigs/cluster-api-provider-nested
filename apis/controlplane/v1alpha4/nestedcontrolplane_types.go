@@ -126,10 +126,10 @@ func (r *NestedControlPlane) GetOwnerCluster(ctx context.Context, cli client.Cli
 	return util.GetOwnerCluster(ctx, cli, r.ObjectMeta)
 }
 
-func (in *NestedControlPlane) GetConditions() clusterv1.Conditions {
-	return in.Status.Conditions
+func (r *NestedControlPlane) GetConditions() clusterv1.Conditions {
+	return r.Status.Conditions
 }
 
-func (in *NestedControlPlane) SetConditions(conditions clusterv1.Conditions) {
-	in.Status.Conditions = conditions
+func (r *NestedControlPlane) SetConditions(conditions clusterv1.Conditions) {
+	r.Status.Conditions = conditions
 }
