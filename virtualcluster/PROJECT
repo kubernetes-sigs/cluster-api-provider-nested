@@ -1,0 +1,4 @@
+version: "1"
+domain: x-k8s.io
+projectName: virtualcluster
+repo: sigs.k8s.io/cluster-api-provider-nested/virtualcluster
