@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controlplane
+package controllers
 
 import (
 	"bytes"
@@ -36,24 +36,25 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrlcli "sigs.k8s.io/controller-runtime/pkg/client"
 
-	clusterv1 "sigs.k8s.io/cluster-api-provider-nested/apis/controlplane/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
 	addonv1alpha1 "sigs.k8s.io/kubebuilder-declarative-pattern/pkg/patterns/addon/pkg/apis/v1alpha1"
 )
+
+// +kubebuilder:rbac:groups="";apps,resources=services;statefulsets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="";apps,resources=services/status;statefulsets/status,verbs=get;update;patch
 
 // createNestedComponentSts will create the StatefulSet that runs the
 // NestedComponent
 func createNestedComponentSts(ctx context.Context,
 	cli ctrlcli.Client, ncMeta metav1.ObjectMeta,
-	ncSpec clusterv1.NestedComponentSpec,
-	ncKind clusterv1.ComponentKind,
-	controlPlaneName, clusterName string, log logr.Logger) error {
-	var (
-		ncSts *appsv1.StatefulSet
-		ncSvc *corev1.Service
-	)
+	ncSpec controlplanev1.NestedComponentSpec,
+	ncKind controlplanev1.ComponentKind,
+	controlPlaneName, clusterName, templatePath string, log logr.Logger) error {
+	ncSts := &appsv1.StatefulSet{}
+	ncSvc := &corev1.Service{}
 	// Setup the ownerReferences for all objects
 	or := metav1.NewControllerRef(&ncMeta,
-		clusterv1.GroupVersion.WithKind(string(ncKind)))
+		controlplanev1.GroupVersion.WithKind(string(ncKind)))
 
 	// 1. Using the template defined by version/channel to create the
 	// StatefulSet and the Service
@@ -64,13 +65,13 @@ func createNestedComponentSts(ctx context.Context,
 
 	log.V(4).Info("The Version and Channel are not set, " +
 		"will use the default template.")
-	if err := genStatefulSetObject(ncMeta, ncSpec, ncKind, controlPlaneName, clusterName, log, ncSts); err != nil {
+	if err := genStatefulSetObject(templatePath, ncMeta, ncSpec, ncKind, controlPlaneName, clusterName, log, ncSts); err != nil {
 		return fmt.Errorf("fail to generate the Statefulset object: %v", err)
 	}
 
-	if ncKind != clusterv1.ControllerManager {
+	if ncKind != controlplanev1.ControllerManager {
 		// no need to create the service for the NestedControllerManager
-		if err := genServiceObject(ncMeta, ncSpec, ncKind, controlPlaneName, clusterName, log, ncSvc); err != nil {
+		if err := genServiceObject(templatePath, ncMeta, ncSpec, ncKind, controlPlaneName, clusterName, log, ncSvc); err != nil {
 			return fmt.Errorf("fail to generate the Service object: %v", err)
 		}
 
@@ -91,16 +92,18 @@ func createNestedComponentSts(ctx context.Context,
 
 // genServiceObject generates the Service object corresponding to the
 // NestedComponent
-func genServiceObject(ncMeta metav1.ObjectMeta,
-	ncSpec clusterv1.NestedComponentSpec, ncKind clusterv1.ComponentKind,
+func genServiceObject(
+	templatePath string,
+	ncMeta metav1.ObjectMeta,
+	ncSpec controlplanev1.NestedComponentSpec, ncKind controlplanev1.ComponentKind,
 	controlPlaneName, clusterName string, log logr.Logger, svc *corev1.Service) error {
 	var templateURL string
 	if ncSpec.Version == "" && ncSpec.Channel == "" {
 		switch ncKind {
-		case clusterv1.APIServer:
-			templateURL = defaultKASServiceURL
-		case clusterv1.Etcd:
-			templateURL = defaultEtcdServiceURL
+		case controlplanev1.APIServer:
+			templateURL = templatePath + defaultKASServiceURL
+		case controlplanev1.Etcd:
+			templateURL = templatePath + defaultEtcdServiceURL
 		default:
 			panic("Unreachable")
 		}
@@ -131,21 +134,22 @@ func genServiceObject(ncMeta metav1.ObjectMeta,
 // genStatefulSetObject generates the StatefulSet object corresponding to the
 // NestedComponent
 func genStatefulSetObject(
+	templatePath string,
 	ncMeta metav1.ObjectMeta,
-	ncSpec clusterv1.NestedComponentSpec,
-	ncKind clusterv1.ComponentKind, controlPlaneName, clusterName string,
+	ncSpec controlplanev1.NestedComponentSpec,
+	ncKind controlplanev1.ComponentKind, controlPlaneName, clusterName string,
 	log logr.Logger, ncSts *appsv1.StatefulSet) error {
 	var templateURL string
 	if ncSpec.Version == "" && ncSpec.Channel == "" {
 		log.V(4).Info("The Version and Channel are not set, " +
 			"will use the default template.")
 		switch ncKind {
-		case clusterv1.APIServer:
-			templateURL = defaultKASStatefulSetURL
-		case clusterv1.Etcd:
-			templateURL = defaultEtcdStatefulSetURL
-		case clusterv1.ControllerManager:
-			templateURL = defaultKCMStatefulSetURL
+		case controlplanev1.APIServer:
+			templateURL = templatePath + defaultKASStatefulSetURL
+		case controlplanev1.Etcd:
+			templateURL = templatePath + defaultEtcdStatefulSetURL
+		case controlplanev1.ControllerManager:
+			templateURL = templatePath + defaultKCMStatefulSetURL
 		default:
 			panic("Unreachable")
 		}
@@ -187,7 +191,7 @@ func genStatefulSetObject(
 		"StatefulSet", ncSts.GetName())
 
 	// 6 set the "--initial-cluster" command line flag for the Etcd container
-	if ncKind == clusterv1.Etcd {
+	if ncKind == controlplanev1.Etcd {
 		icaVal := genInitialClusterArgs(1, clusterName, clusterName, ncMeta.GetNamespace())
 		stsArgs := append(ncSts.Spec.Template.Spec.Containers[0].Args,
 			"--initial-cluster", icaVal)
@@ -257,7 +261,7 @@ func getOwner(ncMeta metav1.ObjectMeta) metav1.OwnerReference {
 		return metav1.OwnerReference{}
 	}
 	for _, owner := range owners {
-		if owner.APIVersion == clusterv1.GroupVersion.String() &&
+		if owner.APIVersion == controlplanev1.GroupVersion.String() &&
 			owner.Kind == "NestedControlPlane" {
 			return owner
 		}
@@ -268,7 +272,7 @@ func getOwner(ncMeta metav1.ObjectMeta) metav1.OwnerReference {
 // genAPIServerSvcRef generates the ObjectReference that points to the
 // APISrver service
 func genAPIServerSvcRef(cli ctrlcli.Client,
-	nkas clusterv1.NestedAPIServer, clusterName string) (corev1.ObjectReference, error) {
+	nkas controlplanev1.NestedAPIServer, clusterName string) (corev1.ObjectReference, error) {
 	var (
 		svc    corev1.Service
 		objRef corev1.ObjectReference
@@ -295,5 +299,5 @@ func genObjRefFromObj(obj ctrlcli.Object) corev1.ObjectReference {
 }
 
 func IsComponentReady(status addonv1alpha1.CommonStatus) bool {
-	return status.Phase == string(clusterv1.Ready)
+	return status.Phase == string(controlplanev1.Ready)
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controlplane
+package controllers
 
 import (
 	"context"
@@ -28,36 +28,34 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	controlplanev1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcli "sigs.k8s.io/controller-runtime/pkg/client"
 
-	clusterv1 "sigs.k8s.io/cluster-api-provider-nested/apis/controlplane/v1alpha4"
-	"sigs.k8s.io/cluster-api-provider-nested/certificate"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/certificate"
 	"sigs.k8s.io/cluster-api/util"
 )
 
 // NestedEtcdReconciler reconciles a NestedEtcd object
 type NestedEtcdReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log          logr.Logger
+	Scheme       *runtime.Scheme
+	TemplatePath string
 }
 
-//+kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedetcds,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedetcds/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=apps,resources=statefulset,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=apps,resources=statefulset/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=,resources=service,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=,resources=service/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedetcds,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedetcds/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedetcds/finalizers,verbs=update
 
 func (r *NestedEtcdReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("nestedetcd", req.NamespacedName)
 	log.Info("Reconciling NestedEtcd...")
-	var netcd clusterv1.NestedEtcd
+	var netcd controlplanev1.NestedEtcd
 	if err := r.Get(ctx, req.NamespacedName, &netcd); err != nil {
 		return ctrl.Result{}, ctrlcli.IgnoreNotFound(err)
 	}
@@ -76,7 +74,7 @@ func (r *NestedEtcdReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	var ncp clusterv1.NestedControlPlane
+	var ncp controlplanev1.NestedControlPlane
 	if err := r.Get(ctx, types.NamespacedName{Namespace: netcd.GetNamespace(), Name: owner.Name}, &ncp); err != nil {
 		log.Info("the owner could not be found, will retry later",
 			"namespace", netcd.GetNamespace(),
@@ -100,7 +98,7 @@ func (r *NestedEtcdReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			// as the statefulset is not found, mark the NestedEtcd as unready
 			if IsComponentReady(netcd.Status.CommonStatus) {
 				netcd.Status.Phase =
-					string(clusterv1.Unready)
+					string(controlplanev1.Unready)
 				log.V(5).Info("The corresponding statefulset is not found, " +
 					"will mark the NestedEtcd as unready")
 				if err := r.Status().Update(ctx, &netcd); err != nil {
@@ -118,7 +116,7 @@ func (r *NestedEtcdReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			if err := createNestedComponentSts(ctx,
 				r.Client, netcd.ObjectMeta,
 				netcd.Spec.NestedComponentSpec,
-				clusterv1.Etcd, owner.Name, cluster.GetName(), log); err != nil {
+				controlplanev1.Etcd, owner.Name, cluster.GetName(), r.TemplatePath, log); err != nil {
 				log.Error(err, "fail to create NestedEtcd StatefulSet")
 				return ctrl.Result{}, err
 			}
@@ -138,8 +136,8 @@ func (r *NestedEtcdReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				log.Error(err, "fail to get NestedEtcd Service ClusterIP")
 				return ctrl.Result{}, err
 			}
-			netcd.Status.Phase = string(clusterv1.Ready)
-			netcd.Status.Addresses = []clusterv1.NestedEtcdAddress{
+			netcd.Status.Phase = string(controlplanev1.Ready)
+			netcd.Status.Addresses = []controlplanev1.NestedEtcdAddress{
 				{
 					IP:   ip,
 					Port: 2379,
@@ -160,7 +158,7 @@ func (r *NestedEtcdReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// As the NestedEtcd StatefulSet is unready, mark the NestedEtcd as unready
 	// if its current status is ready
 	if IsComponentReady(netcd.Status.CommonStatus) {
-		netcd.Status.Phase = string(clusterv1.Unready)
+		netcd.Status.Phase = string(controlplanev1.Unready)
 		if err := r.Status().Update(ctx, &netcd); err != nil {
 			log.Error(err, "fail to update NestedEtcd Object")
 			return ctrl.Result{}, err
@@ -184,7 +182,7 @@ func (r *NestedEtcdReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return nil
 			}
 			// make sure it's a NestedEtcd
-			if owner.APIVersion != clusterv1.GroupVersion.String() ||
+			if owner.APIVersion != controlplanev1.GroupVersion.String() ||
 				owner.Kind != "NestedEtcd" {
 				return nil
 			}
@@ -196,13 +194,13 @@ func (r *NestedEtcdReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&clusterv1.NestedEtcd{}).
+		For(&controlplanev1.NestedEtcd{}).
 		Owns(&appsv1.StatefulSet{}).
 		Complete(r)
 }
 
 func getNestedEtcdSvcClusterIP(ctx context.Context, cli ctrlcli.Client,
-	clusterName string, netcd *clusterv1.NestedEtcd) (string, error) {
+	clusterName string, netcd *controlplanev1.NestedEtcd) (string, error) {
 	var svc corev1.Service
 	if err := cli.Get(ctx, types.NamespacedName{
 		Namespace: netcd.GetNamespace(),
@@ -241,7 +239,7 @@ func getEtcdServers(name, namespace string, replicas int32) (etcdServers []strin
 }
 
 // createEtcdClientCrts will find of create client certs for the etcd cluster
-func (r *NestedEtcdReconciler) createEtcdClientCrts(ctx context.Context, cluster *clusterv1alpha4.Cluster, ncp *clusterv1.NestedControlPlane, netcd *clusterv1.NestedEtcd) error {
+func (r *NestedEtcdReconciler) createEtcdClientCrts(ctx context.Context, cluster *controlplanev1alpha4.Cluster, ncp *controlplanev1.NestedControlPlane, netcd *controlplanev1.NestedEtcd) error {
 	certificates := secret.NewCertificatesForInitialControlPlane(nil)
 	if err := certificates.Lookup(ctx, r.Client, util.ObjectKey(cluster)); err != nil {
 		return err
@@ -276,7 +274,7 @@ func (r *NestedEtcdReconciler) createEtcdClientCrts(ctx context.Context, cluster
 		etcdHealthKeyPair,
 	}
 
-	controllerRef := metav1.NewControllerRef(ncp, clusterv1.GroupVersion.WithKind("NestedControlPlane"))
+	controllerRef := metav1.NewControllerRef(ncp, controlplanev1.GroupVersion.WithKind("NestedControlPlane"))
 	if err := certs.LookupOrSave(ctx, r.Client, util.ObjectKey(cluster), *controllerRef); err != nil {
 		return err
 	}

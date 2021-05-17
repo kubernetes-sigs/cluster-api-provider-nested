@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controlplane
+package controllers
 
 import (
 	"context"
@@ -33,30 +33,27 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcli "sigs.k8s.io/controller-runtime/pkg/client"
 
-	clusterv1 "sigs.k8s.io/cluster-api-provider-nested/apis/controlplane/v1alpha4"
-	"sigs.k8s.io/cluster-api-provider-nested/certificate"
-	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/certificate"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 // NestedAPIServerReconciler reconciles a NestedAPIServer object
 type NestedAPIServerReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log          logr.Logger
+	Scheme       *runtime.Scheme
+	TemplatePath string
 }
 
-//+kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedapiservers,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedapiservers/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedapiservers/finalizers,verbs=update
-//+kubebuilder:rbac:groups=apps,resources=statefulset,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=apps,resources=statefulset/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=,resources=service,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=,resources=service/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedapiservers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedapiservers/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedapiservers/finalizers,verbs=update
 
 func (r *NestedAPIServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("nestedapiserver", req.NamespacedName)
 	log.Info("Reconciling NestedAPIServer...")
-	var nkas clusterv1.NestedAPIServer
+	var nkas controlplanev1.NestedAPIServer
 	if err := r.Get(ctx, req.NamespacedName, &nkas); err != nil {
 		return ctrl.Result{}, ctrlcli.IgnoreNotFound(err)
 	}
@@ -76,7 +73,7 @@ func (r *NestedAPIServerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	var ncp clusterv1.NestedControlPlane
+	var ncp controlplanev1.NestedControlPlane
 	if err := r.Get(ctx, types.NamespacedName{Namespace: nkas.GetNamespace(), Name: owner.Name}, &ncp); err != nil {
 		log.Info("the owner could not be found, will retry later",
 			"namespace", nkas.GetNamespace(),
@@ -101,7 +98,7 @@ func (r *NestedAPIServerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			// as the statefulset is not found, mark the NestedAPIServer as unready
 			if IsComponentReady(nkas.Status.CommonStatus) {
 				nkas.Status.Phase =
-					string(clusterv1.Unready)
+					string(controlplanev1.Unready)
 				log.V(5).Info("The corresponding statefulset is not found, " +
 					"will mark the NestedAPIServer as unready")
 				if err := r.Status().Update(ctx, &nkas); err != nil {
@@ -117,7 +114,7 @@ func (r *NestedAPIServerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			// the statefulset is not found, create one
 			if err := createNestedComponentSts(ctx,
 				r.Client, nkas.ObjectMeta, nkas.Spec.NestedComponentSpec,
-				clusterv1.APIServer, owner.Name, cluster.GetName(), log); err != nil {
+				controlplanev1.APIServer, owner.Name, cluster.GetName(), r.TemplatePath, log); err != nil {
 				log.Error(err, "fail to create NestedAPIServer StatefulSet")
 				return ctrl.Result{}, err
 			}
@@ -135,7 +132,7 @@ func (r *NestedAPIServerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		if !IsComponentReady(nkas.Status.CommonStatus) {
 			// As the NestedAPIServer StatefulSet is ready, update
 			// NestedAPIServer status
-			nkas.Status.Phase = string(clusterv1.Ready)
+			nkas.Status.Phase = string(controlplanev1.Ready)
 			objRef, err := genAPIServerSvcRef(r.Client, nkas, cluster.GetName())
 			if err != nil {
 				log.Error(err, "fail to generate NestedAPIServer Service Reference")
@@ -157,7 +154,7 @@ func (r *NestedAPIServerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// mark the NestedAPIServer as unready, if the NestedAPIServer
 	// StatefulSet is unready,
 	if IsComponentReady(nkas.Status.CommonStatus) {
-		nkas.Status.Phase = string(clusterv1.Unready)
+		nkas.Status.Phase = string(controlplanev1.Unready)
 		if err := r.Status().Update(ctx, &nkas); err != nil {
 			log.Error(err, "fail to update NestedAPIServer Object")
 			return ctrl.Result{}, err
@@ -181,8 +178,8 @@ func (r *NestedAPIServerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return nil
 			}
 			// make sure it's a NestedAPIServer
-			if owner.APIVersion != clusterv1.GroupVersion.String() ||
-				owner.Kind != string(clusterv1.APIServer) {
+			if owner.APIVersion != controlplanev1.GroupVersion.String() ||
+				owner.Kind != string(controlplanev1.APIServer) {
 				return nil
 			}
 
@@ -192,13 +189,13 @@ func (r *NestedAPIServerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&clusterv1.NestedAPIServer{}).
+		For(&controlplanev1.NestedAPIServer{}).
 		Owns(&appsv1.StatefulSet{}).
 		Complete(r)
 }
 
 // createAPIServerClientCrts will find of create client certs for the etcd cluster
-func (r *NestedAPIServerReconciler) createAPIServerClientCrts(ctx context.Context, cluster *clusterv1alpha4.Cluster, ncp *clusterv1.NestedControlPlane, nkas *clusterv1.NestedAPIServer) error {
+func (r *NestedAPIServerReconciler) createAPIServerClientCrts(ctx context.Context, cluster *clusterv1.Cluster, ncp *controlplanev1.NestedControlPlane, nkas *controlplanev1.NestedAPIServer) error {
 	certificates := secret.NewCertificatesForInitialControlPlane(nil)
 	if err := certificates.Lookup(ctx, r.Client, util.ObjectKey(cluster)); err != nil {
 		return err
@@ -255,7 +252,7 @@ func (r *NestedAPIServerReconciler) createAPIServerClientCrts(ctx context.Contex
 		frontProxyKeyPair,
 	}
 
-	controllerRef := metav1.NewControllerRef(ncp, clusterv1.GroupVersion.WithKind("NestedControlPlane"))
+	controllerRef := metav1.NewControllerRef(ncp, controlplanev1.GroupVersion.WithKind("NestedControlPlane"))
 	if err := certs.LookupOrSave(ctx, r.Client, util.ObjectKey(cluster), *controllerRef); err != nil {
 		return err
 	}

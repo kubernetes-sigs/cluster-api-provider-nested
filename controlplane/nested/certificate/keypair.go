@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 
-	"sigs.k8s.io/cluster-api-provider-nested/certificate/util"
+	"sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/certificate/util"
 
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client"

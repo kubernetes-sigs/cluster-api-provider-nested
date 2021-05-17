@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controlplane
+package controllers
 
 import (
 	"path/filepath"
@@ -30,7 +30,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	controlplanev1alpha4 "sigs.k8s.io/cluster-api-provider-nested/apis/controlplane/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -54,7 +54,7 @@ var _ = BeforeSuite(func(done Done) {
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "config", "crd", "bases")},
+		CRDDirectoryPaths: []string{filepath.Join("..", "config", "crd", "bases")},
 	}
 
 	var err error
@@ -62,16 +62,16 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	err = controlplanev1alpha4.AddToScheme(scheme.Scheme)
+	err = controlplanev1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = controlplanev1alpha4.AddToScheme(scheme.Scheme)
+	err = controlplanev1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = controlplanev1alpha4.AddToScheme(scheme.Scheme)
+	err = controlplanev1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = controlplanev1alpha4.AddToScheme(scheme.Scheme)
+	err = controlplanev1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme

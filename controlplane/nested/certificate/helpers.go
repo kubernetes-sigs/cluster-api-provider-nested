@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 
 	"k8s.io/client-go/util/cert"
-	"sigs.k8s.io/cluster-api-provider-nested/certificate/util"
+	"sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/certificate/util"
 )
 
 // NewAPIServerCertAndKey creates crt and key for apiserver using ca.

@@ -1,12 +1,12 @@
-namePrefix: capn-
-namespace: capn-system
+namePrefix: capn-nested-control-plane-
+namespace: capn-nested-control-plane-system
 
 
 # Labels to add to all resources and selectors.
 commonLabels:
   # Label to denote name of the infra provider
   # https://cluster-api.sigs.k8s.io/clusterctl/provider-contract.html#labels
-  cluster.x-k8s.io/provider: "infrastructure-nested"
+  cluster.x-k8s.io/provider: "control-plane-nested"
 
 bases:
 - ../crd

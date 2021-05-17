@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controlplane
+package controllers
 
 import (
 	"context"
@@ -30,27 +30,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcli "sigs.k8s.io/controller-runtime/pkg/client"
 
-	clusterv1 "sigs.k8s.io/cluster-api-provider-nested/apis/controlplane/v1alpha4"
-	controlplanev1alpha4 "sigs.k8s.io/cluster-api-provider-nested/apis/controlplane/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
 )
 
 // NestedControllerManagerReconciler reconciles a NestedControllerManager object
 type NestedControllerManagerReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log          logr.Logger
+	Scheme       *runtime.Scheme
+	TemplatePath string
 }
 
-//+kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrollermanagers,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrollermanagers/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrollermanagers/finalizers,verbs=update
-//+kubebuilder:rbac:groups=apps,resources=statefulset,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=apps,resources=statefulset/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrollermanagers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrollermanagers/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrollermanagers/finalizers,verbs=update
 
 func (r *NestedControllerManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("nestedcontrollermanager", req.NamespacedName)
 	log.Info("Reconciling NestedControllerManager...")
-	var nkcm clusterv1.NestedControllerManager
+	var nkcm controlplanev1.NestedControllerManager
 	if err := r.Get(ctx, req.NamespacedName, &nkcm); err != nil {
 		return ctrl.Result{}, ctrlcli.IgnoreNotFound(err)
 	}
@@ -70,7 +68,7 @@ func (r *NestedControllerManagerReconciler) Reconcile(ctx context.Context, req c
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	var ncp clusterv1.NestedControlPlane
+	var ncp controlplanev1.NestedControlPlane
 	if err := r.Get(ctx, types.NamespacedName{Namespace: nkcm.GetNamespace(), Name: owner.Name}, &ncp); err != nil {
 		log.Info("the owner could not be found, will retry later",
 			"namespace", nkcm.GetNamespace(),
@@ -96,7 +94,7 @@ func (r *NestedControllerManagerReconciler) Reconcile(ctx context.Context, req c
 			// as unready
 			if IsComponentReady(nkcm.Status.CommonStatus) {
 				nkcm.Status.Phase =
-					string(clusterv1.Unready)
+					string(controlplanev1.Unready)
 				log.V(5).Info("The corresponding statefulset is not found, " +
 					"will mark the NestedControllerManager as unready")
 				if err := r.Status().Update(ctx, &nkcm); err != nil {
@@ -107,7 +105,7 @@ func (r *NestedControllerManagerReconciler) Reconcile(ctx context.Context, req c
 			// the statefulset is not found, create one
 			if err := createNestedComponentSts(ctx,
 				r.Client, nkcm.ObjectMeta, nkcm.Spec.NestedComponentSpec,
-				clusterv1.ControllerManager, owner.Name, cluster.GetName(), log); err != nil {
+				controlplanev1.ControllerManager, owner.Name, cluster.GetName(), r.TemplatePath, log); err != nil {
 				log.Error(err, "fail to create NestedControllerManager StatefulSet")
 				return ctrl.Result{}, err
 			}
@@ -125,7 +123,7 @@ func (r *NestedControllerManagerReconciler) Reconcile(ctx context.Context, req c
 		if !IsComponentReady(nkcm.Status.CommonStatus) {
 			// As the NestedControllerManager StatefulSet is ready, update
 			// NestedControllerManager status
-			nkcm.Status.Phase = string(clusterv1.Ready)
+			nkcm.Status.Phase = string(controlplanev1.Ready)
 			log.V(5).Info("The corresponding statefulset is ready, " +
 				"will mark the NestedControllerManager as ready")
 			if err := r.Status().Update(ctx, &nkcm); err != nil {
@@ -140,7 +138,7 @@ func (r *NestedControllerManagerReconciler) Reconcile(ctx context.Context, req c
 	// mark the NestedControllerManager as unready, if the NestedControllerManager
 	// StatefulSet is unready,
 	if IsComponentReady(nkcm.Status.CommonStatus) {
-		nkcm.Status.Phase = string(clusterv1.Unready)
+		nkcm.Status.Phase = string(controlplanev1.Unready)
 		if err := r.Status().Update(ctx, &nkcm); err != nil {
 			log.Error(err, "fail to update NestedControllerManager Object")
 			return ctrl.Result{}, err
@@ -164,8 +162,8 @@ func (r *NestedControllerManagerReconciler) SetupWithManager(mgr ctrl.Manager) e
 				return nil
 			}
 			// make sure it's a NestedControllerManager
-			if owner.APIVersion != clusterv1.GroupVersion.String() ||
-				owner.Kind != string(clusterv1.ControllerManager) {
+			if owner.APIVersion != controlplanev1.GroupVersion.String() ||
+				owner.Kind != string(controlplanev1.ControllerManager) {
 				return nil
 			}
 
@@ -175,7 +173,7 @@ func (r *NestedControllerManagerReconciler) SetupWithManager(mgr ctrl.Manager) e
 		return err
 	}
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&controlplanev1alpha4.NestedControllerManager{}).
+		For(&controlplanev1.NestedControllerManager{}).
 		Owns(&appsv1.StatefulSet{}).
 		Complete(r)
 }
