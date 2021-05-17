@@ -94,6 +94,9 @@ func readFromFileOrURL(path string) ([]byte, error) {
 		defer resp.Body.Close()
 
 		yamlContent, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
 		return yamlContent, nil
 	}
 	// read from a file
