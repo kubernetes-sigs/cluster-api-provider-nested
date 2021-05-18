@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,9 +36,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
-	infrastructurev1 "sigs.k8s.io/cluster-api-provider-nested/api/v1alpha4"
-	"sigs.k8s.io/cluster-api-provider-nested/controllers"
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
+	infrastructurev1alpha4 "sigs.k8s.io/cluster-api-provider-nested/api/v1alpha4"
+	controlplanev1alpha4 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/controllers"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -56,6 +56,7 @@ var (
 	syncPeriod                  time.Duration
 	webhookPort                 int
 	healthAddr                  string
+	templatePath                string
 )
 
 func init() {
@@ -63,8 +64,8 @@ func init() {
 
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
-	utilruntime.Must(controlplanev1.AddToScheme(scheme))
-	utilruntime.Must(infrastructurev1.AddToScheme(scheme))
+	utilruntime.Must(controlplanev1alpha4.AddToScheme(scheme))
+	utilruntime.Must(infrastructurev1alpha4.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -95,6 +96,9 @@ func InitFlags(fs *pflag.FlagSet) {
 		"Webhook Server port, disabled by default. When enabled, the manager will only work as webhook server, no reconcilers are installed.")
 
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
+		"The address the health endpoint binds to.")
+
+	fs.StringVar(&templatePath, "template-path", "/component-templates",
 		"The address the health endpoint binds to.")
 
 	feature.MutableGates.AddFlag(fs)
@@ -147,12 +151,42 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.NestedClusterReconciler{
+	if err = (&controllers.NestedControlPlaneReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("infrastructure").WithName("NestedCluster"),
+		Log:    ctrl.Log.WithName("controllers").WithName("controlplane").WithName("NestedControlPlane"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "NestedCluster")
+		setupLog.Error(err, "unable to create controller", "controller", "NestedControlPlane")
+		os.Exit(1)
+	}
+
+	if err = (&controllers.NestedEtcdReconciler{
+		Client:       mgr.GetClient(),
+		Log:          ctrl.Log.WithName("controllers").WithName("controlplane").WithName("NestedEtcd"),
+		Scheme:       mgr.GetScheme(),
+		TemplatePath: templatePath,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "NestedEtcd")
+		os.Exit(1)
+	}
+
+	if err = (&controllers.NestedAPIServerReconciler{
+		Client:       mgr.GetClient(),
+		Log:          ctrl.Log.WithName("controllers").WithName("controlplane").WithName("NestedAPIServer"),
+		Scheme:       mgr.GetScheme(),
+		TemplatePath: templatePath,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "NestedAPIServer")
+		os.Exit(1)
+	}
+
+	if err = (&controllers.NestedControllerManagerReconciler{
+		Client:       mgr.GetClient(),
+		Log:          ctrl.Log.WithName("controllers").WithName("controlplane").WithName("NestedControllerManager"),
+		Scheme:       mgr.GetScheme(),
+		TemplatePath: templatePath,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "NestedControllerManager")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

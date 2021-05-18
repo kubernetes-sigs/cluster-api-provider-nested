@@ -2,7 +2,7 @@
 .github
 .vscode
 bin/
-**/*.yaml
+# **/*.yaml
 hack/
 docs/
 logos/

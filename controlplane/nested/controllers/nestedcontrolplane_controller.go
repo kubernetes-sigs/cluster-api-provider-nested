@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controlplane
+package controllers
 
 import (
 	"context"
@@ -27,8 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/cluster-api-provider-nested/apis/controlplane/v1alpha4"
-	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/apis/controlplane/v1alpha4"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	kcpv1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
@@ -42,11 +41,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	addonv1alpha1 "sigs.k8s.io/kubebuilder-declarative-pattern/pkg/patterns/addon/pkg/apis/v1alpha1"
+
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
 )
 
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters,verbs=get;list;watch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrolplanes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrolplanes/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrollermanagers/finalizers,verbs=update
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrollermanagers/finalizers,verbs=update
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
 // NestedControlPlaneReconciler reconciles a NestedControlPlane object
 type NestedControlPlaneReconciler struct {
@@ -70,7 +73,7 @@ func (r *NestedControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.R
 	log := r.Log.WithValues("nestedcontrolplane", req.NamespacedName)
 	log.Info("Reconciling NestedControlPlane...")
 	// Fetch the NestedControlPlane
-	ncp := &v1alpha4.NestedControlPlane{}
+	ncp := &controlplanev1.NestedControlPlane{}
 	if err := r.Get(ctx, req.NamespacedName, ncp); err != nil {
 		// check for not found and don't requeue
 		if apierrors.IsNotFound(err) {
@@ -84,7 +87,7 @@ func (r *NestedControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.R
 	cluster, err := ncp.GetOwnerCluster(ctx, r.Client)
 	if err != nil || cluster == nil {
 		log.Error(err, "Failed to retrieve owner Cluster from the API Server")
-		return ctrl.Result{}, err
+		return ctrl.Result{Requeue: true}, err
 	}
 	log = log.WithValues("cluster", cluster.Name)
 
@@ -112,7 +115,7 @@ func (r *NestedControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.R
 			return ctrl.Result{}, err
 		}
 
-		return ctrl.Result{}, nil
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	// TODO(christopherhein) handle deletion
@@ -259,6 +262,8 @@ func (r *NestedControlPlaneReconciler) reconcile(ctx context.Context, log logr.L
 		if err := r.Status().Update(ctx, ncp); err != nil {
 			return ctrl.Result{}, err
 		}
+	} else if !ncp.Status.Ready && len(isReady) < 3 {
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	return ctrl.Result{}, nil

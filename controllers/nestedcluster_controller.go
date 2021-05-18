@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package infrastructure
+package controllers
 
 import (
 	"context"
@@ -27,13 +27,15 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clusterv1 "sigs.k8s.io/cluster-api-provider-nested/apis/controlplane/v1alpha4"
-	infrav1 "sigs.k8s.io/cluster-api-provider-nested/apis/infrastructure/v1alpha4"
+	infrav1 "sigs.k8s.io/cluster-api-provider-nested/api/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
 )
 
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters,verbs=get;list;watch
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=nestedclusters,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=nestedclusters/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=nestedclusters/finalizers,verbs=update
+//+kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrolplanes,verbs=get;list;watch
 
 // NestedClusterReconciler reconciles a NestedCluster object
 type NestedClusterReconciler struct {
@@ -46,7 +48,7 @@ type NestedClusterReconciler struct {
 func (r *NestedClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.NestedCluster{}).
-		Owns(&clusterv1.NestedControlPlane{}).
+		Owns(&controlplanev1.NestedControlPlane{}).
 		Complete(r)
 }
 
@@ -80,7 +82,7 @@ func (r *NestedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		Namespace: cluster.Spec.ControlPlaneRef.Namespace,
 		Name:      cluster.Spec.ControlPlaneRef.Name,
 	}
-	ncp := &clusterv1.NestedControlPlane{}
+	ncp := &controlplanev1.NestedControlPlane{}
 	if err := r.Get(ctx, objectKey, ncp); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{Requeue: true}, nil

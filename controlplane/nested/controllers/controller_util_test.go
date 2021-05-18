@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controlplane
+package controllers
 
 import (
 	"reflect"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	controlplanev1alpha4 "sigs.k8s.io/cluster-api-provider-nested/apis/controlplane/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
 )
 
 const (
@@ -76,12 +76,12 @@ func TestSubstituteTemplate(t *testing.T) {
 func TestGetOwner(t *testing.T) {
 	tests := []struct {
 		name   string
-		netcd  controlplanev1alpha4.NestedEtcd
+		netcd  controlplanev1.NestedEtcd
 		expect metav1.OwnerReference
 	}{
 		{
 			"no owner",
-			controlplanev1alpha4.NestedEtcd{
+			controlplanev1.NestedEtcd{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "test-netcd",
 					OwnerReferences: []metav1.OwnerReference{},
@@ -91,7 +91,7 @@ func TestGetOwner(t *testing.T) {
 		},
 		{
 			"owner APIVersion not matched",
-			controlplanev1alpha4.NestedEtcd{
+			controlplanev1.NestedEtcd{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-netcd",
 					OwnerReferences: []metav1.OwnerReference{
@@ -108,12 +108,12 @@ func TestGetOwner(t *testing.T) {
 		},
 		{
 			"owner kind not matched",
-			controlplanev1alpha4.NestedEtcd{
+			controlplanev1.NestedEtcd{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-netcd",
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: controlplanev1alpha4.GroupVersion.String(),
+							APIVersion: controlplanev1.GroupVersion.String(),
 							Kind:       "test-kind",
 							Name:       "test-name",
 							UID:        "xxxxx-xxxxx-xxxxx-xxxxx",
@@ -125,12 +125,12 @@ func TestGetOwner(t *testing.T) {
 		},
 		{
 			"owner found",
-			controlplanev1alpha4.NestedEtcd{
+			controlplanev1.NestedEtcd{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-netcd",
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: controlplanev1alpha4.GroupVersion.String(),
+							APIVersion: controlplanev1.GroupVersion.String(),
 							Kind:       "NestedControlPlane",
 							Name:       "test-name",
 							UID:        "xxxxx-xxxxx-xxxxx-xxxxx",
@@ -139,7 +139,7 @@ func TestGetOwner(t *testing.T) {
 				},
 			},
 			metav1.OwnerReference{
-				APIVersion: controlplanev1alpha4.GroupVersion.String(),
+				APIVersion: controlplanev1.GroupVersion.String(),
 				Kind:       "NestedControlPlane",
 				Name:       "test-name",
 				UID:        "xxxxx-xxxxx-xxxxx-xxxxx",

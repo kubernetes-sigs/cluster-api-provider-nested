@@ -1,4 +1,4 @@
-# Copyright 2018 The Kubernetes Authors.
+# Copyright 2021 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,9 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# If you update this file, please follow
-# https://suva.sh/posts/well-documented-makefiles
 
 # Ensure Make is run with bash shell as some syntax below is bash-specific
 SHELL:=/usr/bin/env bash
@@ -61,8 +58,14 @@ REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 endif
 STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api-provider-nested
 PROD_REGISTRY ?= us.gcr.io/k8s-artifacts-prod/cluster-api-provider-nested
+
+# Infrastructure
 IMAGE_NAME ?= cluster-api-nested-controller
 CONTROLLER_IMG ?= $(REGISTRY)/$(IMAGE_NAME)
+
+# Control Plane
+CONTROLPLANE_IMAGE_NAME ?= nested-controlplane-controller
+CONTROLPLANE_CONTROLLER_IMG ?= $(REGISTRY)/$(CONTROLPLANE_IMAGE_NAME)
 
 TAG ?= dev
 ARCH ?= amd64
@@ -93,13 +96,18 @@ test: ## Run tests.
 .PHONY: binaries
 binaries: managers
 
-.PHONY: manager
-manager-core: ## Build manager binary
-	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/manager sigs.k8s.io/cluster-api-provider-nested
-
 .PHONY: managers
 managers: ## Build all managers
-	$(MAKE) manager-core
+	$(MAKE) manager-nested-infrastructure
+	$(MAKE) manager-nested-controlplane
+
+.PHONY: manager-nested-infrastructure
+manager-nested-infrastructure:
+	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/manager sigs.k8s.io/cluster-api-provider-nested
+
+.PHONY: manager-nested-controlplane
+manager-nested-controlplane: ## Build manager binary
+	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/nested-controlplane-manager sigs.k8s.io/cluster-api-provider-nested/controlplane/nested
 
 $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
@@ -150,24 +158,52 @@ generate:
 .PHONY: generate-go
 generate-go: $(CONTROLLER_GEN) ## Runs Go related generate targets
 	go generate ./...
+	$(MAKE) generate-go-infrastructure
+	$(MAKE) generate-go-controlplane
+
+.PHONY: generate-go-infrastructure
+generate-go-infrastructure: $(CONTROLLER_GEN)
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
-		paths=./apis/...
+		paths=./api/...
+
+generate-go-controlplane: $(CONTROLLER_GEN)
+	$(CONTROLLER_GEN) \
+		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
+		paths=./controlplane/nested/api/...
 
 .PHONY: generate-manifests
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
+	$(MAKE) generate-manifests-infrastructure
+	$(MAKE) generate-manifests-controlplane
+	## Copy files in CI folders.
+	mkdir -p ./config/ci/{rbac,manager}
+	cp -f ./config/rbac/*.yaml ./config/ci/rbac/
+	cp -f ./config/manager/manager*.yaml ./config/ci/manager/
+
+.PHONY: generate-manifests-infrastructure
+generate-manifests-infrastructure:
 	$(CONTROLLER_GEN) \
-		paths=./apis/... \
+		paths=./api/... \
 		paths=./controllers/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases \
 		output:webhook:dir=./config/webhook \
+		output:rbac:dir=./config/rbac \
 		webhook
-	## Copy files in CI folders.
-	mkdir -p ./config/ci/{rbac,manager}
-	cp -f ./config/rbac/*.yaml ./config/ci/rbac/
-	cp -f ./config/manager/manager*.yaml ./config/ci/manager/
+
+.PHONY: generate-manifests-controlplane
+generate-manifests-controlplane:
+	$(CONTROLLER_GEN) \
+		paths=./controlplane/nested/api/... \
+		paths=./controlplane/nested/controllers/... \
+		crd:crdVersions=v1 \
+		rbac:roleName=manager-role \
+		output:crd:dir=./controlplane/nested/config/crd/bases \
+		output:webhook:dir=./controlplane/nested/config/webhook \
+		output:rbac:dir=./controlplane/nested/config/rbac \
+		webhook
 
 .PHONY: modules
 modules: ## Runs go mod to ensure modules are up to date.
@@ -184,32 +220,63 @@ docker-pull-prerequisites:
 	docker pull docker.io/library/golang:1.15.3
 	docker pull gcr.io/distroless/static:latest
 
-.PHONY: docker-build
-docker-build: docker-pull-prerequisites ## Build the docker images for controller managers
+.PHONY: docker-infrastructure-build
+docker-infrastructure-build: docker-pull-prerequisites ## Build the docker images for controller managers
 	DOCKER_BUILDKIT=1 docker build --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
-	# $(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/manager/manager_image_patch.yaml"
-	# $(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/manager/manager_pull_policy.yaml"
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
 
-.PHONY: docker-push
-docker-push: ## Push the docker images
+.PHONY: docker-controlplane-build
+docker-controlplane-build: docker-pull-prerequisites ## Build the docker images for controller managers
+	DOCKER_BUILDKIT=1 docker build --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" --build-arg package=./controlplane/nested . -t $(CONTROLPLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLPLANE_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/nested/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/nested/config/default/manager_pull_policy.yaml"
+
+
+.PHONY: docker-infrastructure-push
+docker-infrastructure-push: ## Push the docker images
 	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+
+.PHONY: docker-controlplane-push
+docker-controlplane-push: ## Push the docker images
+	docker push $(CONTROLPLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 ## --------------------------------------
 ## Docker — All ARCH
 ## --------------------------------------
 
 .PHONY: docker-build-all ## Build all the architecture docker images
-docker-build-all: $(addprefix docker-build-,$(ALL_ARCH))
+docker-build-all: $(addprefix docker-infrastructure-build-,$(ALL_ARCH)) $(addprefix docker-controlplane-build-,$(ALL_ARCH))
 
-docker-build-%:
-	$(MAKE) ARCH=$* docker-build
+.PHONY: docker-build
+docker-build:
+	$(MAKE) docker-infrastructure-build
+	$(MAKE) docker-controlplane-build
+
+.PHONY: docker-infrastructure-build
+docker-infrastructure-build-%:
+	$(MAKE) ARCH=$* docker-infrastructure-build
+
+.PHONY: docker-controlplane-build
+docker-controlplane-build-%:
+	$(MAKE) ARCH=$* docker-controlplane-build
 
 .PHONY: docker-push-all ## Push all the architecture docker images
-docker-push-all: $(addprefix docker-push-,$(ALL_ARCH))
+docker-push-all: $(addprefix docker-infrastructure-push-,$(ALL_ARCH)) $(addprefix docker-controlplane-push-,$(ALL_ARCH))
 	$(MAKE) docker-push-core-manifest
 
-docker-push-%:
-	$(MAKE) ARCH=$* docker-push
+.PHONY: docker-push
+docker-push:
+	$(MAKE) docker-infrastructure-push
+	$(MAKE) docker-controlplane-push
+
+.PHONY: docker-infrastructure-push
+docker-infrastructure-push-%:
+	$(MAKE) ARCH=$* docker-infrastructure-push
+
+.PHONY: docker-controlplane-push
+docker-controlplane-push-%:
+	$(MAKE) ARCH=$* docker-controlplane-push
 
 .PHONY: docker-push-core-manifest
 docker-push-core-manifest: ## Push the fat manifest docker image for the core image.
@@ -260,17 +327,28 @@ release: clean-release ## Builds and push container images using the latest git 
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) ## Builds the manifests to publish with a release
 	# Build infrastructure-components.
-	$(KUSTOMIZE) build config > $(RELEASE_DIR)/infrastructure-components.yaml
+	$(KUSTOMIZE) build config/default > $(RELEASE_DIR)/infrastructure-components.yaml
+	# Build control-plane-components.
+	$(KUSTOMIZE) build controlplane/nested/config/default > $(RELEASE_DIR)/control-plane-components.yaml
+
+	## Build cluster-api-provider-nested-components (aggregate of all of the above).
+	cat $(RELEASE_DIR)/infrastructure-components.yaml > $(RELEASE_DIR)/cluster-api-provider-nested-components.yaml
+	echo "---" >> $(RELEASE_DIR)/cluster-api-provider-nested-components.yaml
+	cat $(RELEASE_DIR)/control-plane-components.yaml >> $(RELEASE_DIR)/cluster-api-provider-nested-components.yaml
+	# Add metadata to the release artifacts
+	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
+
 
 .PHONY: release-staging
 release-staging: ## Builds and push container images to the staging bucket.
-	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build docker-push release-alias-tag
+	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-alias-tag
 
 RELEASE_ALIAS_TAG=$(PULL_BASE_REF)
 
 .PHONY: release-alias-tag
 release-alias-tag: ## Adds the tag to the last build tag.
 	gcloud container images add-tag $(CONTROLLER_IMG):$(TAG) $(CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
+	gcloud container images add-tag $(CONTROLPLANE_CONTROLLER_IMG):$(TAG) $(CONTROLPLANE_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 
 .PHONY: release-notes
 release-notes: $(RELEASE_NOTES)  ## Generates a release notes template to be used with a release.

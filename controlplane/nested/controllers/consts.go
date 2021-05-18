@@ -14,20 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controlplane
+package controllers
 
 const (
 	statefulsetOwnerKeyNEtcd  = ".metadata.netcd.controller"
 	statefulsetOwnerKeyNKas   = ".metadata.nkas.controller"
 	statefulsetOwnerKeyNKcm   = ".metadata.nkcm.controller"
-	defaultEtcdStatefulSetURL = "./config/component-templates/" +
-		"nested-etcd/nested-etcd-statefulset-template.yaml"
-	defaultEtcdServiceURL = "./config/component-templates/" +
-		"nested-etcd/nested-etcd-service-template.yaml"
-	defaultKASStatefulSetURL = "./config/component-templates/" +
-		"nested-apiserver/nested-apiserver-statefulset-template.yaml"
-	defaultKASServiceURL = "./config/component-templates/" +
-		"nested-apiserver/nested-apiserver-service-template.yaml"
-	defaultKCMStatefulSetURL = "./config/component-templates/" +
-		"nested-controllermanager/nested-controllermanager-statefulset-template.yaml"
+	defaultEtcdStatefulSetURL = "/nested-etcd/nested-etcd-statefulset-template.yaml"
+	defaultEtcdServiceURL     = "/nested-etcd/nested-etcd-service-template.yaml"
+	defaultKASStatefulSetURL  = "/nested-apiserver/nested-apiserver-statefulset-template.yaml"
+	defaultKASServiceURL      = "/nested-apiserver/nested-apiserver-service-template.yaml"
+	defaultKCMStatefulSetURL  = "/nested-controllermanager/nested-controllermanager-statefulset-template.yaml"
 )
