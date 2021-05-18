@@ -21,11 +21,13 @@ import (
 	"fmt"
 
 	pkgerr "github.com/pkg/errors"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
 )
@@ -77,8 +79,8 @@ func (c *controller) BackPopulate(key string) error {
 		return nil
 	}
 
-	vInvolvedObject, err := c.MultiClusterController.GetByObjectType(clusterName, tenantNS, pEvent.InvolvedObject.Name, vInvolvedObjectType)
-	if err != nil {
+	vInvolvedObject := vInvolvedObjectType.DeepCopyObject().(client.Object)
+	if err := c.MultiClusterController.Get(clusterName, tenantNS, pEvent.InvolvedObject.Name, vInvolvedObject); err != nil {
 		if errors.IsNotFound(err) {
 			klog.Infof("back populate event: failed to find pod %s/%s in cluster %s", tenantNS, pEvent.InvolvedObject.Name, clusterName)
 			return nil
@@ -86,9 +88,10 @@ func (c *controller) BackPopulate(key string) error {
 		return err
 	}
 
-	vEvent := conversion.BuildVirtualEvent(clusterName, pEvent, vInvolvedObject.(metav1.Object))
-	_, err = c.MultiClusterController.Get(clusterName, tenantNS, vEvent.Name)
-	if err != nil {
+	// TODO(christopherhein): We should mutate this instead and raise errors if anything happens.
+	vEvent := conversion.BuildVirtualEvent(clusterName, pEvent, vInvolvedObject)
+
+	if err = c.MultiClusterController.Get(clusterName, tenantNS, vEvent.Name, &v1.Event{}); err != nil {
 		if errors.IsNotFound(err) {
 			_, err = tenantClient.CoreV1().Events(tenantNS).Create(context.TODO(), vEvent, metav1.CreateOptions{})
 			return err

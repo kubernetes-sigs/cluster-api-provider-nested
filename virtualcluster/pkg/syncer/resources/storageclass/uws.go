@@ -57,8 +57,8 @@ func (c *controller) BackPopulate(key string) error {
 		return fmt.Errorf("failed to create client from cluster %s config: %v", clusterName, err)
 	}
 
-	vStorageClassObj, err := c.MultiClusterController.Get(clusterName, "", scName)
-	if err != nil {
+	vStorageClass := &v1.StorageClass{}
+	if err := c.MultiClusterController.Get(clusterName, "", scName, vStorageClass); err != nil {
 		if errors.IsNotFound(err) {
 			if op == reconciler.AddEvent {
 				// Available in super, hence create a new in tenant master
@@ -82,7 +82,7 @@ func (c *controller) BackPopulate(key string) error {
 			return err
 		}
 	} else {
-		updatedStorageClass := conversion.Equality(c.Config, nil).CheckStorageClassEquality(pStorageClass, vStorageClassObj.(*v1.StorageClass))
+		updatedStorageClass := conversion.Equality(c.Config, nil).CheckStorageClassEquality(pStorageClass, vStorageClass)
 		if updatedStorageClass != nil {
 			_, err := tenantClient.StorageV1().StorageClasses().Update(context.TODO(), updatedStorageClass, metav1.UpdateOptions{})
 			if err != nil {

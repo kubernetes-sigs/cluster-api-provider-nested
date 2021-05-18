@@ -114,7 +114,7 @@ type ClusterCondition struct {
 }
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/client.Object
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=vc
 // +k8s:openapi-gen=true
@@ -130,7 +130,7 @@ type VirtualCluster struct {
 }
 
 // +kubebuilder:object:root=true
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/client.Object
 
 // VirtualClusterList contains a list of VirtualCluster
 type VirtualClusterList struct {

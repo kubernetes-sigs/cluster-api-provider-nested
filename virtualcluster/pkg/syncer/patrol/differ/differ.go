@@ -19,12 +19,12 @@ package differ
 import (
 	"sync"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type ClusterObject struct {
-	metav1.Object
+	client.Object
 	Key          string
 	OwnerCluster string
 }

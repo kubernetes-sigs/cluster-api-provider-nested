@@ -27,10 +27,10 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/webhook"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/constants"
 	logrutil "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/util/logr"
@@ -139,7 +139,7 @@ func main() {
 
 	// Start the Cmd
 	log.Info("Starting the Cmd.")
-	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		log.Error(err, "unable to run the manager")
 		os.Exit(1)
 	}

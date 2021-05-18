@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
 	coreinformers "k8s.io/client-go/informers/core/v1"
@@ -36,6 +35,7 @@ import (
 	uw "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/uwcontroller"
 	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/plugin"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func init() {
@@ -58,11 +58,11 @@ type controller struct {
 	nsLister    listersv1.NamespaceLister
 	nsSynced    cache.InformerSynced
 
-	acceptedEventObj map[string]runtime.Object
+	acceptedEventObj map[string]client.Object
 }
 
 func NewEventController(config *config.SyncerConfiguration,
-	client clientset.Interface,
+	clientSet clientset.Interface,
 	informer informers.SharedInformerFactory,
 	vcClient vcclient.Interface,
 	vcInformer vcinformers.VirtualClusterInformer,
@@ -72,9 +72,9 @@ func NewEventController(config *config.SyncerConfiguration,
 		BaseResourceSyncer: manager.BaseResourceSyncer{
 			Config: config,
 		},
-		client:   client.CoreV1(),
+		client:   clientSet.CoreV1(),
 		informer: informer.Core().V1(),
-		acceptedEventObj: map[string]runtime.Object{
+		acceptedEventObj: map[string]client.Object{
 			"Pod":     &v1.Pod{},
 			"Service": &v1.Service{},
 		},

@@ -100,13 +100,13 @@ func (c *controller) PatrollerDo() {
 	knownClusterSet := sets.NewString(clusterNames...)
 	vSet := differ.NewDiffSet()
 	for _, cluster := range clusterNames {
-		listObj, err := c.MultiClusterController.List(cluster)
-		if err != nil {
+		vList := &v1.NamespaceList{}
+		if err := c.MultiClusterController.List(cluster, vList); err != nil {
 			klog.Errorf("error listing namespaces from cluster %s informer cache: %v", cluster, err)
 			knownClusterSet.Delete(cluster)
 			continue
 		}
-		vList := listObj.(*v1.NamespaceList)
+
 		for i := range vList.Items {
 			if featuregate.DefaultFeatureGate.Enabled(featuregate.SuperClusterPooling) {
 				if err := mc.IsNamespaceScheduledToCluster(&vList.Items[i], utilconstants.SuperClusterID); err != nil {

@@ -67,7 +67,6 @@ func RunUpwardSync(
 	enqueueKey string,
 	controllerStateModifyFunc controllerStateModifier,
 ) (actions []core.Action, reconcileError error, err error) {
-	registerDefaultScheme()
 	// setup fake tenant cluster
 	tenantClientset := fake.NewSimpleClientset()
 	tenantClient := fakeClient.NewFakeClient()

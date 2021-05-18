@@ -25,10 +25,10 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
-	"k8s.io/apiserver/pkg/util/term"
 	"k8s.io/client-go/tools/leaderelection"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/cli/globalflag"
+	"k8s.io/component-base/term"
 	"k8s.io/klog"
 
 	schedulerappconfig "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/cmd/scheduler/app/config"

@@ -54,7 +54,7 @@ type ClusterVersionStatus struct {
 
 // +kubebuilder:object:root=true
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/client.Object
 // +genclient:nonNamespaced
 // +kubebuilder:resource:scope=Cluster,shortName=cv
 
@@ -69,7 +69,7 @@ type ClusterVersion struct {
 }
 
 // +kubebuilder:object:root=true
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/client.Object
 // +genclient:nonNamespaced
 
 // ClusterVersionList contains a list of ClusterVersion

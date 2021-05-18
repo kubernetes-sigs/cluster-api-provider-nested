@@ -36,7 +36,7 @@ import (
 
 func (c *controller) StartUWS(stopCh <-chan struct{}) error {
 	if c.crdcache != nil {
-		go c.crdcache.Start(stopCh)
+		go c.crdcache.Start(context.Background())
 	} else {
 		klog.Errorf("crd cache is nil")
 	}
@@ -62,7 +62,7 @@ func (c *controller) BackPopulate(key string) error {
 		op = reconciler.DeleteEvent
 	}
 
-	vcrestconfig := c.multiClusterCrdController.GetCluster(clusterName).GetRestConfig()
+	vcrestconfig := c.MultiClusterController.GetCluster(clusterName).GetRestConfig()
 	var vcapiextensionsClient apiextensionclientset.CustomResourceDefinitionsGetter
 
 	if vcrestconfig == nil {
@@ -74,8 +74,8 @@ func (c *controller) BackPopulate(key string) error {
 	}
 	vcapiextensionsClient = vcc.ApiextensionsV1beta1()
 
-	vCRDObj, err := c.multiClusterCrdController.Get(clusterName, "", crdName)
-	if err != nil {
+	vCRD := &v1beta1.CustomResourceDefinition{}
+	if err := c.MultiClusterController.Get(clusterName, "", crdName, vCRD); err != nil {
 		if errors.IsNotFound(err) {
 			if op == reconciler.AddEvent {
 				// Available in super, hence create a new in tenant master
@@ -101,7 +101,7 @@ func (c *controller) BackPopulate(key string) error {
 			return err
 		}
 	} else {
-		updatedCRD := conversion.Equality(c.Config, nil).CheckCRDEquality(pCRD, vCRDObj.(*v1beta1.CustomResourceDefinition))
+		updatedCRD := conversion.Equality(c.Config, nil).CheckCRDEquality(pCRD, vCRD)
 		if updatedCRD != nil {
 			_, err = vcapiextensionsClient.CustomResourceDefinitions().Update(context.TODO(), updatedCRD, metav1.UpdateOptions{})
 			if err != nil {

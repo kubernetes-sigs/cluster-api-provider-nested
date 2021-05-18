@@ -17,7 +17,6 @@ limitations under the License.
 package cluster
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	clientgocache "k8s.io/client-go/tools/cache"
@@ -57,7 +56,7 @@ func (c *fakeCluster) GetOwnerInfo() (string, string, string) {
 	return c.vc.Name, c.vc.Namespace, string(c.vc.UID)
 }
 
-func (c *fakeCluster) GetObject() (runtime.Object, error) {
+func (c *fakeCluster) GetObject() (client.Object, error) {
 	return c.vc, nil
 }
 
@@ -69,12 +68,12 @@ func (c *fakeCluster) GetDelegatingClient() (client.Client, error) {
 	return c.fakeClient, nil
 }
 
-func (c *fakeCluster) AddEventHandler(runtime.Object, clientgocache.ResourceEventHandler) error {
+func (c *fakeCluster) AddEventHandler(client.Object, clientgocache.ResourceEventHandler) error {
 	// do nothing. we manually enqueue event in test.
 	return nil
 }
 
-func (c *fakeCluster) GetInformer(objectType runtime.Object) (cache.Informer, error) {
+func (c *fakeCluster) GetInformer(objectType client.Object) (cache.Informer, error) {
 	return nil, nil
 }
 

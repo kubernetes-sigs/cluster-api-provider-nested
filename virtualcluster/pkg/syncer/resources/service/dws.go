@@ -51,8 +51,8 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		pExists = false
 	}
 	vExists := true
-	vServiceObj, err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name)
-	if err != nil {
+	vService := &v1.Service{}
+	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vService); err != nil {
 		if !errors.IsNotFound(err) {
 			return reconciler.Result{Requeue: true}, err
 		}
@@ -60,7 +60,6 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	}
 
 	if vExists && !pExists {
-		vService := vServiceObj.(*v1.Service)
 		err := c.reconcileServiceCreate(request.ClusterName, targetNamespace, request.UID, vService)
 		if err != nil {
 			klog.Errorf("failed reconcile service %s/%s CREATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
@@ -73,7 +72,6 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 			return reconciler.Result{Requeue: true}, err
 		}
 	} else if vExists && pExists {
-		vService := vServiceObj.(*v1.Service)
 		err := c.reconcileServiceUpdate(request.ClusterName, targetNamespace, request.UID, pService, vService)
 		if err != nil {
 			klog.Errorf("failed reconcile service %s/%s UPDATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)

@@ -18,13 +18,13 @@ import (
 
 	v1 "k8s.io/api/scheduling/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/client-go/testing"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
-	utilscheme "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/scheme"
 	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
 
@@ -123,7 +123,6 @@ func TestPriorityClassPatrol(t *testing.T) {
 		},
 	}
 
-	utilscheme.Scheme.AddKnownTypePair(&v1.PriorityClass{}, &v1.PriorityClassList{})
 	for k, tc := range testcases {
 		t.Run(k, func(t *testing.T) {
 			tenantActions, superActions, err := util.RunPatrol(NewPriorityClassController, testTenant, tc.ExistingObjectInSuper, tc.ExistingObjectInTenant, nil, tc.WaitDWS, tc.WaitUWS, nil)
@@ -187,6 +186,8 @@ func TestPriorityClassPatrol(t *testing.T) {
 						t.Errorf("%s: Unexpected action %s", k, action)
 					}
 					actionObj := action.(core.UpdateAction).GetObject()
+					accessor, _ := meta.Accessor(obj)
+					accessor.SetResourceVersion("999")
 					if !equality.Semantic.DeepEqual(obj, actionObj) {
 						t.Errorf("%s: Expected updated pPriorityClass is %v, got %v", k, obj, actionObj)
 					}

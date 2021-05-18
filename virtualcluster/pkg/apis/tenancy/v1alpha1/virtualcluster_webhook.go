@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
@@ -63,7 +63,7 @@ func (vc *VirtualCluster) validateVirtualClusterUpdate(old runtime.Object) error
 	var allErrs field.ErrorList
 	oldVC, ok := old.(*VirtualCluster)
 	if !ok {
-		return errors.New("fail to assert runtime.Object to tenancyv1alpha1.VirtualCluster")
+		return errors.New("fail to assert client.Object to tenancyv1alpha1.VirtualCluster")
 	}
 	// once the VC.Status.Phase is set, it can't be set to empty again
 	if oldVC.Status.Phase != "" && vc.Status.Phase == "" {

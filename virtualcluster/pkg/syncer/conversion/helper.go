@@ -23,8 +23,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"strings"
+
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
@@ -32,7 +33,6 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	listersv1 "k8s.io/client-go/listers/core/v1"
@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ToClusterKey makes a unique key which is used to create the root namespace in super master for a virtual cluster.
@@ -74,7 +75,7 @@ func GetVirtualNamespace(nsLister listersv1.NamespaceLister, pNamespace string) 
 	return
 }
 
-func GetVirtualOwner(meta metav1.Object) (cluster, namespace string) {
+func GetVirtualOwner(meta client.Object) (cluster, namespace string) {
 	cluster = meta.GetAnnotations()[constants.LabelCluster]
 	namespace = meta.GetAnnotations()[constants.LabelNamespace]
 	return cluster, namespace
@@ -97,12 +98,13 @@ func GetKubeConfigOfVC(c v1core.CoreV1Interface, vc *v1alpha1.VirtualCluster) ([
 	return adminKubeConfigSecret.Data[constants.KubeconfigAdminSecretName], nil
 }
 
-func BuildMetadata(cluster, vcns, vcname, targetNamespace string, obj runtime.Object) (runtime.Object, error) {
+func BuildMetadata(cluster, vcns, vcname, targetNamespace string, obj client.Object) (client.Object, error) {
 	target := obj.DeepCopyObject()
-	m, err := meta.Accessor(target)
+	accessor, err := meta.Accessor(target)
 	if err != nil {
 		return nil, err
 	}
+	m := accessor.(client.Object)
 
 	ownerReferencesStr, err := json.Marshal(m.GetOwnerReferences())
 	if err != nil {
@@ -145,15 +147,16 @@ func BuildMetadata(cluster, vcns, vcname, targetNamespace string, obj runtime.Ob
 	}
 	m.SetLabels(labels)
 
-	return target, nil
+	return target.(client.Object), nil
 }
 
-func BuildSuperMasterNamespace(cluster, vcName, vcNamespace, vcUID string, obj runtime.Object) (runtime.Object, error) {
+func BuildSuperMasterNamespace(cluster, vcName, vcNamespace, vcUID string, obj client.Object) (client.Object, error) {
 	target := obj.DeepCopyObject()
-	m, err := meta.Accessor(target)
+	accessor, err := meta.Accessor(target)
 	if err != nil {
 		return nil, err
 	}
+	m := accessor.(client.Object)
 
 	anno := m.GetAnnotations()
 	if anno == nil {
@@ -173,10 +176,10 @@ func BuildSuperMasterNamespace(cluster, vcName, vcNamespace, vcUID string, obj r
 
 	targetName := ToSuperMasterNamespace(cluster, m.GetName())
 	m.SetName(targetName)
-	return target, nil
+	return target.(client.Object), nil
 }
 
-func ResetMetadata(obj metav1.Object) {
+func ResetMetadata(obj client.Object) {
 	obj.SetSelfLink("")
 	obj.SetUID("")
 	obj.SetResourceVersion("")
@@ -188,7 +191,7 @@ func ResetMetadata(obj metav1.Object) {
 	obj.SetClusterName("")
 }
 
-func BuildVirtualEvent(cluster string, pEvent *v1.Event, vObj metav1.Object) *v1.Event {
+func BuildVirtualEvent(cluster string, pEvent *v1.Event, vObj client.Object) *v1.Event {
 	vEvent := pEvent.DeepCopy()
 	ResetMetadata(vEvent)
 	vEvent.SetNamespace(vObj.GetNamespace())

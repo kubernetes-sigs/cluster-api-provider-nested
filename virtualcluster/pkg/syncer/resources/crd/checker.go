@@ -41,13 +41,13 @@ func (c *controller) StartPatrol(stopCh <-chan struct{}) error {
 	if !cache.WaitForCacheSync(stopCh, c.crdSynced, c.vcSynced) {
 		return fmt.Errorf("failed to wait for caches to sync before starting networkpolicy checker")
 	}
-	c.crdPatroller.Start(stopCh)
+	c.Patroller.Start(stopCh)
 	return nil
 }
 
 // PatrollerDo checks to see if annotated CRD is in super master informer cache and then synced to tenant cluster
 func (c *controller) PatrollerDo() {
-	clusterNames := c.multiClusterCrdController.GetClusterNames()
+	clusterNames := c.MultiClusterController.GetClusterNames()
 	if len(clusterNames) == 0 {
 		klog.Infof("tenant masters has no clusters, give up CRD period checker")
 		return
@@ -75,8 +75,8 @@ func (c *controller) PatrollerDo() {
 			continue
 		}
 		for _, clusterName := range clusterNames {
-			_, err := c.multiClusterCrdController.Get(clusterName, "", pCRD.Name)
-			if err != nil {
+
+			if err := c.MultiClusterController.Get(clusterName, "", pCRD.Name, &v1beta1.CustomResourceDefinition{}); err != nil {
 				if errors.IsNotFound(err) {
 					metrics.CheckerRemedyStats.WithLabelValues("RequeuedSuperMasterCRD").Inc()
 					klog.Infof("patroller create crd %v in virtual cluster", clusterName+"/"+pCRD.Name)
@@ -89,14 +89,13 @@ func (c *controller) PatrollerDo() {
 }
 
 func (c *controller) checkCRDOfTenantCluster(clusterName string) {
-	listObj, err := c.multiClusterCrdController.List(clusterName)
-	if err != nil {
+	crdList := &v1beta1.CustomResourceDefinitionList{}
+	if err := c.MultiClusterController.List(clusterName, crdList); err != nil {
 		klog.Errorf("error listing CRD from cluster %s informer cache: %v", clusterName, err)
 		return
 	}
 
-	crdList := listObj.(*v1beta1.CustomResourceDefinitionList)
-	vcrestconfig := c.multiClusterCrdController.GetCluster(clusterName).GetRestConfig()
+	vcrestconfig := c.MultiClusterController.GetCluster(clusterName).GetRestConfig()
 	var vcapiextensionsClient apiextensionclientset.CustomResourceDefinitionsGetter
 
 	if vcrestconfig == nil {

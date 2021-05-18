@@ -93,10 +93,6 @@ type controller struct {
 	config    *config.SyncerConfiguration
 	crdSynced cache.InformerSynced
 	vcSynced  cache.InformerSynced
-	// Connect to all tenant master networkpolicy informers
-	multiClusterCrdController *mc.MultiClusterController
-	// Periodic checker
-	crdPatroller *pa.Patroller
 	// Super cluster restful config
 	restConfig          *restclient.Config
 	superClient         dclient.Client
@@ -148,7 +144,7 @@ func NewCrdController(config *config.SyncerConfiguration,
 		return nil, err
 	}
 
-	c.multiClusterCrdController, err = mc.NewMCController(&v1beta1.CustomResourceDefinition{}, &v1beta1.CustomResourceDefinitionList{}, c,
+	c.MultiClusterController, err = mc.NewMCController(&v1beta1.CustomResourceDefinition{}, &v1beta1.CustomResourceDefinitionList{}, c,
 		mc.WithMaxConcurrentReconciles(constants.DwsControllerWorkerLow), mc.WithOptions(options.MCOptions))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create crd mc controller: %v", err)
@@ -166,7 +162,7 @@ func NewCrdController(config *config.SyncerConfiguration,
 	if err != nil {
 		return nil, err
 	}
-	c.crdPatroller, err = pa.NewPatroller(&v1beta1.CustomResourceDefinition{}, c, pa.WithOptions(options.PatrolOptions))
+	c.Patroller, err = pa.NewPatroller(&v1beta1.CustomResourceDefinition{}, c, pa.WithOptions(options.PatrolOptions))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create crd patroller: %v", err)
 	}
@@ -204,11 +200,11 @@ func NewCrdController(config *config.SyncerConfiguration,
 }
 
 func (c *controller) GetMCController() *mc.MultiClusterController {
-	return c.multiClusterCrdController
+	return c.MultiClusterController
 }
 
 func (c *controller) GetListener() listener.ClusterChangeListener {
-	return listener.NewMCControllerListener(c.multiClusterCrdController, mc.WatchOptions{})
+	return listener.NewMCControllerListener(c.MultiClusterController, mc.WatchOptions{})
 }
 
 func publicCRD(e *v1beta1.CustomResourceDefinition) bool {
@@ -222,7 +218,7 @@ func (c *controller) enqueueCRD(obj interface{}) {
 		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %v: %v", obj, err))
 		return
 	}
-	clusterNames := c.multiClusterCrdController.GetClusterNames()
+	clusterNames := c.MultiClusterController.GetClusterNames()
 	if len(clusterNames) == 0 {
 		return
 	}

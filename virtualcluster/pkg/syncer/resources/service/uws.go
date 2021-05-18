@@ -78,14 +78,14 @@ func (c *controller) BackPopulate(key string) error {
 		return nil
 	}
 
-	vServiceObj, err := c.MultiClusterController.Get(clusterName, vNamespace, pName)
-	if err != nil {
+	vService := &v1.Service{}
+	if err := c.MultiClusterController.Get(clusterName, vNamespace, pName, vService); err != nil {
 		if errors.IsNotFound(err) {
 			return nil
 		}
 		return pkgerr.Wrapf(err, "could not find pService %s/%s's vService in controller cache", vNamespace, pName)
 	}
-	vService := vServiceObj.(*v1.Service)
+
 	if pService.Annotations[constants.LabelUID] != string(vService.UID) {
 		return fmt.Errorf("BackPopulated pService %s/%s delegated UID is different from updated object.", pService.Namespace, pService.Name)
 	}

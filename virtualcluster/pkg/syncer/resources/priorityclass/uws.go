@@ -57,8 +57,8 @@ func (c *controller) BackPopulate(key string) error {
 		return fmt.Errorf("failed to create client from cluster %s config: %v", clusterName, err)
 	}
 
-	vPriorityClassObj, err := c.MultiClusterController.Get(clusterName, "", scName)
-	if err != nil {
+	vPriorityClass := &v1.PriorityClass{}
+	if err := c.MultiClusterController.Get(clusterName, "", scName, vPriorityClass); err != nil {
 		if errors.IsNotFound(err) {
 			if op == reconciler.AddEvent {
 				// Available in super, hence create a new in tenant master
@@ -82,7 +82,7 @@ func (c *controller) BackPopulate(key string) error {
 			return err
 		}
 	} else {
-		updatedPriorityClass := conversion.Equality(c.Config, nil).CheckPriorityClassEquality(pPriorityClass, vPriorityClassObj.(*v1.PriorityClass))
+		updatedPriorityClass := conversion.Equality(c.Config, nil).CheckPriorityClassEquality(pPriorityClass, vPriorityClass)
 		if updatedPriorityClass != nil {
 			_, err := tenantClient.SchedulingV1().PriorityClasses().Update(context.TODO(), updatedPriorityClass, metav1.UpdateOptions{})
 			if err != nil {

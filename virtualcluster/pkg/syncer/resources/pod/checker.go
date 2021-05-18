@@ -157,13 +157,13 @@ func (c *controller) PatrollerDo() {
 	knownClusterSet := sets.NewString(clusterNames...)
 	vSet := differ.NewDiffSet()
 	for _, cluster := range clusterNames {
-		listObj, err := c.MultiClusterController.List(cluster)
-		if err != nil {
+		vList := &v1.PodList{}
+		if err := c.MultiClusterController.List(cluster, vList); err != nil {
 			klog.Errorf("error listing pod from cluster %s informer cache: %v", cluster, err)
 			knownClusterSet.Insert(cluster)
 			continue
 		}
-		vList := listObj.(*v1.PodList)
+
 		for i := range vList.Items {
 			if featuregate.DefaultFeatureGate.Enabled(featuregate.SuperClusterPooling) {
 				cname, ok := vList.Items[i].GetAnnotations()[utilconstants.LabelScheduledCluster]
@@ -362,12 +362,12 @@ func (c *controller) requeuePod(clusterName string, vPod *v1.Pod) {
 // goes to tenant master directly. If this method causes performance issue, we should consider moving it to another
 // periodic thread with a larger check interval.
 func (c *controller) checkNodesOfTenantCluster(clusterName string) {
-	listObj, err := c.MultiClusterController.ListByObjectType(clusterName, &v1.Node{})
-	if err != nil {
+	nodeList := &v1.NodeList{}
+	if err := c.MultiClusterController.List(clusterName, nodeList); err != nil {
 		klog.Errorf("failed to list vNode from cluster %s config: %v", clusterName, err)
 		return
 	}
-	nodeList := listObj.(*v1.NodeList)
+
 	for _, vNode := range nodeList.Items {
 		if vNode.Labels[constants.LabelVirtualNode] != "true" {
 			continue

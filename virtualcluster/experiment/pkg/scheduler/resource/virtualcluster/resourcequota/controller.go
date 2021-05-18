@@ -88,11 +88,11 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		panic("namespace mccontroller is necessary")
 	}
 
-	nsObj, err := c.MultiClusterController.GetByObjectType(request.ClusterName, "", request.Namespace, &v1.Namespace{})
-	if err != nil {
+	namespace := &v1.Namespace{}
+	if err := c.MultiClusterController.Get(request.ClusterName, "", request.Namespace, namespace); err != nil {
 		return reconciler.Result{Requeue: true}, fmt.Errorf("failed to get namespace %s in %s: %v", request.Namespace, request.ClusterName, err)
 	}
-	namespace := nsObj.(*v1.Namespace)
+
 	if err := nsWatcher.GetMCController().RequeueObject(request.ClusterName, namespace); err != nil {
 		return reconciler.Result{Requeue: true}, fmt.Errorf("failed to requeue namespace %s in %s: %v", request.Namespace, request.ClusterName, err)
 	}

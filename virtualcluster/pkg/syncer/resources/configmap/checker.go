@@ -69,13 +69,13 @@ func (c *controller) PatrollerDo() {
 	knownClusterSet := sets.NewString(clusterNames...)
 	vSet := differ.NewDiffSet()
 	for _, cluster := range clusterNames {
-		listObj, err := c.MultiClusterController.List(cluster)
-		if err != nil {
+		cmList := &v1.ConfigMapList{}
+		if err := c.MultiClusterController.List(cluster, cmList); err != nil {
 			klog.Errorf("error listing configmaps from cluster %s informer cache: %v", cluster, err)
 			knownClusterSet.Delete(cluster)
 			continue
 		}
-		cmList := listObj.(*v1.ConfigMapList)
+
 		for i := range cmList.Items {
 			vSet.Insert(differ.ClusterObject{
 				Object:       &cmList.Items[i],

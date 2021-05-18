@@ -64,13 +64,13 @@ func (c *controller) PatrollerDo() {
 	knownClusterSet := sets.NewString(clusterNames...)
 	vSet := differ.NewDiffSet()
 	for _, cluster := range clusterNames {
-		listObj, err := c.MultiClusterController.List(cluster)
-		if err != nil {
+		vList := &v1.ServiceAccountList{}
+		if err := c.MultiClusterController.List(cluster, vList); err != nil {
 			klog.Errorf("error listing serviceaccount from cluster %s informer cache: %v", cluster, err)
 			knownClusterSet.Insert(cluster)
 			continue
 		}
-		vList := listObj.(*v1.ServiceAccountList)
+
 		for i := range vList.Items {
 			vSet.Insert(differ.ClusterObject{
 				Object:       &vList.Items[i],

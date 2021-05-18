@@ -30,7 +30,6 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
-	utilscheme "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/scheme"
 	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
 
@@ -109,7 +108,6 @@ func TestUWIngress(t *testing.T) {
 		},
 	}
 
-	utilscheme.Scheme.AddKnownTypePair(&v1beta1.Ingress{}, &v1beta1.IngressList{})
 	for k, tc := range testcases {
 		t.Run(k, func(t *testing.T) {
 			actions, reconcileErr, err := util.RunUpwardSync(NewIngressController, testTenant, tc.ExistingObjectInSuper, tc.ExistingObjectInTenant, tc.EnqueuedKey, nil)

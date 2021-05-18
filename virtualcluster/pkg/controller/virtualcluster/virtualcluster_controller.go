@@ -27,9 +27,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	tenancyv1alpha1 "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
@@ -122,7 +122,7 @@ type ReconcileVirtualCluster struct {
 // +kubebuilder:rbac:groups=tenancy.x-k8s.io,resources=virtualclusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=tenancy.x-k8s.io,resources=clusterversions,verbs=get;list;watch
 // +kubebuilder:rbac:groups=tenancy.x-k8s.io,resources=clusterversions/status,verbs=get
-func (r *ReconcileVirtualCluster) Reconcile(request reconcile.Request) (rncilRslt reconcile.Result, err error) {
+func (r *ReconcileVirtualCluster) Reconcile(ctx context.Context, request reconcile.Request) (rncilRslt reconcile.Result, err error) {
 	log.Info("reconciling VirtualCluster...")
 	vc := &tenancyv1alpha1.VirtualCluster{}
 	err = r.Get(context.TODO(), request.NamespacedName, vc)

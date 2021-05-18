@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-	storageV1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
@@ -34,7 +32,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/apis/config"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/manager"
-	utilscheme "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/scheme"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/cluster"
 	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/reconciler"
@@ -78,7 +75,6 @@ func RunDownwardSync(
 	enqueueObject runtime.Object,
 	clientSetMutator FakeClientSetMutator,
 ) (actions []core.Action, reconcileError error, err error) {
-	registerDefaultScheme()
 	// setup fake tenant cluster
 	tenantClientset := fake.NewSimpleClientset()
 	tenantClient := fakeClient.NewFakeClient()
@@ -160,19 +156,4 @@ func RunDownwardSync(
 	}
 
 	return superClient.Actions(), reconcileError, nil
-}
-
-func registerDefaultScheme() {
-	utilscheme.Scheme.AddKnownTypePair(&v1.Namespace{}, &v1.NamespaceList{},
-		&v1.Service{}, &v1.ServiceList{},
-		&v1.Pod{}, &v1.PodList{},
-		&v1.ServiceAccount{}, &v1.ServiceAccountList{},
-		&v1.Secret{}, &v1.SecretList{},
-		&v1.Node{}, &v1.NodeList{},
-		&v1.PersistentVolume{}, &v1.PersistentVolumeList{},
-		&v1.PersistentVolumeClaim{}, &v1.PersistentVolumeClaimList{},
-		&v1.ConfigMap{}, &v1.ConfigMapList{},
-		&v1.Endpoints{}, &v1.EndpointsList{},
-		&v1.Event{}, &v1.EventList{},
-		&storageV1.StorageClass{}, &storageV1.StorageClassList{})
 }

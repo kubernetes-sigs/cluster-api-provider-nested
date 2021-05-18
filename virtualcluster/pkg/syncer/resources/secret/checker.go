@@ -93,12 +93,13 @@ func (c *controller) PatrollerDo() {
 			vSecretName = secretName
 		}
 		// check whether secret is exists in tenant.
-		vSecretObj, err := c.MultiClusterController.Get(clusterName, vNamespace, vSecretName)
+		vSecret := &v1.Secret{}
+		err := c.MultiClusterController.Get(clusterName, vNamespace, vSecretName, vSecret)
 		if errors.IsNotFound(err) {
 			shouldDelete = true
 		}
+
 		if err == nil {
-			vSecret := vSecretObj.(*v1.Secret)
 			if pSecret.Annotations[constants.LabelUID] != string(vSecret.UID) {
 				shouldDelete = true
 				klog.Warningf("Found pSecret %s/%s delegated UID is different from tenant object.", pSecret.Namespace, pSecret.Name)
@@ -120,13 +121,14 @@ func (c *controller) PatrollerDo() {
 }
 
 func (c *controller) checkSecretOfTenantCluster(clusterName string) {
-	listObj, err := c.MultiClusterController.List(clusterName)
+	secretList := &v1.SecretList{}
+	err := c.MultiClusterController.List(clusterName, secretList)
 	if err != nil {
 		klog.Errorf("error listing secrets from cluster %s informer cache: %v", clusterName, err)
 		return
 	}
 	klog.V(4).Infof("check secrets consistency in cluster %s", clusterName)
-	secretList := listObj.(*v1.SecretList)
+
 	for i, vSecret := range secretList.Items {
 		targetNamespace := conversion.ToSuperMasterNamespace(clusterName, vSecret.Namespace)
 

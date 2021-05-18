@@ -34,8 +34,8 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, error) {
 	klog.V(4).Infof("reconcile node %s for cluster %s", request.Name, request.ClusterName)
 	vExists := true
-	vNodeObj, err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name)
-	if err != nil {
+	vNode := &v1.Node{}
+	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vNode); err != nil {
 		if !errors.IsNotFound(err) {
 			return reconciler.Result{Requeue: true}, err
 		}
@@ -43,7 +43,6 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	}
 
 	if vExists {
-		vNode := vNodeObj.(*v1.Node)
 		if vNode.Labels[constants.LabelVirtualNode] != "true" {
 			// We only handle virtual nodes created by syncer
 			return reconciler.Result{}, nil

@@ -51,8 +51,8 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		pExists = false
 	}
 	vExists := true
-	vIngressObj, err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name)
-	if err != nil {
+	vIngress := &v1beta1.Ingress{}
+	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vIngress); err != nil {
 		if !errors.IsNotFound(err) {
 			return reconciler.Result{Requeue: true}, err
 		}
@@ -60,7 +60,6 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	}
 
 	if vExists && !pExists {
-		vIngress := vIngressObj.(*v1beta1.Ingress)
 		err := c.reconcileIngressCreate(request.ClusterName, targetNamespace, request.UID, vIngress)
 		if err != nil {
 			klog.Errorf("failed reconcile ingress %s/%s CREATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
@@ -73,7 +72,6 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 			return reconciler.Result{Requeue: true}, err
 		}
 	} else if vExists && pExists {
-		vIngress := vIngressObj.(*v1beta1.Ingress)
 		err := c.reconcileIngressUpdate(request.ClusterName, targetNamespace, request.UID, pIngress, vIngress)
 		if err != nil {
 			klog.Errorf("failed reconcile ingress %s/%s UPDATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)

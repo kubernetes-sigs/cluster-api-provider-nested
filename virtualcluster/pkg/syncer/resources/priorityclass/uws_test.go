@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/scheduling/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -31,7 +32,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
-	utilscheme "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/scheme"
 	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
 
@@ -99,7 +99,6 @@ func TestUWPCCreation(t *testing.T) {
 		},
 	}
 
-	utilscheme.Scheme.AddKnownTypePair(&v1.PriorityClass{}, &v1.PriorityClassList{})
 	for k, tc := range testcases {
 		t.Run(k, func(t *testing.T) {
 			actions, reconcileErr, err := util.RunUpwardSync(NewPriorityClassController, testTenant, tc.ExistingObjectInSuper, tc.ExistingObjectInTenant, tc.EnqueuedKey, nil)
@@ -227,6 +226,8 @@ func TestUWPCUpdate(t *testing.T) {
 						continue
 					}
 					actionObj := action.(core.UpdateAction).GetObject()
+					accessor, _ := meta.Accessor(obj)
+					accessor.SetResourceVersion("999")
 					if !equality.Semantic.DeepEqual(obj, actionObj) {
 						exp, _ := json.Marshal(obj)
 						got, _ := json.Marshal(actionObj)

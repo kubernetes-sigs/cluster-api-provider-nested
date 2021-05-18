@@ -29,7 +29,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -56,6 +55,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/listener"
 	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/plugin"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -87,7 +87,7 @@ type virtualclusterGetter struct {
 
 var _ mc.Getter = &virtualclusterGetter{}
 
-func (v *virtualclusterGetter) GetObject(namespace, name string) (runtime.Object, error) {
+func (v *virtualclusterGetter) GetObject(namespace, name string) (client.Object, error) {
 	vc, err := v.lister.VirtualClusters(namespace).Get(name)
 	if err != nil {
 		return nil, err

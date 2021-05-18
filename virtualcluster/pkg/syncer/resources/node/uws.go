@@ -86,8 +86,8 @@ func (c *controller) updateClusterNodeStatus(clusterName string, node *v1.Node, 
 		return
 	}
 
-	vNodeObj, err := c.MultiClusterController.Get(clusterName, "", node.Name)
-	if err != nil {
+	vNode := &v1.Node{}
+	if err := c.MultiClusterController.Get(clusterName, "", node.Name, vNode); err != nil {
 		if errors.IsNotFound(err) {
 			klog.Errorf("could not find node %s/%s: %v", clusterName, node.Name, err)
 			c.Lock()
@@ -99,7 +99,6 @@ func (c *controller) updateClusterNodeStatus(clusterName string, node *v1.Node, 
 		return
 	}
 
-	vNode := vNodeObj.(*v1.Node)
 	newVNode := vNode.DeepCopy()
 	newVNode.Status.Conditions = node.Status.Conditions
 	vNodeAddress, err := c.vnodeProvider.GetNodeAddress(node)
