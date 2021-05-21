@@ -144,7 +144,7 @@ lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 	$(GOLANGCI_LINT) run -v --fast=false
 
 apidiff: $(GO_APIDIFF) ## Check for API differences
-	$(GO_APIDIFF) $(shell git rev-parse origin/master) --print-compatible
+	$(GO_APIDIFF) $(shell git rev-parse origin/main) --print-compatible
 
 ## --------------------------------------
 ## Generate / Manifests
