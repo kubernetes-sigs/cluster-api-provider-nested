@@ -23,3 +23,6 @@ REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 source "${REPO_ROOT}/hack/ensure-go.sh"
 
 cd "${REPO_ROOT}" && make binaries
+
+cd "${REPO_ROOT}/virtualcluster/" && \
+  make build
