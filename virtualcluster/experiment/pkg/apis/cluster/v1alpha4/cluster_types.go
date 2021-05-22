@@ -221,7 +221,7 @@ func (v APIEndpoint) String() string {
 
 // Cluster is the Schema for the clusters API
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/client.Object
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type Cluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -239,7 +239,7 @@ func (c *Cluster) SetConditions(conditions Conditions) {
 }
 
 // ClusterList contains a list of Cluster
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/client.Object
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type ClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
