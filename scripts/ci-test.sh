@@ -27,3 +27,6 @@ cd "${REPO_ROOT}" && \
 	fetch_tools && \
 	setup_envs && \
 	make generate lint test
+
+cd "${REPO_ROOT}/virtualcluster/" && \
+	make test
