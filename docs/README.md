@@ -50,9 +50,7 @@ cd ..
 ### Create Docker Images, Manifests and Load Images
 
 ```shell
-export PULL_POLICY=Never
-export TAG=dev
-make docker-build release-manifests
+PULL_POLICY=Never TAG=dev make docker-build release-manifests
 kind load docker-image gcr.io/cluster-api-nested-controller-amd64:dev
 kind load docker-image gcr.io/nested-controlplane-controller-amd64:dev
 ```
@@ -100,7 +98,7 @@ define a custom hosts file by setting the `HOSTALIASES` env and append the
 IP-address-to-URL mapping to the hosts file.
 
 ```shell
-echo '127.0.0.1 localhost1' >> ~/.hosts
+echo '127.0.0.1 cluster-sample-apiserver' >> ~/.hosts
 export HOSTALIASES=~/.hosts
 ```
 
