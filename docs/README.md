@@ -19,7 +19,7 @@ cd cluster-api-provider-nested
 ### Create `kind` cluster
 
 ```shell
-kind create cluster
+kind create cluster --name=capn
 ```
 
 ### Install `cert-manager`
@@ -51,8 +51,8 @@ cd ..
 
 ```shell
 PULL_POLICY=Never TAG=dev make docker-build release-manifests
-kind load docker-image gcr.io/cluster-api-nested-controller-amd64:dev
-kind load docker-image gcr.io/nested-controlplane-controller-amd64:dev
+kind load docker-image gcr.io/cluster-api-nested-controller-amd64:dev --name=capn
+kind load docker-image gcr.io/nested-controlplane-controller-amd64:dev --name=capn
 ```
 
 ### Deploy CAPN
@@ -106,4 +106,10 @@ export HOSTALIASES=~/.hosts
 
 ```shell
 kubectl --kubeconfig kubeconfig get all -A
+```
+
+### Clean Up
+
+```shell
+kind delete cluster --name=capn
 ```
