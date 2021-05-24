@@ -93,13 +93,11 @@ kubectl port-forward svc/cluster-sample-apiserver 6443:6443
 ### Connect to Cluster
 
 To use the `KUBECONFIG` created by `clusterctl` without modification, we first 
-need to setup a host record for the apiserver service name, to do this we can 
-define a custom hosts file by setting the `HOSTALIASES` env and append the 
-IP-address-to-URL mapping to the hosts file.
+need to setup a host record for the apiserver service name, to do this need add
+following line to `/etc/hosts`.
 
-```shell
-echo '127.0.0.1 cluster-sample-apiserver' >> ~/.hosts
-export HOSTALIASES=~/.hosts
+```
+127.0.0.1 cluster-sample-apiserver
 ```
 
 ### Connect to the Cluster! :tada:
