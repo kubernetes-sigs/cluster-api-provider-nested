@@ -19,6 +19,7 @@ package pod
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	pkgerr "github.com/pkg/errors"
@@ -57,11 +58,8 @@ func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Resul
 		return reconciler.Result{Requeue: true}, err
 	}
 
-	var vPod *v1.Pod
-	vPodObj, err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name)
-	if err == nil {
-		vPod = vPodObj.(*v1.Pod)
-	} else if !errors.IsNotFound(err) {
+	vPod := &v1.Pod{}
+	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vPod); err != nil && !errors.IsNotFound(err) {
 		return reconciler.Result{Requeue: true}, err
 	}
 
@@ -71,7 +69,7 @@ func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Resul
 		recordOperationStatus(operation, retErr)
 	}()
 
-	if vPod != nil && pPod == nil {
+	if !reflect.DeepEqual(vPod, &v1.Pod{}) && pPod == nil {
 		operation = "pod_add"
 		err := c.reconcilePodCreate(request.ClusterName, targetNamespace, request.UID, vPod)
 		if err != nil {
@@ -89,7 +87,7 @@ func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Resul
 
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if vPod == nil && pPod != nil {
+	} else if reflect.DeepEqual(vPod, &v1.Pod{}) && pPod != nil {
 		operation = "pod_delete"
 		err := c.reconcilePodRemove(request.ClusterName, targetNamespace, request.UID, request.Name, pPod)
 		if err != nil {
@@ -237,11 +235,10 @@ func (c *controller) findPodServiceAccountSecret(clusterName string, pPod, vPod 
 	mutateNameMap := make(map[string]string)
 
 	for secretName := range mountSecretSet {
-		vSecretObj, err := c.MultiClusterController.GetByObjectType(clusterName, vPod.Namespace, secretName, &v1.Secret{})
-		if err != nil {
+		vSecret := &v1.Secret{}
+		if err := c.MultiClusterController.Get(clusterName, vPod.Namespace, secretName, vSecret); err != nil {
 			return nil, pkgerr.Wrapf(err, "failed to get vSecret %s/%s", vPod.Namespace, secretName)
 		}
-		vSecret := vSecretObj.(*v1.Secret)
 
 		// normal secret. pSecret name is the same as the vSecret.
 		if vSecret.Type != v1.SecretTypeServiceAccountToken {
@@ -289,13 +286,12 @@ func (c *controller) getPodRelatedServices(cluster string, pPod *v1.Pod) ([]*v1.
 		// We need to query the tenant apiserver to get the services in tenant default namespace.
 		// Note that the cluster ip in the service from the tenant default namespace can be a bogus value.
 		// We expect an external loadbalancer is used for each tenant service.
-		var serviceListObj interface{}
-		serviceListObj, err = c.MultiClusterController.ListByObjectType(cluster, &v1.Service{}, client.InNamespace(metav1.NamespaceDefault))
-		if err != nil {
+		serviceList := &v1.ServiceList{}
+		if err = c.MultiClusterController.List(cluster, serviceList, client.InNamespace(metav1.NamespaceDefault)); err != nil {
 			return nil, err
 		}
-		serviceList := serviceListObj.(*v1.ServiceList)
-		for i, _ := range serviceList.Items {
+
+		for i := range serviceList.Items {
 			list = append(list, &serviceList.Items[i])
 		}
 	} else {

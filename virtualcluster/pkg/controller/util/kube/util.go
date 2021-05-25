@@ -27,7 +27,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/util/retry"
@@ -116,7 +115,7 @@ func CreateRootNS(cli client.Client, vc *tenancyv1alpha1.VirtualCluster) (string
 
 // AnnotateVC add the annotation('key'='val') to the VirtualCluster 'vc'
 func AnnotateVC(cli client.Client, vc *tenancyv1alpha1.VirtualCluster, key, val string, log logr.Logger) error {
-	annPatch := client.ConstantPatch(types.MergePatchType,
+	annPatch := client.RawPatch(types.MergePatchType,
 		[]byte(fmt.Sprintf(`{"metadata":{"annotations":{"%s":"%s"}}}`, key, val)))
 	if err := RetryPatchVCOnConflict(context.TODO(), cli, vc, annPatch, log); err != nil {
 		return err
@@ -174,7 +173,7 @@ func SetVCStatus(vc *tenancyv1alpha1.VirtualCluster, phase tenancyv1alpha1.Clust
 }
 
 // IsObjExist check if object with 'key' exist
-func IsObjExist(cli client.Client, key client.ObjectKey, obj runtime.Object, log logr.Logger) bool {
+func IsObjExist(cli client.Client, key client.ObjectKey, obj client.Object, log logr.Logger) bool {
 	if err := cli.Get(context.TODO(), key, obj); err != nil {
 		if apierrors.IsNotFound(err) {
 			return false

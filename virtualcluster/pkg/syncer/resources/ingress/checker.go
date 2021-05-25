@@ -83,12 +83,12 @@ func (c *controller) PatrollerDo() {
 			continue
 		}
 		shouldDelete := false
-		vIngressObj, err := c.MultiClusterController.Get(clusterName, vNamespace, pIngress.Name)
+		vIngress := &v1beta1.Ingress{}
+		err := c.MultiClusterController.Get(clusterName, vNamespace, pIngress.Name, vIngress)
 		if errors.IsNotFound(err) {
 			shouldDelete = true
 		}
 		if err == nil {
-			vIngress := vIngressObj.(*v1beta1.Ingress)
 			if pIngress.Annotations[constants.LabelUID] != string(vIngress.UID) {
 				shouldDelete = true
 				klog.Warningf("Found pIngress %s/%s delegated UID is different from tenant object.", pIngress.Namespace, pIngress.Name)
@@ -110,13 +110,13 @@ func (c *controller) PatrollerDo() {
 }
 
 func (c *controller) checkIngressesOfTenantCluster(clusterName string) {
-	listObj, err := c.MultiClusterController.List(clusterName)
-	if err != nil {
+	ingList := &v1beta1.IngressList{}
+	if err := c.MultiClusterController.List(clusterName, ingList); err != nil {
 		klog.Errorf("error listing ingresss from cluster %s informer cache: %v", clusterName, err)
 		return
 	}
 	klog.V(4).Infof("check ingresss consistency in cluster %s", clusterName)
-	ingList := listObj.(*v1beta1.IngressList)
+
 	for i, vIngress := range ingList.Items {
 		targetNamespace := conversion.ToSuperMasterNamespace(clusterName, vIngress.Namespace)
 		pIngress, err := c.ingressLister.Ingresses(targetNamespace).Get(vIngress.Name)

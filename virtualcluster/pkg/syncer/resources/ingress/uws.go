@@ -64,14 +64,13 @@ func (c *controller) BackPopulate(key string) error {
 		return nil
 	}
 
-	vIngressObj, err := c.MultiClusterController.Get(clusterName, vNamespace, pName)
-	if err != nil {
+	vIngress := &v1beta1.Ingress{}
+	if err := c.MultiClusterController.Get(clusterName, vNamespace, pName, vIngress); err != nil {
 		if errors.IsNotFound(err) {
 			return nil
 		}
 		return pkgerr.Wrapf(err, "could not find pIngress %s/%s's vIngress in controller cache", vNamespace, pName)
 	}
-	vIngress := vIngressObj.(*v1beta1.Ingress)
 	if pIngress.Annotations[constants.LabelUID] != string(vIngress.UID) {
 		return fmt.Errorf("BackPopulated pIngress %s/%s delegated UID is different from updated object.", pIngress.Namespace, pIngress.Name)
 	}

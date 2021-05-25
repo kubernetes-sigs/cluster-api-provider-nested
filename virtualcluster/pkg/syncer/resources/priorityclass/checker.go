@@ -75,8 +75,7 @@ func (c *controller) PatrollerDo() {
 			continue
 		}
 		for _, clusterName := range clusterNames {
-			_, err := c.MultiClusterController.Get(clusterName, "", pPriorityClass.Name)
-			if err != nil {
+			if err := c.MultiClusterController.Get(clusterName, "", pPriorityClass.Name, &v1.PriorityClass{}); err != nil {
 				if errors.IsNotFound(err) {
 					metrics.CheckerRemedyStats.WithLabelValues("RequeuedSuperMasterPriorityClasses").Inc()
 					c.UpwardController.AddToQueue(clusterName + "/" + pPriorityClass.Name)
@@ -90,13 +89,12 @@ func (c *controller) PatrollerDo() {
 }
 
 func (c *controller) checkPriorityClassOfTenantCluster(clusterName string) {
-	listObj, err := c.MultiClusterController.List(clusterName)
-	if err != nil {
+	scList := &v1.PriorityClassList{}
+	if err := c.MultiClusterController.List(clusterName, scList); err != nil {
 		klog.Errorf("error listing priorityclass from cluster %s informer cache: %v", clusterName, err)
 		return
 	}
 
-	scList := listObj.(*v1.PriorityClassList)
 	for i, vPriorityClass := range scList.Items {
 		if !publicPriorityClass(&vPriorityClass) {
 			continue

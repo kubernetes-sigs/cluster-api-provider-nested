@@ -21,7 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -33,11 +32,12 @@ import (
 	utilconstants "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/errors"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/reconciler"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type UpwardController struct {
 	// objectType is the type of object to watch.  e.g. &v1.Pod{}
-	objectType runtime.Object
+	objectType client.Object
 
 	// objectKind is the kind of target object this controller watched.
 	objectKind string
@@ -58,7 +58,7 @@ type Options struct {
 	name string
 }
 
-func NewUWController(objectType runtime.Object, rc reconciler.UWReconciler, opts ...OptConfig) (*UpwardController, error) {
+func NewUWController(objectType client.Object, rc reconciler.UWReconciler, opts ...OptConfig) (*UpwardController, error) {
 	kinds, _, err := scheme.Scheme.ObjectKinds(objectType)
 	if err != nil || len(kinds) == 0 {
 		return nil, fmt.Errorf("uwcontroller: unknown object kind %+v", objectType)

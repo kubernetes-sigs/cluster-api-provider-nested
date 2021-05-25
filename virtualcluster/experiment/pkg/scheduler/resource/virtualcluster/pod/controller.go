@@ -99,9 +99,9 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		return reconciler.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
+	pod := &v1.Pod{}
 	podKey := fmt.Sprintf("%s/%s/%s", request.ClusterName, request.Namespace, request.Name)
-	podObj, err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name)
-	if err != nil {
+	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, pod); err != nil {
 		if !errors.IsNotFound(err) {
 			return reconciler.Result{}, err
 		}
@@ -112,7 +112,6 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		return reconciler.Result{}, nil
 	}
 
-	pod := podObj.(*v1.Pod)
 	if c.skipPodSchedule(pod) {
 		// skip irrelevant pod update event
 		// we assume pod's scheduling info won't be manually mutated during pod running by now.

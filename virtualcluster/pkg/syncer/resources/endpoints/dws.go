@@ -41,12 +41,12 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 
 // The reconcile logic for tenant master endpoints informer
 func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, error) {
-	vServiceObj, err := c.MultiClusterController.GetByObjectType(request.ClusterName, request.Namespace, request.Name, &v1.Service{})
+	vService := &v1.Service{}
+	err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vService)
 	if err != nil && !errors.IsNotFound(err) {
 		return reconciler.Result{Requeue: true}, fmt.Errorf("fail to query service from tenant master %s", request.ClusterName)
 	}
 	if err == nil {
-		vService := vServiceObj.(*v1.Service)
 		if vService.Spec.Selector != nil {
 			// Supermaster ep controller handles the service ep lifecycle, quit.
 			return reconciler.Result{}, nil
@@ -63,8 +63,8 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		pExists = false
 	}
 	vExists := true
-	vEndpointsObj, err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name)
-	if err != nil {
+	vEndpoints := &v1.Endpoints{}
+	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vEndpoints); err != nil {
 		if !errors.IsNotFound(err) {
 			return reconciler.Result{Requeue: true}, err
 		}
@@ -72,7 +72,6 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	}
 
 	if vExists && !pExists {
-		vEndpoints := vEndpointsObj.(*v1.Endpoints)
 		err := c.reconcileEndpointsCreate(request.ClusterName, targetNamespace, request.UID, vEndpoints)
 		if err != nil {
 			klog.Errorf("failed reconcile endpoints %s/%s CREATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
@@ -85,7 +84,6 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 			return reconciler.Result{Requeue: true}, err
 		}
 	} else if vExists && pExists {
-		vEndpoints := vEndpointsObj.(*v1.Endpoints)
 		err := c.reconcileEndpointsUpdate(request.ClusterName, targetNamespace, request.UID, pEndpoints, vEndpoints)
 		if err != nil {
 			klog.Errorf("failed reconcile endpoints %s/%s UPDATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)

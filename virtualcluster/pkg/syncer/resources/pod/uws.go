@@ -65,14 +65,14 @@ func (c *controller) BackPopulate(key string) error {
 		return nil
 	}
 
-	vPodObj, err := c.MultiClusterController.Get(clusterName, vNamespace, pName)
-	if err != nil {
+	vPod := &v1.Pod{}
+	if err := c.MultiClusterController.Get(clusterName, vNamespace, pName, vPod); err != nil {
 		if errors.IsNotFound(err) {
 			return nil
 		}
 		return pkgerr.Wrapf(err, "could not find pPod %s/%s's vPod in controller cache", vNamespace, pName)
 	}
-	vPod := vPodObj.(*v1.Pod)
+
 	if pPod.Annotations[constants.LabelUID] != string(vPod.UID) {
 		return fmt.Errorf("BackPopulated pPod %s/%s delegated UID is different from updated object.", pPod.Namespace, pPod.Name)
 	}
@@ -100,7 +100,7 @@ func (c *controller) BackPopulate(key string) error {
 			return err
 		}
 
-		if _, err := c.MultiClusterController.GetByObjectType(clusterName, "", n.GetName(), &v1.Node{}); err != nil {
+		if err := c.MultiClusterController.Get(clusterName, "", n.GetName(), &v1.Node{}); err != nil {
 			// check if target node has already registered on the vc
 			// before creating
 			if !errors.IsNotFound(err) {
@@ -136,7 +136,7 @@ func (c *controller) BackPopulate(key string) error {
 		}
 	} else {
 		// Check if the vNode exists in Tenant master.
-		if _, err := c.MultiClusterController.GetByObjectType(clusterName, "", vPod.Spec.NodeName, &v1.Node{}); err != nil {
+		if err := c.MultiClusterController.Get(clusterName, "", vPod.Spec.NodeName, &v1.Node{}); err != nil {
 			if errors.IsNotFound(err) {
 				// We have consistency issue here, do not fix for now. TODO: add to metrics
 			}

@@ -102,8 +102,8 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		return reconciler.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	nsObj, err := c.MultiClusterController.Get(request.ClusterName, "", request.Name)
-	if err != nil {
+	namespace := &v1.Namespace{}
+	if err := c.MultiClusterController.Get(request.ClusterName, "", request.Name, namespace); err != nil {
 		if !errors.IsNotFound(err) {
 			return reconciler.Result{}, err
 		}
@@ -116,8 +116,8 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	}
 
 	var quota v1.ResourceList
-	quotaListObj, err := c.MultiClusterController.ListByObjectType(request.ClusterName, &v1.ResourceQuota{}, client.InNamespace(request.Name))
-	if err != nil {
+	quotaList := &v1.ResourceQuotaList{}
+	if err := c.MultiClusterController.List(request.ClusterName, quotaList, client.InNamespace(request.Name)); err != nil {
 		if !errors.IsNotFound(err) {
 			return reconciler.Result{}, fmt.Errorf("failed to get resource quota in %s/%s: %v", request.ClusterName, request.Name, err)
 		}
@@ -125,12 +125,9 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 			v1.ResourceCPU:    resource.MustParse("0"),
 			v1.ResourceMemory: resource.MustParse("0"),
 		}
-	} else {
-		quotaList := quotaListObj.(*v1.ResourceQuotaList)
-		quota = util.GetMaxQuota(quotaList)
 	}
+	quota = util.GetMaxQuota(quotaList)
 
-	namespace := nsObj.(*v1.Namespace)
 	placements, quotaSlice, err := util.GetSchedulingInfo(namespace)
 	if err != nil {
 		return reconciler.Result{}, fmt.Errorf("failed to get scheduling info in %s: %v", request.Name, err)

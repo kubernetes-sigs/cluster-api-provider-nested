@@ -53,8 +53,9 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		pExists = false
 	}
 	vExists := true
-	vPVCObj, err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name)
-	if err != nil {
+
+	vPVC := &v1.PersistentVolumeClaim{}
+	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vPVC); err != nil {
 		if !errors.IsNotFound(err) {
 			return reconciler.Result{Requeue: true}, err
 		}
@@ -62,7 +63,6 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	}
 
 	if vExists && !pExists {
-		vPVC := vPVCObj.(*v1.PersistentVolumeClaim)
 		err := c.reconcilePVCCreate(request.ClusterName, targetNamespace, request.UID, vPVC)
 		if err != nil {
 			klog.Errorf("failed reconcile pvc %s/%s CREATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
@@ -75,7 +75,6 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 			return reconciler.Result{Requeue: true}, err
 		}
 	} else if vExists && pExists {
-		vPVC := vPVCObj.(*v1.PersistentVolumeClaim)
 		err := c.reconcilePVCUpdate(request.ClusterName, targetNamespace, request.UID, pPVC, vPVC)
 		if err != nil {
 			klog.Errorf("failed reconcile pvc %s/%s UPDATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)

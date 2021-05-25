@@ -75,8 +75,8 @@ func (c *controller) PatrollerDo() {
 			continue
 		}
 		for _, clusterName := range clusterNames {
-			_, err := c.MultiClusterController.Get(clusterName, "", pStorageClass.Name)
-			if err != nil {
+
+			if err := c.MultiClusterController.Get(clusterName, "", pStorageClass.Name, &v1.StorageClass{}); err != nil {
 				if errors.IsNotFound(err) {
 					metrics.CheckerRemedyStats.WithLabelValues("RequeuedSuperMasterStorageClasses").Inc()
 					c.UpwardController.AddToQueue(clusterName + "/" + pStorageClass.Name)
@@ -90,13 +90,13 @@ func (c *controller) PatrollerDo() {
 }
 
 func (c *controller) checkStorageClassOfTenantCluster(clusterName string) {
-	listObj, err := c.MultiClusterController.List(clusterName)
-	if err != nil {
+	scList := &v1.StorageClassList{}
+	if err := c.MultiClusterController.List(clusterName, scList); err != nil {
 		klog.Errorf("error listing storageclass from cluster %s informer cache: %v", clusterName, err)
 		return
 	}
 	klog.V(4).Infof("check storageclass consistency in cluster %s", clusterName)
-	scList := listObj.(*v1.StorageClassList)
+
 	for i, vStorageClass := range scList.Items {
 		pStorageClass, err := c.storageclassLister.Get(vStorageClass.Name)
 		if errors.IsNotFound(err) {

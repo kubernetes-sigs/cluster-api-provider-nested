@@ -21,13 +21,13 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/metrics"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/reconciler"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type Patroller struct {
@@ -44,7 +44,7 @@ type Options struct {
 	Period     time.Duration
 }
 
-func NewPatroller(objectType runtime.Object, rc reconciler.PatrolReconciler, opts ...OptConfig) (*Patroller, error) {
+func NewPatroller(objectType client.Object, rc reconciler.PatrolReconciler, opts ...OptConfig) (*Patroller, error) {
 	kinds, _, err := scheme.Scheme.ObjectKinds(objectType)
 	if err != nil || len(kinds) == 0 {
 		return nil, fmt.Errorf("patroller: unknown object kind %+v", objectType)

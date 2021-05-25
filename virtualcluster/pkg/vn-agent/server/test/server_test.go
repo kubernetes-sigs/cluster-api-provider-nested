@@ -34,6 +34,7 @@ import (
 	"time"
 
 	cadvisorapi "github.com/google/cadvisor/info/v1"
+	cadvisorv2 "github.com/google/cadvisor/info/v2"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -48,15 +49,15 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 	utiltesting "k8s.io/client-go/util/testing"
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	statsapi "k8s.io/kubelet/pkg/apis/stats/v1alpha1"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
-	statsapi "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
+	"k8s.io/kubernetes/pkg/kubelet/cri/streaming"
+	"k8s.io/kubernetes/pkg/kubelet/cri/streaming/portforward"
+	remotecommandserver "k8s.io/kubernetes/pkg/kubelet/cri/streaming/remotecommand"
 	kubeletserver "k8s.io/kubernetes/pkg/kubelet/server"
-	"k8s.io/kubernetes/pkg/kubelet/server/portforward"
-	remotecommandserver "k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
 	"k8s.io/kubernetes/pkg/kubelet/server/stats"
-	"k8s.io/kubernetes/pkg/kubelet/server/streaming"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/utils/pointer"
 
@@ -99,12 +100,12 @@ func (s *serverTestFramework) Close() {
 }
 
 func newServerTest() *serverTestFramework {
-	return newServerTestWithDebug(true, false, nil)
+	return newServerTestWithDebug(true, nil)
 }
 
-func newServerTestWithDebug(enableDebugging, redirectContainerStreaming bool, streamingServer streaming.Server) *serverTestFramework {
+func newServerTestWithDebug(enableDebugging bool, streamingServer streaming.Server) *serverTestFramework {
 	fv := &serverTestFramework{}
-	fv.kubeletServer = newKubeletServerTestWithDebug(enableDebugging, redirectContainerStreaming, streamingServer)
+	fv.kubeletServer = newKubeletServerTestWithDebug(enableDebugging, streamingServer)
 
 	// install the kubelet server certificate and start server
 	kubeletServerCert, err := tls.X509KeyPair(testcerts.KubeletServerCert, testcerts.KubeletServerKey)
@@ -151,6 +152,7 @@ type fakeKubelet struct {
 	podByNameFunc       func(namespace, name string) (*v1.Pod, bool)
 	containerInfoFunc   func(podFullName string, uid types.UID, containerName string, req *cadvisorapi.ContainerInfoRequest) (*cadvisorapi.ContainerInfo, error)
 	rawInfoFunc         func(query *cadvisorapi.ContainerInfoRequest) (map[string]*cadvisorapi.ContainerInfo, error)
+	requestedInfoFunc   func(cadvisorv2.RequestOptions) (map[string]*cadvisorapi.ContainerInfo, error)
 	machineInfoFunc     func() (*cadvisorapi.MachineInfo, error)
 	podsFunc            func() []*v1.Pod
 	runningPodsFunc     func() ([]*v1.Pod, error)
@@ -186,6 +188,10 @@ func (fk *fakeKubelet) GetContainerInfo(podFullName string, uid types.UID, conta
 
 func (fk *fakeKubelet) GetRawContainerInfo(containerName string, req *cadvisorapi.ContainerInfoRequest, subcontainers bool) (map[string]*cadvisorapi.ContainerInfo, error) {
 	return fk.rawInfoFunc(req)
+}
+
+func (fk *fakeKubelet) GetRequestedContainersInfo(containerName string, options cadvisorv2.RequestOptions) (map[string]*cadvisorapi.ContainerInfo, error) {
+	return fk.requestedInfoFunc(options)
 }
 
 func (fk *fakeKubelet) GetCachedMachineInfo() (*cadvisorapi.MachineInfo, error) {
@@ -374,7 +380,7 @@ type kubletServerTestFramework struct {
 	criHandler              *utiltesting.FakeHandler
 }
 
-func newKubeletServerTestWithDebug(enableDebugging, redirectContainerStreaming bool, streamingServer streaming.Server) *kubletServerTestFramework {
+func newKubeletServerTestWithDebug(enableDebugging bool, streamingServer streaming.Server) *kubletServerTestFramework {
 	fw := &kubletServerTestFramework{}
 	fw.fakeKubelet = &fakeKubelet{
 		hostnameFunc: func() string {
@@ -413,8 +419,7 @@ func newKubeletServerTestWithDebug(enableDebugging, redirectContainerStreaming b
 		true,
 		enableDebugging,
 		false,
-		redirectContainerStreaming,
-		fw.criHandler)
+		true)
 	fw.serverUnderTest = &server
 	fw.testHTTPServer = httptest.NewUnstartedServer(fw.serverUnderTest)
 	return fw
@@ -647,7 +652,6 @@ func testExecAttach(t *testing.T, verb string) {
 		tty                bool
 		responseStatusCode int
 		uid                bool
-		redirect           bool
 	}{
 		"no input or output":           {responseStatusCode: http.StatusBadRequest},
 		"stdin":                        {stdin: true, responseStatusCode: http.StatusSwitchingProtocols},
@@ -656,7 +660,9 @@ func testExecAttach(t *testing.T, verb string) {
 		"stdout and stderr":            {stdout: true, stderr: true, responseStatusCode: http.StatusSwitchingProtocols},
 		"stdin stdout and stderr":      {stdin: true, stdout: true, stderr: true, responseStatusCode: http.StatusSwitchingProtocols},
 		"stdin stdout stderr with uid": {stdin: true, stdout: true, stderr: true, responseStatusCode: http.StatusSwitchingProtocols, uid: true},
-		"stdout with redirect":         {stdout: true, responseStatusCode: http.StatusFound, redirect: true},
+		// TODO(christopherhein) support for v1.20
+		// Redirecting was removed with https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/1558-streaming-proxy-redirects#cleaning-up-container-streaming-requests
+		// "stdout with redirect":         {stdout: true, responseStatusCode: http.StatusFound, redirect: true},
 	}
 
 	podNamespace := "other"
@@ -675,7 +681,7 @@ func testExecAttach(t *testing.T, verb string) {
 			ss, err := newTestStreamingServer(0)
 			require.NoError(t, err)
 			defer ss.testHTTPServer.Close()
-			fv := newServerTestWithDebug(true, test.redirect, ss)
+			fv := newServerTestWithDebug(true, ss)
 			defer fv.Close()
 
 			done := make(chan struct{})
@@ -782,20 +788,8 @@ func testExecAttach(t *testing.T, verb string) {
 				Certificates:       []tls.Certificate{tenantCert},
 			}
 
-			if test.redirect {
-				c = &http.Client{
-					Transport: &http.Transport{
-						TLSClientConfig: tlsConfig,
-					},
-					// Don't follow redirects, since we want to inspect the redirect response.
-					CheckRedirect: func(*http.Request, []*http.Request) error {
-						return http.ErrUseLastResponse
-					},
-				}
-			} else {
-				upgradeRoundTripper = spdy.NewRoundTripper(tlsConfig, true, true)
-				c = &http.Client{Transport: upgradeRoundTripper}
-			}
+			upgradeRoundTripper = spdy.NewRoundTripper(tlsConfig, true, true)
+			c = &http.Client{Transport: upgradeRoundTripper}
 
 			resp, err = c.Do(makeReq(t, "POST", url, "v4.channel.k8s.io"))
 			require.NoError(t, err, "POSTing")
@@ -882,7 +876,7 @@ func TestServePortForwardIdleTimeout(t *testing.T) {
 	ss, err := newTestStreamingServer(100 * time.Millisecond)
 	require.NoError(t, err)
 	defer ss.testHTTPServer.Close()
-	fv := newServerTestWithDebug(true, false, ss)
+	fv := newServerTestWithDebug(true, ss)
 	defer fv.Close()
 
 	podNamespace := "other"
@@ -924,7 +918,6 @@ func TestServePortForward(t *testing.T) {
 		uid           bool
 		clientData    string
 		containerData string
-		redirect      bool
 		shouldError   bool
 	}{
 		"no port":                       {port: "", shouldError: true},
@@ -937,7 +930,9 @@ func TestServePortForward(t *testing.T) {
 		"normal port with data forward": {port: "8000", clientData: "client data", containerData: "container data", shouldError: false},
 		"max port":                      {port: "65535", shouldError: false},
 		"normal port with uid":          {port: "8000", uid: true, shouldError: false},
-		"normal port with redirect":     {port: "8000", redirect: true, shouldError: false},
+		// TODO(christopherhein) support for v1.20
+		// Redirecting was removed with https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/1558-streaming-proxy-redirects#cleaning-up-container-streaming-requests
+		// "normal port with redirect":     {port: "8000", redirect: true, shouldError: false},
 	}
 
 	podNamespace := "other"
@@ -950,7 +945,7 @@ func TestServePortForward(t *testing.T) {
 			ss, err := newTestStreamingServer(0)
 			require.NoError(t, err)
 			defer ss.testHTTPServer.Close()
-			fv := newServerTestWithDebug(true, test.redirect, ss)
+			fv := newServerTestWithDebug(true, ss)
 			defer fv.Close()
 
 			portForwardFuncDone := make(chan struct{})
@@ -1004,29 +999,13 @@ func TestServePortForward(t *testing.T) {
 				Certificates:       []tls.Certificate{tenantCert},
 			}
 
-			if test.redirect {
-				c = &http.Client{
-					Transport: &http.Transport{
-						TLSClientConfig: tlsConfig,
-					},
-				}
-				// Don't follow redirects, since we want to inspect the redirect response.
-				c.CheckRedirect = func(*http.Request, []*http.Request) error {
-					return http.ErrUseLastResponse
-				}
-			} else {
-				upgradeRoundTripper = spdy.NewRoundTripper(tlsConfig, true, true)
-				c = &http.Client{Transport: upgradeRoundTripper}
-			}
+			upgradeRoundTripper = spdy.NewRoundTripper(tlsConfig, true, true)
+			c = &http.Client{Transport: upgradeRoundTripper}
 
 			resp, err := c.Do(makeReq(t, "POST", url, "portforward.k8s.io"))
 			require.NoError(t, err, "POSTing")
 			defer resp.Body.Close()
 
-			if test.redirect {
-				assert.Equal(t, http.StatusFound, resp.StatusCode, "status code")
-				return
-			}
 			assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode, "status code")
 
 			conn, err := upgradeRoundTripper.NewConnection(resp)

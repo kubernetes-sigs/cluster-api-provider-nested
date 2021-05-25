@@ -44,6 +44,8 @@ const (
 	DefaultNamespaceDeletionTimeout = 10 * time.Minute
 )
 
+var Logf = e2elog.Logf
+
 // Framework supports common operations used by e2e tests; it will keep a client & a namespace for you.
 // Eventual goal is to merge this with integration test framework.
 type Framework struct {

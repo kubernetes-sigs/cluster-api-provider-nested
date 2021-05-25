@@ -18,6 +18,7 @@ package namespace
 
 import (
 	"fmt"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog"
 
@@ -84,9 +85,9 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	klog.Infof("reconcile namespace %s for super cluster %s", request.Name, request.ClusterName)
 	key := fmt.Sprintf("%s/%s", request.ClusterName, request.Name)
 	exists := true
-	nsObj, err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name)
-	ns := nsObj.(*v1.Namespace)
-	if err != nil {
+
+	ns := &v1.Namespace{}
+	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, ns); err != nil {
 		if !errors.IsNotFound(err) {
 			return reconciler.Result{Requeue: true}, err
 		}
@@ -99,15 +100,15 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 			return reconciler.Result{}, nil
 		}
 		var slices []*internalcache.Slice
-		slices, err = util.GetProvisionedSlices(ns, request.ClusterName, key)
+		slices, err := util.GetProvisionedSlices(ns, request.ClusterName, key)
 		if err != nil {
 			return reconciler.Result{Requeue: true}, fmt.Errorf("fail to reconcile %s/%s: %v", request.ClusterName, request.Name, err)
 		}
-		if err = c.SchedulerCache.AddProvision(request.ClusterName, key, slices); err != nil {
+		if err := c.SchedulerCache.AddProvision(request.ClusterName, key, slices); err != nil {
 			return reconciler.Result{Requeue: true}, err
 		}
 	} else {
-		if err = c.SchedulerCache.RemoveProvision(request.ClusterName, key); err != nil {
+		if err := c.SchedulerCache.RemoveProvision(request.ClusterName, key); err != nil {
 			return reconciler.Result{Requeue: true}, err
 		}
 	}

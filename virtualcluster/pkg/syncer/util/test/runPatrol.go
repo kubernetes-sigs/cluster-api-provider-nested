@@ -69,7 +69,6 @@ func RunPatrol(
 	waitUWS bool,
 	controllerStateModifyFunc controllerStateModifier,
 ) ([]core.Action, []core.Action, error) {
-	registerDefaultScheme()
 	// setup fake tenant cluster
 	tenantClientset := fake.NewSimpleClientset()
 	tenantClient := fakeClient.NewFakeClient()

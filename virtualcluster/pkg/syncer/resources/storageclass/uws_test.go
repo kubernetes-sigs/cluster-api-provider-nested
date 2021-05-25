@@ -183,6 +183,7 @@ func TestUWPVUpdate(t *testing.T) {
 			EnqueuedKey: defaultClusterKey + "/sc",
 			ExpectedUpdatedObject: []runtime.Object{
 				makeStorageClass("sc", "123456", func(class *v1.StorageClass) {
+					class.ResourceVersion = "999"
 					class.Provisioner = "a"
 				}),
 			},

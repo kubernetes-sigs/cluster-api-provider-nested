@@ -73,8 +73,8 @@ func (c *controller) BackPopulate(key string) error {
 		return pkgerr.Wrapf(err, "failed to create client from cluster %s config", clusterName)
 	}
 
-	vPVObj, err := c.MultiClusterController.Get(clusterName, "", key)
-	if err != nil {
+	vPV := &v1.PersistentVolume{}
+	if err := c.MultiClusterController.Get(clusterName, "", key, vPV); err != nil {
 		if errors.IsNotFound(err) {
 			// Create a new pv with bound claim in tenant master
 			vPVC, err := tenantClient.CoreV1().PersistentVolumeClaims(vNamespace).Get(context.TODO(), pPVC.Name, metav1.GetOptions{})
@@ -97,7 +97,6 @@ func (c *controller) BackPopulate(key string) error {
 		return err
 	}
 
-	vPV := vPVObj.(*v1.PersistentVolume)
 	if vPV.Annotations[constants.LabelUID] != string(pPV.UID) {
 		return fmt.Errorf("vPV %s in cluster %s delegated UID is different from pPV.", vPV.Name, clusterName)
 	}

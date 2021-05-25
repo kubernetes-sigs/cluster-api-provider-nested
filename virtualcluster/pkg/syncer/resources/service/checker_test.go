@@ -18,6 +18,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/client-go/testing"
@@ -229,6 +230,8 @@ func TestServicePatrol(t *testing.T) {
 						t.Errorf("%s: Unexpected action %s", k, action)
 					}
 					actionObj := action.(core.UpdateAction).GetObject()
+					accessor, _ := meta.Accessor(obj)
+					accessor.SetResourceVersion("999")
 					if !equality.Semantic.DeepEqual(obj, actionObj) {
 						t.Errorf("%s: Expected updated vService is %v, got %v", k, obj, actionObj)
 					}
