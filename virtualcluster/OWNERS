@@ -1,15 +1,13 @@
 # See the OWNERS docs: https://git.k8s.io/community/contributors/guide/owners.md
 
 approvers:
-- adohe
+- charleszheng44
+- christopherhein
 - Fei-Guo
-- resouer
-- tashimi
 - zhuangqh
 
 reviewers:
-- adohe
+- charleszheng44
 - christopherhein
 - Fei-Guo
-- resouer
 - zhuangqh
