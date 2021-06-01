@@ -517,9 +517,24 @@ func (e vcEquality) CheckBinaryDataEquality(pObj, vObj map[string][]byte) (map[s
 }
 
 func (e vcEquality) CheckSecretEquality(pObj, vObj *v1.Secret) *v1.Secret {
-	// ignore service account token type secret.
 	if vObj.Type == v1.SecretTypeServiceAccountToken {
-		return nil
+		var updatedObj *v1.Secret
+		labels, equal := e.checkDWKVEquality(pObj.Labels, vObj.Labels)
+		if !equal {
+			if updatedObj == nil {
+				updatedObj = pObj.DeepCopy()
+			}
+			updatedObj.Labels = labels
+		}
+
+		annotations, equal := e.checkDWKVEquality(pObj.Annotations, vObj.Annotations)
+		if !equal {
+			if updatedObj == nil {
+				updatedObj = pObj.DeepCopy()
+			}
+			updatedObj.Annotations = annotations
+		}
+		return updatedObj
 	}
 
 	var updated *v1.Secret
