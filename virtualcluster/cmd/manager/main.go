@@ -19,22 +19,20 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net/http"
 	"os"
 
-	"k8s.io/apiserver/pkg/server/healthz"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/webhook"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/constants"
 	logrutil "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/util/logr"
-	vcmanager "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/vcmanager"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/version"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/version/verflag"
 )
@@ -43,6 +41,7 @@ func main() {
 	var (
 		logFile                 string
 		metricsAddr             string
+		healthAddr              string
 		masterProvisioner       string
 		leaderElection          bool
 		leaderElectionCmName    string
@@ -52,6 +51,7 @@ func main() {
 		enableWebhook           bool
 	)
 	flag.StringVar(&metricsAddr, "metrics-addr", ":0", "The address the metric endpoint binds to.")
+	flag.StringVar(&healthAddr, "health-addr", ":8080", "The address of the healthz/readyz endpoint binds to.")
 	flag.StringVar(&masterProvisioner, "master-prov", "native",
 		"The underlying platform that will provision master for virtualcluster.")
 	flag.BoolVar(&leaderElection, "leader-election", true, "If enable leaderelection for vc-manager")
@@ -90,15 +90,25 @@ func main() {
 	// Create a new Cmd to provide shared dependencies and start components
 	log.Info("setting up manager")
 	mgrOpt := manager.Options{
-		MetricsBindAddress: metricsAddr,
-		LeaderElection:     leaderElection,
-		LeaderElectionID:   leaderElectionCmName,
-		CertDir:            constants.VirtualClusterWebhookCertDir,
-		Port:               constants.VirtualClusterWebhookPort,
+		MetricsBindAddress:     metricsAddr,
+		LeaderElection:         leaderElection,
+		LeaderElectionID:       leaderElectionCmName,
+		CertDir:                constants.VirtualClusterWebhookCertDir,
+		Port:                   constants.VirtualClusterWebhookPort,
+		HealthProbeBindAddress: healthAddr,
 	}
-	mgr, err := vcmanager.NewVirtualClusterManager(cfg, mgrOpt, maxConcurrentReconciles)
+	mgr, err := ctrl.NewManager(cfg, mgrOpt)
 	if err != nil {
 		log.Error(err, "unable to set up overall controller manager")
+		os.Exit(1)
+	}
+
+	if err := mgr.AddReadyzCheck("ping", healthz.Ping); err != nil {
+		log.Error(err, "unable to create ready check")
+		os.Exit(1)
+	}
+	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
+		log.Error(err, "unable to create health check")
 		os.Exit(1)
 	}
 
@@ -113,7 +123,12 @@ func main() {
 
 	// Setup all Controllers
 	log.Info("Setting up controller")
-	if err := controller.AddToManager(mgr, masterProvisioner); err != nil {
+	if err := (&controller.Controllers{
+		Log:                     log.WithName("Controllers"),
+		Client:                  mgr.GetClient(),
+		ProvisionerName:         masterProvisioner,
+		MaxConcurrentReconciles: maxConcurrentReconciles,
+	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "unable to register controllers to the manager")
 		os.Exit(1)
 	}
@@ -125,17 +140,6 @@ func main() {
 			os.Exit(1)
 		}
 	}
-
-	go func() {
-		// start a health http server.
-		log.Info("Starting a health http server")
-		mux := http.NewServeMux()
-		healthz.InstallHandler(mux)
-		if err := http.ListenAndServe(":8080", mux); err != nil {
-			log.Error(err, "unable to start health http server")
-			os.Exit(1)
-		}
-	}()
 
 	// Start the Cmd
 	log.Info("Starting the Cmd.")

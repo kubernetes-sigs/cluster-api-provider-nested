@@ -14,62 +14,39 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterversion
+package controllers
 
 import (
 	"context"
 
+	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	tenancyv1alpha1 "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	strutil "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/util/strings"
-	vcmanager "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/vcmanager"
 )
 
 var log = logf.Log.WithName("clusterversion-controller")
-
-// Add creates a new ClusterVersion Controller and adds it to the Manager with
-// default RBAC. The Manager will set fields on the Controller and Start it
-// when the Manager is Started.
-func Add(mgr *vcmanager.VirtualClusterManager, _ string) error {
-	return add(mgr, newReconciler(mgr))
-}
-
-// newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileClusterVersion{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
-}
-
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	// Create a new controller
-	c, err := controller.New("clusterversion-controller", mgr, controller.Options{Reconciler: r})
-	if err != nil {
-		return err
-	}
-
-	// Watch for changes to ClusterVersion
-	err = c.Watch(&source.Kind{Type: &tenancyv1alpha1.ClusterVersion{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-	return nil
-}
 
 var _ reconcile.Reconciler = &ReconcileClusterVersion{}
 
 // ReconcileClusterVersion reconciles a ClusterVersion object
 type ReconcileClusterVersion struct {
 	client.Client
-	scheme *runtime.Scheme
+	Log logr.Logger
+}
+
+// SetupWithManager will configure the VirtualCluster reconciler
+func (r *ReconcileClusterVersion) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(opts).
+		For(&tenancyv1alpha1.ClusterVersion{}).
+		Complete(r)
 }
 
 // Reconcile reads that state of the cluster for a ClusterVersion object and makes changes based on the state read
@@ -77,9 +54,8 @@ type ReconcileClusterVersion struct {
 // +kubebuilder:rbac:groups=tenancy.x-k8s.io,resources=clusterversions,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=tenancy.x-k8s.io,resources=clusterversions/status,verbs=get;update;patch
 func (r *ReconcileClusterVersion) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
-
 	// Fetch the ClusterVersion instance
-	log.Info("reconciling ClusterVersion...")
+	r.Log.Info("reconciling ClusterVersion...")
 	cv := &tenancyv1alpha1.ClusterVersion{}
 	err := r.Get(context.TODO(), request.NamespacedName, cv)
 	if err != nil {
@@ -89,7 +65,7 @@ func (r *ReconcileClusterVersion) Reconcile(ctx context.Context, request reconci
 		}
 		return reconcile.Result{}, err
 	}
-	log.Info("new ClusterVersion event", "ClusterVersionName", cv.Name)
+	r.Log.Info("new ClusterVersion event", "ClusterVersionName", cv.Name)
 
 	// Register finalizers
 	cvf := "clusterVersion.finalizers"
@@ -98,7 +74,7 @@ func (r *ReconcileClusterVersion) Reconcile(ctx context.Context, request reconci
 		// the object has not been deleted yet, registers the finalizers
 		if strutil.ContainString(cv.ObjectMeta.Finalizers, cvf) == false {
 			cv.ObjectMeta.Finalizers = append(cv.ObjectMeta.Finalizers, cvf)
-			log.Info("register finalizer for ClusterVersion", "finalizer", cvf)
+			r.Log.Info("register finalizer for ClusterVersion", "finalizer", cvf)
 			if err := r.Update(context.Background(), cv); err != nil {
 				return reconcile.Result{}, err
 			}
@@ -107,7 +83,7 @@ func (r *ReconcileClusterVersion) Reconcile(ctx context.Context, request reconci
 		// the object is being deleted, star the finalizer
 		if strutil.ContainString(cv.ObjectMeta.Finalizers, cvf) == true {
 			// the finalizer logic
-			log.Info("a ClusterVersion object is deleted", "ClusterVersion", cv.Name)
+			r.Log.Info("a ClusterVersion object is deleted", "ClusterVersion", cv.Name)
 
 			// remove the finalizer after done
 			cv.ObjectMeta.Finalizers = strutil.RemoveString(cv.ObjectMeta.Finalizers, cvf)

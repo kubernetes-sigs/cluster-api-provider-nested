@@ -17,60 +17,42 @@ limitations under the License.
 package controller
 
 import (
-	"fmt"
-
-	vcmanager "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/vcmanager"
+	"github.com/go-logr/logr"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/controllers"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 )
 
-type ControllerName int
-
-const (
-	VirtualClusterController ControllerName = iota
-	ClusterversionController
-)
-
-func (cn ControllerName) String() string {
-	switch cn {
-	case VirtualClusterController:
-		return "VirtualClusterController"
-	case ClusterversionController:
-		return "ClusterversionController"
-	default:
-		return fmt.Sprintf("%d", cn)
-	}
+// Controllers defines all the shared information between all
+type Controllers struct {
+	client.Client
+	Log                     logr.Logger
+	MaxConcurrentReconciles int
+	ProvisionerName         string
 }
 
-// AddToManagerFuncs is a list of functions to add all Controllers to the Manager
-var AddToManagerFuncs = make(map[ControllerName]func(*vcmanager.VirtualClusterManager, string) error)
-
 // AddToManager adds all Controllers to the Manager
-func AddToManager(m *vcmanager.VirtualClusterManager, masterProvisioner string) error {
+func (c *Controllers) SetupWithManager(mgr ctrl.Manager) error {
+	opts := controller.Options{
+		MaxConcurrentReconciles: c.MaxConcurrentReconciles,
+	}
 	// add controller based the type of the masterProvisioner
-	switch masterProvisioner {
-	case "native":
-		f, exist := AddToManagerFuncs[VirtualClusterController]
-		if !exist {
-			return fmt.Errorf("%s not found", VirtualClusterController)
-		}
-		if err := f(m, masterProvisioner); err != nil {
+	if c.ProvisionerName == "native" {
+		if err := (&controllers.ReconcileClusterVersion{
+			Client: mgr.GetClient(),
+			Log:    c.Log.WithName("virtualcluster"),
+		}).SetupWithManager(mgr, opts); err != nil {
 			return err
 		}
+	}
 
-		f, exist = AddToManagerFuncs[ClusterversionController]
-		if !exist {
-			return fmt.Errorf("%s not found", ClusterversionController)
-		}
-		if err := f(m, masterProvisioner); err != nil {
-			return err
-		}
-	case "aliyun":
-		f, exist := AddToManagerFuncs[VirtualClusterController]
-		if !exist {
-			return fmt.Errorf("%s not found", VirtualClusterController)
-		}
-		if err := f(m, masterProvisioner); err != nil {
-			return err
-		}
+	if err := (&controllers.ReconcileVirtualCluster{
+		Client:          mgr.GetClient(),
+		Log:             c.Log.WithName("virtualcluster"),
+		ProvisionerName: c.ProvisionerName,
+	}).SetupWithManager(mgr, opts); err != nil {
+		return err
 	}
 	return nil
 }

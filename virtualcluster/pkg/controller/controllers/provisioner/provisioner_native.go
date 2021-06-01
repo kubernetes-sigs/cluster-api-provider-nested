@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package virtualcluster
+package provisioner
 
 import (
 	"context"
@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -45,48 +46,46 @@ const (
 	DeployTimeOutSec = 180
 )
 
-type MasterProvisionerNative struct {
+type ProvisionerNative struct {
 	client.Client
 	scheme *runtime.Scheme
+	Log    logr.Logger
 }
 
-func NewMasterProvisionerNative(mgr manager.Manager) (*MasterProvisionerNative, error) {
-	return &MasterProvisionerNative{
+func NewProvisionerNative(mgr manager.Manager, log logr.Logger) (*ProvisionerNative, error) {
+	return &ProvisionerNative{
 		Client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
+		Log:    log.WithName("Native"),
 	}, nil
 }
 
-// CreateVirtualCluster sets up the control plane for vc on meta k8s
-func (mpn *MasterProvisionerNative) CreateVirtualCluster(vc *tenancyv1alpha1.VirtualCluster) error {
-	cvs := &tenancyv1alpha1.ClusterVersionList{}
-	err := mpn.List(context.TODO(), cvs, client.InNamespace(""))
-	if err != nil {
-		return err
-	}
-
-	cv := getClusterVersion(cvs, vc.Spec.ClusterVersionName)
-	if cv == nil {
+// Create sets up the control plane for vc on meta k8s
+func (mpn *ProvisionerNative) CreateVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error {
+	cvObjectKey := client.ObjectKey{Name: vc.Spec.ClusterVersionName}
+	cv := &tenancyv1alpha1.ClusterVersion{}
+	if err := mpn.Get(context.Background(), cvObjectKey, cv); err != nil {
 		err = fmt.Errorf("desired ClusterVersion %s not found",
 			vc.Spec.ClusterVersionName)
 		return err
 	}
+
 	// 1. create the root ns
-	_, err = kubeutil.CreateRootNS(mpn, vc)
+	_, err := kubeutil.CreateRootNS(mpn, vc)
 	if err != nil {
 		return err
 	}
 	isClusterIP := cv.Spec.APIServer.Service != nil && cv.Spec.APIServer.Service.Spec.Type == v1.ServiceTypeClusterIP
 	// if ClusterIP, have to create API Server ahead of time to lay it down in the PKI
 	if isClusterIP {
-		log.Info("deploying ClusterIP Service for API component", "component", cv.Spec.APIServer.Name)
+		mpn.Log.Info("deploying ClusterIP Service for API component", "component", cv.Spec.APIServer.Name)
 		complementAPIServerTemplate(conversion.ToClusterKey(vc), cv.Spec.APIServer)
 		err = mpn.Create(context.TODO(), cv.Spec.APIServer.Service)
 		if err != nil {
 			if !apierrors.IsAlreadyExists(err) {
 				return err
 			}
-			log.Info("service already exist",
+			mpn.Log.Info("service already exist",
 				"service", cv.Spec.APIServer.Service.GetName())
 		}
 	}
@@ -162,8 +161,8 @@ func complementCtrlMgrTemplate(vcns string, ctrlMgrBdl *tenancyv1alpha1.Stateful
 
 // deployComponent deploys master component in namespace vcName based on the given StatefulSet
 // and Service Bundle ssBdl
-func (mpn *MasterProvisionerNative) deployComponent(vc *tenancyv1alpha1.VirtualCluster, ssBdl *tenancyv1alpha1.StatefulSetSvcBundle) error {
-	log.Info("deploying StatefulSet for master component", "component", ssBdl.Name)
+func (mpn *ProvisionerNative) deployComponent(vc *tenancyv1alpha1.VirtualCluster, ssBdl *tenancyv1alpha1.StatefulSetSvcBundle) error {
+	mpn.Log.Info("deploying StatefulSet for master component", "component", ssBdl.Name)
 
 	ns := conversion.ToClusterKey(vc)
 
@@ -175,7 +174,7 @@ func (mpn *MasterProvisionerNative) deployComponent(vc *tenancyv1alpha1.VirtualC
 	case "controller-manager":
 		complementCtrlMgrTemplate(ns, ssBdl)
 	default:
-		return fmt.Errorf("try to deploy unknwon component: %s", ssBdl.Name)
+		return fmt.Errorf("try to deploy unknown component: %s", ssBdl.Name)
 	}
 
 	err := mpn.Create(context.TODO(), ssBdl.StatefulSet)
@@ -183,25 +182,25 @@ func (mpn *MasterProvisionerNative) deployComponent(vc *tenancyv1alpha1.VirtualC
 		if !apierrors.IsAlreadyExists(err) {
 			return err
 		}
-		log.Info("statefuleset already exist",
+		mpn.Log.Info("statefuleset already exist",
 			"statefuleset", ssBdl.StatefulSet.GetName(),
 			"namespace", ssBdl.StatefulSet.GetNamespace())
 	}
 
 	if ssBdl.Service != nil {
-		log.Info("deploying Service for master component", "component", ssBdl.Name)
+		mpn.Log.Info("deploying Service for master component", "component", ssBdl.Name)
 		err = mpn.Create(context.TODO(), ssBdl.Service)
 		if err != nil {
 			if !apierrors.IsAlreadyExists(err) {
 				return err
 			}
-			log.Info("service already exist",
+			mpn.Log.Info("service already exist",
 				"service", ssBdl.Service.GetName())
 		}
 	}
 
 	// wait for the statefuleset to be ready
-	err = kubeutil.WaitStatefulSetReady(mpn, ns, ssBdl.GetName(), DeployTimeOutSec, ComponentPollPeriodSec)
+	err = kubeutil.WaitStatefulSetReady(mpn, ns, ssBdl.Name, DeployTimeOutSec, ComponentPollPeriodSec)
 	if err != nil {
 		return err
 	}
@@ -210,7 +209,7 @@ func (mpn *MasterProvisionerNative) deployComponent(vc *tenancyv1alpha1.VirtualC
 
 // createPKISecrets creates secrets to store crt/key pairs and kubeconfigs
 // for master components of the virtual cluster
-func (mpn *MasterProvisionerNative) createPKISecrets(caGroup *vcpki.ClusterCAGroup, namespace string) error {
+func (mpn *ProvisionerNative) createPKISecrets(caGroup *vcpki.ClusterCAGroup, namespace string) error {
 	// create secret for root crt/key pair
 	rootSrt := secret.CrtKeyPairToSecret(secret.RootCASecretName, namespace, caGroup.RootCA)
 	// create secret for apiserver crt/key pair
@@ -236,14 +235,14 @@ func (mpn *MasterProvisionerNative) createPKISecrets(caGroup *vcpki.ClusterCAGro
 
 	// create all secrets on metacluster
 	for _, srt := range secrets {
-		log.Info("creating secret", "name",
+		mpn.Log.Info("creating secret", "name",
 			srt.Name, "namespace", srt.Namespace)
 		err := mpn.Create(context.TODO(), srt)
 		if err != nil {
 			if !apierrors.IsAlreadyExists(err) {
 				return err
 			}
-			log.Info("Secret already exists",
+			mpn.Log.Info("Secret already exists",
 				"secret", srt.Name,
 				"namespace", srt.Namespace)
 		}
@@ -254,7 +253,7 @@ func (mpn *MasterProvisionerNative) createPKISecrets(caGroup *vcpki.ClusterCAGro
 
 // createPKI constructs the PKI (all crt/key pair and kubeconfig) for the
 // virtual clusters, and store them as secrets in the meta cluster
-func (mpn *MasterProvisionerNative) createPKI(vc *tenancyv1alpha1.VirtualCluster, cv *tenancyv1alpha1.ClusterVersion, isClusterIP bool) error {
+func (mpn *ProvisionerNative) createPKI(vc *tenancyv1alpha1.VirtualCluster, cv *tenancyv1alpha1.ClusterVersion, isClusterIP bool) error {
 	ns := conversion.ToClusterKey(vc)
 	caGroup := &vcpki.ClusterCAGroup{}
 	// create root ca, all components will share a single root ca
@@ -293,7 +292,7 @@ func (mpn *MasterProvisionerNative) createPKI(vc *tenancyv1alpha1.VirtualCluster
 		var err error
 		clusterIP, err = kubeutil.GetSvcClusterIP(mpn, conversion.ToClusterKey(vc), cv.Spec.APIServer.Service.GetName())
 		if err != nil {
-			log.Info("Warning: failed to get API Service", "service", cv.Spec.APIServer.Service.GetName(), "err", err)
+			mpn.Log.Info("Warning: failed to get API Service", "service", cv.Spec.APIServer.Service.GetName(), "err", err)
 		}
 	}
 
@@ -343,19 +342,10 @@ func (mpn *MasterProvisionerNative) createPKI(vc *tenancyv1alpha1.VirtualCluster
 	return nil
 }
 
-func (mpn *MasterProvisionerNative) DeleteVirtualCluster(vc *tenancyv1alpha1.VirtualCluster) error {
+func (mpn *ProvisionerNative) DeleteVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error {
 	return nil
 }
 
-func (mpn *MasterProvisionerNative) GetMasterProvisioner() string {
+func (mpn *ProvisionerNative) GetProvisioner() string {
 	return "native"
-}
-
-func getClusterVersion(cvl *tenancyv1alpha1.ClusterVersionList, cvn string) *tenancyv1alpha1.ClusterVersion {
-	for _, cv := range cvl.Items {
-		if cv.Name == cvn {
-			return &cv
-		}
-	}
-	return nil
 }
