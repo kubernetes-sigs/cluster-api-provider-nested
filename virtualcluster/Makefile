@@ -91,11 +91,11 @@ run: generate fmt vet
 
 # Install CRDs into a cluster
 install: manifests
-	kubectl apply -f config/crds
+	kubectl apply -f config/crd
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests
-	kubectl apply -f config/crds
+	kubectl apply -f config/crd
 	kustomize build config/default | kubectl apply -f -
 
 # Generate manifests e.g. CRD, RBAC etc.
@@ -109,15 +109,15 @@ ifeq (, $(shell which yq))
 	@exit
 else
 	@{ \
-	yq w -i config/crds/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.apiServer.properties.statefulset.properties.spec.properties.template.properties.spec.properties.containers.items.properties.ports.items.required[1]" protocol;\
-	yq w -i config/crds/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.controllerManager.properties.statefulset.properties.spec.properties.template.properties.spec.properties.containers.items.properties.ports.items.required[1]" protocol;\
-	yq w -i config/crds/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.etcd.properties.statefulset.properties.spec.properties.template.properties.spec.properties.containers.items.properties.ports.items.required[1]" protocol;\
-	yq w -i config/crds/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.apiServer.properties.statefulset.properties.spec.properties.template.properties.spec.properties.initContainers.items.properties.ports.items.required[1]" protocol;\
-	yq w -i config/crds/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.controllerManager.properties.statefulset.properties.spec.properties.template.properties.spec.properties.initContainers.items.properties.ports.items.required[1]" protocol;\
-	yq w -i config/crds/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.etcd.properties.statefulset.properties.spec.properties.template.properties.spec.properties.initContainers.items.properties.ports.items.required[1]" protocol;\
-	yq w -i config/crds/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.apiServer.properties.service.properties.spec.properties.ports.items.required[1]" protocol;\
-	yq w -i config/crds/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.controllerManager.properties.service.properties.spec.properties.ports.items.required[1]" protocol;\
-	yq w -i config/crds/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.etcd.properties.service.properties.spec.properties.ports.items.required[1]" protocol;\
+	yq w -i config/crd/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.apiServer.properties.statefulset.properties.spec.properties.template.properties.spec.properties.containers.items.properties.ports.items.required[1]" protocol;\
+	yq w -i config/crd/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.controllerManager.properties.statefulset.properties.spec.properties.template.properties.spec.properties.containers.items.properties.ports.items.required[1]" protocol;\
+	yq w -i config/crd/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.etcd.properties.statefulset.properties.spec.properties.template.properties.spec.properties.containers.items.properties.ports.items.required[1]" protocol;\
+	yq w -i config/crd/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.apiServer.properties.statefulset.properties.spec.properties.template.properties.spec.properties.initContainers.items.properties.ports.items.required[1]" protocol;\
+	yq w -i config/crd/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.controllerManager.properties.statefulset.properties.spec.properties.template.properties.spec.properties.initContainers.items.properties.ports.items.required[1]" protocol;\
+	yq w -i config/crd/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.etcd.properties.statefulset.properties.spec.properties.template.properties.spec.properties.initContainers.items.properties.ports.items.required[1]" protocol;\
+	yq w -i config/crd/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.apiServer.properties.service.properties.spec.properties.ports.items.required[1]" protocol;\
+	yq w -i config/crd/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.controllerManager.properties.service.properties.spec.properties.ports.items.required[1]" protocol;\
+	yq w -i config/crd/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.etcd.properties.service.properties.spec.properties.ports.items.required[1]" protocol;\
 	}
 endif
 
