@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package virtualcluster
+package provisioner
 
 import (
 	"context"
@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
+	"github.com/go-logr/logr"
 	tenancyv1alpha1 "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/secret"
 	aliyunutil "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/util/aliyun"
@@ -40,12 +41,13 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 )
 
-type MasterProvisionerAliyun struct {
+type ProvisionerAliyun struct {
 	client.Client
 	scheme *runtime.Scheme
+	Log    logr.Logger
 }
 
-func NewMasterProvisionerAliyun(mgr manager.Manager) (*MasterProvisionerAliyun, error) {
+func NewProvisionerAliyun(mgr manager.Manager, log logr.Logger) (*ProvisionerAliyun, error) {
 	// if running under aliyun mode, 'AliyunAkSrt' and 'AliyunASKConfigMap' is required
 	ns, err := kubeutil.GetPodNsFromInside()
 	if err != nil {
@@ -67,22 +69,23 @@ func NewMasterProvisionerAliyun(mgr manager.Manager) (*MasterProvisionerAliyun, 
 	}, &v1.ConfigMap{}, log) {
 		return nil, fmt.Errorf("configmap/%s doesnot exist", aliyunutil.AliyunASKConfigMap)
 	}
-	return &MasterProvisionerAliyun{
+	return &ProvisionerAliyun{
 		Client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
+		Log:    log.WithName("Aliyun"),
 	}, nil
 }
 
-// CreateVirtualCluster creates a new ASK on aliyun for given VirtualCluster
-func (mpa *MasterProvisionerAliyun) CreateVirtualCluster(vc *tenancyv1alpha1.VirtualCluster) error {
-	log.Info("setting up control plane for the VirtualCluster", "VirtualCluster", vc.Name)
+// Create creates a new ASK on aliyun for given VirtualCluster
+func (mpa *ProvisionerAliyun) CreateVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error {
+	mpa.Log.Info("setting up control plane for the VirtualCluster", "VirtualCluster", vc.Name)
 	// 1. load aliyun accessKeyID/accessKeySecret from secret
-	aliyunAKID, aliyunAKSrt, err := aliyunutil.GetAliyunAKPair(mpa, log)
+	aliyunAKID, aliyunAKSrt, err := aliyunutil.GetAliyunAKPair(mpa, mpa.Log)
 	if err != nil {
 		return err
 	}
 
-	askCfg, err := aliyunutil.GetASKConfigs(mpa, log)
+	askCfg, err := aliyunutil.GetASKConfigs(mpa, mpa.Log)
 	if err != nil {
 		return err
 	}
@@ -126,7 +129,7 @@ func (mpa *MasterProvisionerAliyun) CreateVirtualCluster(vc *tenancyv1alpha1.Vir
 		}
 	}
 
-	log.Info("creating the ASK", "ASK-ID", clsID)
+	mpa.Log.Info("creating the ASK", "ASK-ID", clsID)
 
 	// 3. block until the newly created ASK is up and running
 PollASK:
@@ -135,7 +138,7 @@ PollASK:
 		case <-time.After(10 * time.Second):
 			if clsState == "running" {
 				// ASK is up and running, stop polling
-				log.Info("ASK is up and running", "ASK-ID", clsID)
+				mpa.Log.Info("ASK is up and running", "ASK-ID", clsID)
 				break PollASK
 			}
 			var getStErr error
@@ -154,52 +157,52 @@ PollASK:
 	if err != nil {
 		return err
 	}
-	log.Info("virtualcluster root ns is created", "ns", vcNs)
+	mpa.Log.Info("virtualcluster root ns is created", "ns", vcNs)
 
 	// 5. get kubeconfig of the newly created ASK
 	kbCfg, err := aliyunutil.GetASKKubeConfig(cli, clsID, askCfg.RegionID, askCfg.PrivateKbCfg)
 	if err != nil {
 		return err
 	}
-	log.Info("got kubeconfig of cluster", "cluster", clsID)
+	mpa.Log.Info("got kubeconfig of cluster", "cluster", clsID)
 
 	// 6. serialize kubeconfig to secret and store it in the
 	// corresponding namespace (i.e.)
 	adminSrt := secret.KubeconfigToSecret(secret.AdminSecretName,
 		vcNs, kbCfg)
-	err = mpa.Create(context.TODO(), adminSrt)
+	err = mpa.Create(ctx, adminSrt)
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
-	log.Info("admin kubeconfig is created for virtualcluster", "vc", vc.GetName())
+	mpa.Log.Info("admin kubeconfig is created for virtualcluster", "vc", vc.GetName())
 
 	// 7. add annotations on vc cr, including,
 	// tenancy.x-k8s.io/ask.clusterID,
 	// tenancy.x-k8s.io/ask.slbID,
 	// tenancy.x-k8s.io/cluster,
 	// tenancy.x-k8s.io/admin-kubeconfig
-	err = kubeutil.AnnotateVC(mpa, vc, aliyunutil.AnnotationSlbID, clsSlbId, log)
+	err = kubeutil.AnnotateVC(mpa, vc, aliyunutil.AnnotationSlbID, clsSlbId, mpa.Log)
 	if err != nil {
 		return err
 	}
-	log.Info("slb id has been added to vc as an annotation", "vc", vc.GetName(), "id", clsSlbId)
-	err = kubeutil.AnnotateVC(mpa, vc, aliyunutil.AnnotationClusterID, clsID, log)
+	mpa.Log.Info("slb id has been added to vc as an annotation", "vc", vc.GetName(), "id", clsSlbId)
+	err = kubeutil.AnnotateVC(mpa, vc, aliyunutil.AnnotationClusterID, clsID, mpa.Log)
 	if err != nil {
 		return err
 	}
-	log.Info("cluster ID has been added to vc as an annotation", "vc", vc.GetName(), "cluster-id", clsID)
+	mpa.Log.Info("cluster ID has been added to vc as an annotation", "vc", vc.GetName(), "cluster-id", clsID)
 	kbCfgB64 := base64.StdEncoding.EncodeToString([]byte(kbCfg))
-	err = kubeutil.AnnotateVC(mpa, vc, aliyunutil.AnnotationKubeconfig, kbCfgB64, log)
+	err = kubeutil.AnnotateVC(mpa, vc, aliyunutil.AnnotationKubeconfig, kbCfgB64, mpa.Log)
 	if err != nil {
 		return err
 	}
-	log.Info("admin-kubeconfig has been added to vc as an annotation", "vc", vc.GetName())
+	mpa.Log.Info("admin-kubeconfig has been added to vc as an annotation", "vc", vc.GetName())
 	// the clusterkey is the vc root ns
-	err = kubeutil.AnnotateVC(mpa, vc, constants.LabelCluster, vcNs, log)
+	err = kubeutil.AnnotateVC(mpa, vc, constants.LabelCluster, vcNs, mpa.Log)
 	if err != nil {
 		return err
 	}
-	log.Info("cluster key has been added to vc as an annotation", "vc", vc.GetName(), "cluster-key", vcNs)
+	mpa.Log.Info("cluster key has been added to vc as an annotation", "vc", vc.GetName(), "cluster-key", vcNs)
 
 	// 8. delete the node-controller service account to disable the
 	// node periodic check
@@ -216,20 +219,20 @@ PollASK:
 		Delete(context.TODO(), "node-controller", metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
-	log.Info("the node selector service account is deleted", "vc", vc.GetName())
+	mpa.Log.Info("the node selector service account is deleted", "vc", vc.GetName())
 	return nil
 }
 
-// DeleteVirtualCluster deletes the ASK cluster corresponding to the given VirtualCluster
-// NOTE DeleteVirtualCluster only sends the deletion request to Aliyun and do not promise
+// Delete deletes the ASK cluster corresponding to the given VirtualCluster
+// NOTE Delete only sends the deletion request to Aliyun and do not promise
 // the ASK will be deleted
-func (mpa *MasterProvisionerAliyun) DeleteVirtualCluster(vc *tenancyv1alpha1.VirtualCluster) error {
-	log.Info("deleting the ASK of the virtualcluster", "vc-name", vc.Name)
-	aliyunAKID, aliyunAKSrt, err := aliyunutil.GetAliyunAKPair(mpa, log)
+func (mpa *ProvisionerAliyun) DeleteVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error {
+	mpa.Log.Info("deleting the ASK of the virtualcluster", "vc-name", vc.Name)
+	aliyunAKID, aliyunAKSrt, err := aliyunutil.GetAliyunAKPair(mpa, mpa.Log)
 	if err != nil {
 		return err
 	}
-	askCfg, err := aliyunutil.GetASKConfigs(mpa, log)
+	askCfg, err := aliyunutil.GetASKConfigs(mpa, mpa.Log)
 	if err != nil {
 		return err
 	}
@@ -259,7 +262,7 @@ OuterLoop:
 			if err != nil {
 				if aliyunutil.IsSDKErr(err) {
 					if aliyunutil.GetSDKErrCode(err) == aliyunutil.ClusterNotFound {
-						log.Info("corresponding ASK cluster is not found", "vc-name", vc.Name)
+						mpa.Log.Info("corresponding ASK cluster is not found", "vc-name", vc.Name)
 						break OuterLoop
 					}
 				}
@@ -268,7 +271,7 @@ OuterLoop:
 			if state == "deleting" {
 				// once the ASK cluster enter the 'deleting' state, the cloud
 				// provider will delete the cluster
-				log.Info("ASK cluster is being deleted")
+				mpa.Log.Info("ASK cluster is being deleted")
 				break OuterLoop
 			}
 		case <-deletionTimeout:
@@ -279,6 +282,6 @@ OuterLoop:
 	return nil
 }
 
-func (mpa *MasterProvisionerAliyun) GetMasterProvisioner() string {
+func (mpa *ProvisionerAliyun) GetProvisioner() string {
 	return "aliyun"
 }

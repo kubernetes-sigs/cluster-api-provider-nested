@@ -14,13 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package provisioner
 
 import (
-	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/clusterversion"
+	"context"
+
+	tenancyv1alpha1 "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 )
 
-func init() {
-	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
-	AddToManagerFuncs[ClusterversionController] = clusterversion.Add
+type Provisioner interface {
+	CreateVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error
+	DeleteVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error
+	GetProvisioner() string
 }
