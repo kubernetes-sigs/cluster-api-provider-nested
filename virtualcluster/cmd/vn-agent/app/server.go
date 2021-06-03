@@ -30,6 +30,7 @@ import (
 	"k8s.io/component-base/cli/globalflag"
 	"k8s.io/component-base/term"
 	"k8s.io/klog"
+	"k8s.io/kubernetes/pkg/healthz"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/cmd/vn-agent/app/options"
 	utilflag "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/flag"
@@ -90,7 +91,7 @@ func NewVnAgentCommand(stopChan <-chan struct{}) *cobra.Command {
 
 // Run start the vn-agent server.
 func Run(c *config.Config, serverOption *options.ServerOption, stopCh <-chan struct{}) error {
-	handler, err := server.NewServer(c)
+	handler, err := server.NewServer(c, serverOption)
 	if err != nil {
 		return errors.Wrapf(err, "create server")
 	}
@@ -128,6 +129,14 @@ func Run(c *config.Config, serverOption *options.ServerOption, stopCh <-chan str
 	errCh := make(chan error)
 	go func() {
 		err := s.ListenAndServeTLS(tlsConfig.CertFile, tlsConfig.KeyFile)
+		errCh <- err
+	}()
+
+	go func() {
+		// start a health http server.
+		mux := http.NewServeMux()
+		healthz.InstallHandler(mux)
+		klog.Fatal(http.ListenAndServe(":8080", mux))
 		errCh <- err
 	}()
 

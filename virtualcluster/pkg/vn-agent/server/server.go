@@ -18,14 +18,17 @@ package server
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"net/http"
 	"net/url"
 
 	"github.com/emicklei/go-restful"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	certutil "k8s.io/client-go/util/cert"
 
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/cmd/vn-agent/app/options"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/vn-agent/config"
 )
 
@@ -44,7 +47,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 // NewServer initializes and configures a vn-agent.Server object to handle HTTP requests.
-func NewServer(cfg *config.Config) (*Server, error) {
+func NewServer(cfg *config.Config, serverOption *options.ServerOption) (*Server, error) {
 	u, err := url.Parse(cfg.KubeletServerHost)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse kubelet server url")
@@ -66,9 +69,20 @@ func NewServer(cfg *config.Config) (*Server, error) {
 			},
 		}
 	} else {
-		restConfig, err := rest.InClusterConfig()
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get in cluster config")
+		var restConfig *rest.Config
+		var caCrtPool *x509.CertPool
+		if len(serverOption.Kubeconfig) == 0 {
+			restConfig, err = rest.InClusterConfig()
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to get in cluster config")
+			}
+			caCrtPool, err = certutil.NewPool(restConfig.TLSClientConfig.CAFile)
+		} else {
+			// This creates a client, first loading any specified kubeconfig\
+			restConfig, err = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+				&clientcmd.ClientConfigLoadingRules{ExplicitPath: serverOption.Kubeconfig},
+				&clientcmd.ConfigOverrides{}).ClientConfig()
+			caCrtPool, err = certutil.NewPoolFromBytes(restConfig.TLSClientConfig.CAData)
 		}
 		server.restConfig = restConfig
 		superHttpsUrl, err := url.Parse(restConfig.Host)
@@ -76,7 +90,6 @@ func NewServer(cfg *config.Config) (*Server, error) {
 			return nil, errors.Wrapf(err, "unable to parse apiserver address")
 		}
 		server.superAPIServerAddress = superHttpsUrl
-		caCrtPool, err := certutil.NewPool(restConfig.TLSClientConfig.CAFile)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to parse ca file")
 		}

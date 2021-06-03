@@ -44,8 +44,8 @@ var cfg *rest.Config
 var cli client.Client
 var testEnv *envtest.Environment
 
-const timeout = time.Second * 10
-const longTimeout = time.Second * 20
+const timeout = time.Second * 20
+const longTimeout = time.Second * 60
 const interval = time.Millisecond * 250
 
 func TestAPIs(t *testing.T) {
