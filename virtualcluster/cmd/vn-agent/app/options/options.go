@@ -51,6 +51,9 @@ type ServerOption struct {
 	// Port is the vn-agent server listening on.
 	Port uint
 
+	// Kubeconfig is the supercluster Kubeconfig to connect to
+	Kubeconfig string
+
 	// FeatureGates enabled by the user.
 	FeatureGates map[string]bool
 }
@@ -84,6 +87,7 @@ func (o *Options) Flags() cliflag.NamedFlagSets {
 	serverFS.StringVar(&o.CertDirectory, "cert-dir", o.CertDirectory, "CertDirectory is the directory where the TLS certs are located")
 	serverFS.StringVar(&o.TLSCertFile, "tls-cert-file", o.TLSCertFile, "TLSCertFile is the file containing x509 Certificate for HTTPS")
 	serverFS.StringVar(&o.TLSPrivateKeyFile, "tls-private-key-file", o.TLSPrivateKeyFile, "TLSPrivateKeyFile is the file containing x509 private key matching tlsCertFile")
+	serverFS.StringVar(&o.Kubeconfig, "kubeconfig", o.Kubeconfig, "Path to kubeconfig file with authorization and master location information.")
 	serverFS.UintVar(&o.Port, "port", 10550, "Port is the server listening on")
 	serverFS.Var(cliflag.NewMapStringBool(&o.ServerOption.FeatureGates), "feature-gates", "A set of key=value pairs that describe featuregate gates for various features.")
 

@@ -61,6 +61,7 @@ import (
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/utils/pointer"
 
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/cmd/vn-agent/app/options"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/vn-agent/config"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/vn-agent/server"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/vn-agent/testcerts"
@@ -124,7 +125,7 @@ func newServerTestWithDebug(enableDebugging bool, streamingServer streaming.Serv
 	server, err := server.NewServer(&config.Config{
 		KubeletClientCert: &kubeletClientCert,
 		KubeletServerHost: fv.kubeletServer.testHTTPServer.URL,
-	})
+	}, &options.ServerOption{})
 	if err != nil {
 		panic(errors.Wrap(err, "new server"))
 	}
