@@ -34,7 +34,7 @@ wait-for-jobs() {
 # of controller-gen for now. 
 # TODO replace controller-gen, and remove this hack 
 replace-null() {
-  for f in config/crds/*; do
+  for f in config/crd/*; do
     sed 's/conditions: null/conditions: []/g; s/storedVersions: null/storedVersions: []/g' $f > $f.tmp 
     mv $f.tmp $f
   done

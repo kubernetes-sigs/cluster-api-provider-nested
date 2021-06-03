@@ -73,6 +73,17 @@ test: generate fmt vet manifests
 			-coverprofile=${PWD}/coverage/unit-test-pkg_vn-agent_server_test.out )
 	@cd ${PWD}
 
+
+# run `make install-envtest` to refresh the required binaries in case the envTest fails.
+K8S_VERSION ?= 1.19.2
+FULL_K8S_VERSION ?= Kubernetes v$(K8S_VERSION)
+install-envtest:
+ifneq ($(FULL_K8S_VERSION), $(shell /usr/local/kubebuilder/bin/kube-apiserver --version))
+	sudo mkdir -p /usr/local/kubebuilder
+	curl -sSLo envtest-bins.tar.gz "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-${K8S_VERSION}-$(shell go env GOOS)-$(shell go env GOARCH).tar.gz"
+	sudo tar -C /usr/local/kubebuilder --strip-components=1 -zvxf envtest-bins.tar.gz && rm envtest-bins.tar.gz
+endif
+
 .PHONY: coverage
 coverage: ## combine coverage after test
 	@mkdir -p coverage
@@ -91,35 +102,17 @@ run: generate fmt vet
 
 # Install CRDs into a cluster
 install: manifests
-	kubectl apply -f config/crds
+	kubectl apply -f config/crd
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests
-	kubectl apply -f config/crds
+	kubectl apply -f config/crd
 	kustomize build config/default | kubectl apply -f -
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./..." output:crd:none
 	hack/make-rules/replace-null.sh
-# To work around a known controller gen issue
-# https://github.com/kubernetes-sigs/kubebuilder/issues/1544
-ifeq (, $(shell which yq))
-	@echo "Please install yq for yaml patching. Get it from here: https://github.com/mikefarah/yq"
-	@exit
-else
-	@{ \
-	yq w -i config/crds/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.apiServer.properties.statefulset.properties.spec.properties.template.properties.spec.properties.containers.items.properties.ports.items.required[1]" protocol;\
-	yq w -i config/crds/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.controllerManager.properties.statefulset.properties.spec.properties.template.properties.spec.properties.containers.items.properties.ports.items.required[1]" protocol;\
-	yq w -i config/crds/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.etcd.properties.statefulset.properties.spec.properties.template.properties.spec.properties.containers.items.properties.ports.items.required[1]" protocol;\
-	yq w -i config/crds/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.apiServer.properties.statefulset.properties.spec.properties.template.properties.spec.properties.initContainers.items.properties.ports.items.required[1]" protocol;\
-	yq w -i config/crds/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.controllerManager.properties.statefulset.properties.spec.properties.template.properties.spec.properties.initContainers.items.properties.ports.items.required[1]" protocol;\
-	yq w -i config/crds/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.etcd.properties.statefulset.properties.spec.properties.template.properties.spec.properties.initContainers.items.properties.ports.items.required[1]" protocol;\
-	yq w -i config/crds/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.apiServer.properties.service.properties.spec.properties.ports.items.required[1]" protocol;\
-	yq w -i config/crds/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.controllerManager.properties.service.properties.spec.properties.ports.items.required[1]" protocol;\
-	yq w -i config/crds/tenancy.x-k8s.io_clusterversions.yaml "spec.validation.openAPIV3Schema.properties.spec.properties.etcd.properties.service.properties.spec.properties.ports.items.required[1]" protocol;\
-	}
-endif
 
 # Run go fmt against code
 fmt:

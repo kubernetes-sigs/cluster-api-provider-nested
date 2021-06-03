@@ -52,8 +52,8 @@ And then you can manage VirtualCluster by `kubectl vc` command tool.
 To install VirtualCluster CRDs:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/crds/tenancy.x-k8s.io_clusterversions.yaml
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/crds/tenancy.x-k8s.io_virtualclusters.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/crd/tenancy.x-k8s.io_clusterversions.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/crd/tenancy.x-k8s.io_virtualclusters.yaml
 ```
 
 To create all VirtualCluster components:
@@ -342,6 +342,6 @@ kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-
 kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/setup/all_in_one.yaml
 
 # The CRDs
-kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/crds/tenancy.x-k8s.io_virtualclusters.yaml
+kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/crd/tenancy.x-k8s.io_virtualclusters.yaml
 kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/sampleswithspec/tenancy.x-k8s.io_clusterversions.yaml
 ```
