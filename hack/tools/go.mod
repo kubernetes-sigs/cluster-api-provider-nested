@@ -1,16 +1,19 @@
-module sigs.k8s.io/cluster-api-provider-nested/hack/tools
+module sigs.k8s.io/cluster-api/hack/tools
 
-go 1.15
+go 1.16
 
 require (
-	github.com/drone/envsubst v1.0.3-0.20200709231038-aa43e1c1a629
-	github.com/go-bindata/go-bindata v3.1.2+incompatible
-	github.com/golangci/golangci-lint v1.27.0
-	github.com/joelanford/go-apidiff v0.0.0-20191206194835-106bcff5f060
-	github.com/onsi/ginkgo v1.14.1
-	github.com/raviqqe/liche v0.0.0-20200229003944-f57a5d1c5be4
-	k8s.io/code-generator v0.19.2
-	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20201112165251-91b70900dbaf
-	sigs.k8s.io/controller-tools v0.4.1-0.20201002000720-57250aac17f6
-	sigs.k8s.io/testing_frameworks v0.1.2
+	github.com/blang/semver v3.5.1+incompatible
+	github.com/drone/envsubst/v2 v2.0.0-20210305151453-490366e43a3c
+	github.com/joelanford/go-apidiff v0.1.0
+	github.com/onsi/ginkgo v1.16.3
+	github.com/sergi/go-diff v1.1.0 // indirect
+	github.com/stretchr/testify v1.7.0 // indirect
+	golang.org/x/exp v0.0.0-20200331195152-e8c3332aa8e5 // indirect
+	golang.org/x/text v0.3.5 // indirect
+	golang.org/x/tools v0.1.2-0.20210512205948-8287d5da45e4
+	gotest.tools/gotestsum v1.6.3
+	k8s.io/code-generator v0.21.1
+	sigs.k8s.io/controller-tools v0.6.0-beta.0
+	sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20200226075303-ed8438ec10a4
 )
