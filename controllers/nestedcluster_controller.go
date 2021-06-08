@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package controllers contains all the Infrastructure group controllers for
+// running nested clusters.
 package controllers
 
 import (
@@ -37,7 +39,7 @@ import (
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=nestedclusters/finalizers,verbs=update
 //+kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrolplanes,verbs=get;list;watch
 
-// NestedClusterReconciler reconciles a NestedCluster object
+// NestedClusterReconciler reconciles a NestedCluster object.
 type NestedClusterReconciler struct {
 	client.Client
 	Log    logr.Logger

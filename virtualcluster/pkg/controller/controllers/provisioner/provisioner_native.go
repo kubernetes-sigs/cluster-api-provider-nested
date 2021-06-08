@@ -281,7 +281,7 @@ func (mpn *ProvisionerNative) createPKI(vc *tenancyv1alpha1.VirtualCluster, cv *
 
 	etcdDomains := append(cv.GetEtcdServers(), cv.GetEtcdDomain())
 	// create crt, key for etcd
-	etcdCAPair, etcdCrtErr := vcpki.NewEtcdServerCrtAndKey(rootCAPair, etcdDomains)
+	etcdCAPair, etcdCrtErr := vcpki.NewEtcdServerCertAndKey(rootCAPair, etcdDomains)
 	if etcdCrtErr != nil {
 		return etcdCrtErr
 	}

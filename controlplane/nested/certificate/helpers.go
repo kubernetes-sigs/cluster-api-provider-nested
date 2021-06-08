@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/certificate/util"
 )
 
-// NewAPIServerCertAndKey creates crt and key for apiserver using ca.
+// NewAPIServerCrtAndKey creates crt and key for apiserver using ca.
 func NewAPIServerCrtAndKey(ca *KeyPair, clusterName, clusterDomainArg, apiserverDomain string, apiserverIPs ...string) (*KeyPair, error) {
 	clusterDomain := defaultClusterDomain
 	if clusterDomainArg != "" {
@@ -41,7 +41,7 @@ func NewAPIServerCrtAndKey(ca *KeyPair, clusterName, clusterDomainArg, apiserver
 			"kubernetes.default.svc",
 			fmt.Sprintf("kubernetes.default.svc.%s", clusterDomain),
 			apiserverDomain,
-			// add virtual cluster name (i.e. namespace) for vn-agent
+			// add virtual cluster name (i.e. namespace) for vn-agent.
 			clusterName,
 		},
 	}
@@ -96,8 +96,8 @@ func NewAPIServerKubeletClientCertAndKey(ca *KeyPair) (*KeyPair, error) {
 	return &KeyPair{KubeletClient, apiClientCert, rsaKey, true, true}, nil
 }
 
-// NewEtcdServerCrtAndKey creates new crt-key pair using ca for etcd
-func NewEtcdServerCrtAndKey(ca *KeyPair, etcdDomains []string) (*KeyPair, error) {
+// NewEtcdServerCertAndKey creates new crt-key pair using ca for etcd.
+func NewEtcdServerCertAndKey(ca *KeyPair, etcdDomains []string) (*KeyPair, error) {
 	// create AltNames with defaults DNSNames/IPs
 	altNames := &cert.AltNames{
 		DNSNames: etcdDomains,
@@ -108,7 +108,7 @@ func NewEtcdServerCrtAndKey(ca *KeyPair, etcdDomains []string) (*KeyPair, error)
 		Config: cert.Config{
 			CommonName: "kube-etcd",
 			AltNames:   *altNames,
-			// all peers will use this crt-key pair as well
+			// all peers will use this crt-key pair as well.
 			Usages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 		},
 	}

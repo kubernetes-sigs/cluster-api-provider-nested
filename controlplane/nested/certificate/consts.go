@@ -11,33 +11,34 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package certificate contains helpers for managing KeyPairs.
 package certificate
 
 import "sigs.k8s.io/cluster-api/util/secret"
 
 const (
 	// defaultClusterDomain defines the default that all control planes are
-	// provisioned with
+	// provisioned with.
 	defaultClusterDomain = "cluster.local"
 
-	// EtcdClient defines the client cert name for etcd
+	// EtcdClient defines the client cert name for etcd.
 	EtcdClient secret.Purpose = "etcd-client"
 
-	// EtcdHealthClient defines the client cert name for etcd
+	// EtcdHealthClient defines the client cert name for etcd.
 	EtcdHealthClient secret.Purpose = "etcd-health-client"
 
-	// APIServerClient defines the client cert name for apiserver
+	// APIServerClient defines the client cert name for apiserver.
 	APIServerClient secret.Purpose = "apiserver-client"
 
-	// APIServerEtcdClient mirrors capi APIServerEtcdClient
+	// APIServerEtcdClient mirrors capi APIServerEtcdClient.
 	APIServerEtcdClient secret.Purpose = secret.APIServerEtcdClient
 
-	// KubeletClient defines the client cert name for kubelet
+	// KubeletClient defines the client cert name for kubelet.
 	KubeletClient secret.Purpose = "kubelet-client"
 
-	// ProxyClient defines the client cert name for the front proxy
+	// ProxyClient defines the client cert name for the front proxy.
 	ProxyClient secret.Purpose = "proxy-client"
 
-	// ControllerManagerKubeconfig defines the secret purpose for KCM Kubeconfigs
+	// ControllerManagerKubeconfig defines the secret purpose for KCM Kubeconfigs.
 	ControllerManagerKubeconfig secret.Purpose = "controller-manager-kubeconfig"
 )

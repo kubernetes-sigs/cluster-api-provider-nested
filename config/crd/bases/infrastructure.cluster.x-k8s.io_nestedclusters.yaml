@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.4.1-0.20201002000720-57250aac17f6
+    controller-gen.kubebuilder.io/version: v0.6.0-beta.0
   creationTimestamp: null
   name: nestedclusters.infrastructure.cluster.x-k8s.io
 spec:
@@ -31,21 +31,26 @@ spec:
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: NestedCluster is the Schema for the nestedclusters API
+        description: NestedCluster is the Schema for the nestedclusters API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
           spec:
-            description: NestedClusterSpec defines the desired state of NestedCluster
+            description: NestedClusterSpec defines the desired state of NestedCluster.
             properties:
               controlPlaneEndpoint:
-                description: ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+                description: ControlPlaneEndpoint represents the endpoint used to
+                  communicate with the control plane.
                 properties:
                   host:
                     description: The hostname on which the API server is serving.
@@ -60,10 +65,11 @@ spec:
                 type: object
             type: object
           status:
-            description: NestedClusterStatus defines the observed state of NestedCluster
+            description: NestedClusterStatus defines the observed state of NestedCluster.
             properties:
               ready:
-                description: Ready is when the NestedControlPlane has a API server URL.
+                description: Ready is when the NestedControlPlane has a API server
+                  URL.
                 type: boolean
             type: object
         type: object

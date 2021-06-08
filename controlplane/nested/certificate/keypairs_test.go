@@ -17,15 +17,15 @@ import (
 	"context"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func newSecret(fns ...func(*v1.Secret)) *v1.Secret {
-	secret := &v1.Secret{}
+func newSecret(fns ...func(*corev1.Secret)) *corev1.Secret {
+	secret := &corev1.Secret{}
 	for _, fn := range fns {
 		fn(secret)
 	}
@@ -59,7 +59,7 @@ func TestKeyPairs_Lookup(t *testing.T) {
 			KeyPairs{&KeyPair{Purpose: EtcdClient, New: true}},
 			args{
 				ctx,
-				fake.NewFakeClient(newSecret(func(s *v1.Secret) {
+				fake.NewFakeClient(newSecret(func(s *corev1.Secret) {
 					s.Name = "test-cluster-etcd-client"
 					s.Namespace = "default"
 				})),
@@ -123,8 +123,10 @@ func TestKeyPairs_SaveGenerated(t *testing.T) {
 				t.Errorf("KeyPairs.SaveGenerated() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			secrets := &v1.SecretList{}
-			tt.args.ctrlclient.List(tt.args.ctx, secrets)
+			secrets := &corev1.SecretList{}
+			if err := tt.args.ctrlclient.List(tt.args.ctx, secrets); err != nil {
+				t.Errorf("List().Err expected = got %v", err)
+			}
 			if len(secrets.Items) != tt.wantCount {
 				t.Errorf("KeyPairs.SaveGenerated().Count expected = %v, got %v", len(secrets.Items), tt.wantCount)
 			}

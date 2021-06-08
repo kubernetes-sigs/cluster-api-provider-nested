@@ -21,7 +21,7 @@ import (
 )
 
 // KeyPair defines a cert/key pair that is used for the Kubernetes clients
-// this was inspired by CAPI's KCP and how it manages CAs
+// this was inspired by CAPI's KCP and how it manages CAs.
 type KeyPair struct {
 	Purpose   secret.Purpose
 	Cert      *x509.Certificate
@@ -31,5 +31,5 @@ type KeyPair struct {
 }
 
 // KeyPairs defines a set of keypairs to act on, this is useful in providing
-// helpers to operate on many keypairs
+// helpers to operate on many keypairs.
 type KeyPairs []*KeyPair

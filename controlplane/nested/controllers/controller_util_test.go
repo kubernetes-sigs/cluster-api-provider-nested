@@ -66,7 +66,6 @@ func TestSubstituteTemplate(t *testing.T) {
 					t.Fatalf("\t%s\texpect %v, but get %v", failed, st.expect, get)
 				}
 				t.Logf("\t%s\texpect %v, get %v", succeed, st.expect, get)
-
 			}
 		}
 		t.Run(st.name, tf)
@@ -158,7 +157,6 @@ func TestGetOwner(t *testing.T) {
 					t.Fatalf("\t%s\texpect %v, but get %v", failed, st.expect, get)
 				}
 				t.Logf("\t%s\texpect %v, get %v", succeed, st.expect, get)
-
 			}
 		}
 		t.Run(st.name, tf)
@@ -202,7 +200,6 @@ func TestGenInitialClusterArgs(t *testing.T) {
 					t.Fatalf("\t%s\texpect %v, but get %v", failed, st.expect, get)
 				}
 				t.Logf("\t%s\texpect %v, get %v", succeed, st.expect, get)
-
 			}
 		}
 		t.Run(st.name, tf)

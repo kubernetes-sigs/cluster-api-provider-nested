@@ -66,17 +66,13 @@ func (kp KeyPairs) SaveGenerated(ctx context.Context, ctrlclient client.Client, 
 	return nil
 }
 
-// LookupOrGenerate is a convenience function that wraps cluster bootstrap certificate behavior.
+// LookupOrSave is a convenience function that wraps cluster bootstrap certificate behavior.
 func (kp KeyPairs) LookupOrSave(ctx context.Context, ctrlclient client.Client, clusterName client.ObjectKey, owner metav1.OwnerReference) error {
 	// Find the certificates that exist
 	if err := kp.Lookup(ctx, ctrlclient, clusterName); err != nil {
 		return err
 	}
 
-	// Save any certificates that have been generated
-	if err := kp.SaveGenerated(ctx, ctrlclient, clusterName, owner); err != nil {
-		return err
-	}
-
-	return nil
+	// Save any certificates that have been generated.
+	return kp.SaveGenerated(ctx, ctrlclient, clusterName, owner)
 }
