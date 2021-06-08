@@ -44,7 +44,7 @@ import (
 // +kubebuilder:rbac:groups="";apps,resources=services/status;statefulsets/status,verbs=get;update;patch
 
 // createNestedComponentSts will create the StatefulSet that runs the
-// NestedComponent
+// NestedComponent.
 func createNestedComponentSts(ctx context.Context,
 	cli ctrlcli.Client, ncMeta metav1.ObjectMeta,
 	ncSpec controlplanev1.NestedComponentSpec,
@@ -91,7 +91,7 @@ func createNestedComponentSts(ctx context.Context,
 }
 
 // genServiceObject generates the Service object corresponding to the
-// NestedComponent
+// NestedComponent.
 func genServiceObject(
 	templatePath string,
 	ncMeta metav1.ObjectMeta,
@@ -132,7 +132,7 @@ func genServiceObject(
 }
 
 // genStatefulSetObject generates the StatefulSet object corresponding to the
-// NestedComponent
+// NestedComponent.
 func genStatefulSetObject(
 	templatePath string,
 	ncMeta metav1.ObjectMeta,
@@ -212,7 +212,7 @@ func getTemplateArgs(ncMeta metav1.ObjectMeta, controlPlaneName, clusterName str
 	}
 }
 
-// yamlToObject deserialize the yaml to the runtime object
+// yamlToObject deserialize the yaml to the runtime object.
 func yamlToObject(yamlContent []byte, obj runtime.Object) error {
 	decode := serializer.NewCodecFactory(scheme.Scheme).
 		UniversalDeserializer().Decode
@@ -223,7 +223,7 @@ func yamlToObject(yamlContent []byte, obj runtime.Object) error {
 	return nil
 }
 
-// substituteTemplate substitutes the template contents with the context
+// substituteTemplate substitutes the template contents with the context.
 func substituteTemplate(context interface{}, tmpl string) (string, error) {
 	t, tmplPrsErr := template.New("test").
 		Option("missingkey=zero").Parse(tmpl)
@@ -238,7 +238,7 @@ func substituteTemplate(context interface{}, tmpl string) (string, error) {
 	return writer.String(), nil
 }
 
-// fetchTemplate fetches the component template through the tmplateURL
+// fetchTemplate fetches the component template through the tmplateURL.
 func fetchTemplate(templateURL string) (string, error) {
 	rep, err := openuri.Open(templateURL)
 	if err != nil {
@@ -254,7 +254,7 @@ func fetchTemplate(templateURL string) (string, error) {
 	return string(bodyBytes), nil
 }
 
-// getOwner gets the ownerreference of the NestedComponent
+// getOwner gets the ownerreference of the NestedComponent.
 func getOwner(ncMeta metav1.ObjectMeta) metav1.OwnerReference {
 	owners := ncMeta.GetOwnerReferences()
 	if len(owners) == 0 {
@@ -270,7 +270,7 @@ func getOwner(ncMeta metav1.ObjectMeta) metav1.OwnerReference {
 }
 
 // genAPIServerSvcRef generates the ObjectReference that points to the
-// APISrver service
+// APISrver service.
 func genAPIServerSvcRef(cli ctrlcli.Client,
 	nkas controlplanev1.NestedAPIServer, clusterName string) (corev1.ObjectReference, error) {
 	var (
@@ -287,7 +287,7 @@ func genAPIServerSvcRef(cli ctrlcli.Client,
 	return objRef, nil
 }
 
-// genObjRefFromObj generates the ObjectReference of the given object
+// genObjRefFromObj generates the ObjectReference of the given object.
 func genObjRefFromObj(obj ctrlcli.Object) corev1.ObjectReference {
 	return corev1.ObjectReference{
 		Kind:       obj.GetObjectKind().GroupVersionKind().Kind,
@@ -298,6 +298,7 @@ func genObjRefFromObj(obj ctrlcli.Object) corev1.ObjectReference {
 	}
 }
 
+// IsComponentReady will return bool if status Ready.
 func IsComponentReady(status addonv1alpha1.CommonStatus) bool {
 	return status.Phase == string(controlplanev1.Ready)
 }

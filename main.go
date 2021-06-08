@@ -46,7 +46,7 @@ var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
 
-	// flags
+	// Command line flags for configuring the controller manager.
 	metricsAddr                 string
 	enableLeaderElection        bool
 	leaderElectionLeaseDuration time.Duration

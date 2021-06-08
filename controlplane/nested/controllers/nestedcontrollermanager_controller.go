@@ -28,12 +28,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlcli "sigs.k8s.io/controller-runtime/pkg/client"
 
 	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
 )
 
-// NestedControllerManagerReconciler reconciles a NestedControllerManager object
+// NestedControllerManagerReconciler reconciles a NestedControllerManager object.
 type NestedControllerManagerReconciler struct {
 	client.Client
 	Log          logr.Logger
@@ -50,7 +49,7 @@ func (r *NestedControllerManagerReconciler) Reconcile(ctx context.Context, req c
 	log.Info("Reconciling NestedControllerManager...")
 	var nkcm controlplanev1.NestedControllerManager
 	if err := r.Get(ctx, req.NamespacedName, &nkcm); err != nil {
-		return ctrl.Result{}, ctrlcli.IgnoreNotFound(err)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	log.Info("creating NestedControllerManager",
 		"namespace", nkcm.GetNamespace(),
@@ -73,7 +72,7 @@ func (r *NestedControllerManagerReconciler) Reconcile(ctx context.Context, req c
 		log.Info("the owner could not be found, will retry later",
 			"namespace", nkcm.GetNamespace(),
 			"name", owner.Name)
-		return ctrl.Result{}, ctrlcli.IgnoreNotFound(err)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	cluster, err := ncp.GetOwnerCluster(ctx, r.Client)
@@ -154,7 +153,7 @@ func (r *NestedControllerManagerReconciler) SetupWithManager(mgr ctrl.Manager) e
 	if err := mgr.GetFieldIndexer().IndexField(context.TODO(),
 		&appsv1.StatefulSet{},
 		statefulsetOwnerKeyNKcm,
-		func(rawObj ctrlcli.Object) []string {
+		func(rawObj client.Object) []string {
 			// grab the statefulset object, extract the owner
 			sts := rawObj.(*appsv1.StatefulSet)
 			owner := metav1.GetControllerOf(sts)

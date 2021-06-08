@@ -31,14 +31,13 @@ import (
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlcli "sigs.k8s.io/controller-runtime/pkg/client"
 
 	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/certificate"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
-// NestedAPIServerReconciler reconciles a NestedAPIServer object
+// NestedAPIServerReconciler reconciles a NestedAPIServer object.
 type NestedAPIServerReconciler struct {
 	client.Client
 	Log          logr.Logger
@@ -55,7 +54,7 @@ func (r *NestedAPIServerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	log.Info("Reconciling NestedAPIServer...")
 	var nkas controlplanev1.NestedAPIServer
 	if err := r.Get(ctx, req.NamespacedName, &nkas); err != nil {
-		return ctrl.Result{}, ctrlcli.IgnoreNotFound(err)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	log.Info("creating NestedAPIServer",
 		"namespace", nkas.GetNamespace(),
@@ -78,7 +77,7 @@ func (r *NestedAPIServerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		log.Info("the owner could not be found, will retry later",
 			"namespace", nkas.GetNamespace(),
 			"name", owner.Name)
-		return ctrl.Result{}, ctrlcli.IgnoreNotFound(err)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	cluster, err := ncp.GetOwnerCluster(ctx, r.Client)
@@ -95,7 +94,7 @@ func (r *NestedAPIServerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		Name:      nkasName,
 	}, &nkasSts); err != nil {
 		if apierrors.IsNotFound(err) {
-			// as the statefulset is not found, mark the NestedAPIServer as unready
+			// as the statefulset is not found, mark the NestedAPIServer as unready.
 			if IsComponentReady(nkas.Status.CommonStatus) {
 				nkas.Status.Phase =
 					string(controlplanev1.Unready)
@@ -111,7 +110,7 @@ func (r *NestedAPIServerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				return ctrl.Result{}, err
 			}
 
-			// the statefulset is not found, create one
+			// the statefulset is not found, create one.
 			if err := createNestedComponentSts(ctx,
 				r.Client, nkas.ObjectMeta, nkas.Spec.NestedComponentSpec,
 				controlplanev1.APIServer, owner.Name, cluster.GetName(), r.TemplatePath, log); err != nil {
@@ -126,12 +125,12 @@ func (r *NestedAPIServerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	// 3. reconcile the NestedAPIServer based on the status of the StatefulSet.
-	// Mark the NestedAPIServer as Ready if the StatefulSet is ready
+	// Mark the NestedAPIServer as Ready if the StatefulSet is ready.
 	if nkasSts.Status.ReadyReplicas == nkasSts.Status.Replicas {
 		log.Info("The NestedAPIServer StatefulSet is ready")
 		if !IsComponentReady(nkas.Status.CommonStatus) {
 			// As the NestedAPIServer StatefulSet is ready, update
-			// NestedAPIServer status
+			// NestedAPIServer status.
 			nkas.Status.Phase = string(controlplanev1.Ready)
 			objRef, err := genAPIServerSvcRef(r.Client, nkas, cluster.GetName())
 			if err != nil {
@@ -152,7 +151,7 @@ func (r *NestedAPIServerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	// mark the NestedAPIServer as unready, if the NestedAPIServer
-	// StatefulSet is unready,
+	// StatefulSet is unready.
 	if IsComponentReady(nkas.Status.CommonStatus) {
 		nkas.Status.Phase = string(controlplanev1.Unready)
 		if err := r.Status().Update(ctx, &nkas); err != nil {
@@ -170,20 +169,20 @@ func (r *NestedAPIServerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if err := mgr.GetFieldIndexer().IndexField(context.TODO(),
 		&appsv1.StatefulSet{},
 		statefulsetOwnerKeyNKas,
-		func(rawObj ctrlcli.Object) []string {
-			// grab the statefulset object, extract the owner
+		func(rawObj client.Object) []string {
+			// grab the statefulset object, extract the owner.
 			sts := rawObj.(*appsv1.StatefulSet)
 			owner := metav1.GetControllerOf(sts)
 			if owner == nil {
 				return nil
 			}
-			// make sure it's a NestedAPIServer
+			// make sure it's a NestedAPIServer.
 			if owner.APIVersion != controlplanev1.GroupVersion.String() ||
 				owner.Kind != string(controlplanev1.APIServer) {
 				return nil
 			}
 
-			// and if so, return it
+			// and if so, return it.
 			return []string{owner.Name}
 		}); err != nil {
 		return err
@@ -194,7 +193,7 @@ func (r *NestedAPIServerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// createAPIServerClientCrts will find of create client certs for the etcd cluster
+// createAPIServerClientCrts will find of create client certs for the etcd cluster.
 func (r *NestedAPIServerReconciler) createAPIServerClientCrts(ctx context.Context, cluster *clusterv1.Cluster, ncp *controlplanev1.NestedControlPlane, nkas *controlplanev1.NestedAPIServer) error {
 	certificates := secret.NewCertificatesForInitialControlPlane(nil)
 	if err := certificates.Lookup(ctx, r.Client, util.ObjectKey(cluster)); err != nil {
@@ -215,7 +214,7 @@ func (r *NestedAPIServerReconciler) createAPIServerClientCrts(ctx context.Contex
 		return err
 	}
 
-	// TODO(christopherhein) figure out how to get service clusterIPs
+	// TODO(christopherhein) figure out how to get service clusterIPs.
 	apiKeyPair, err := certificate.NewAPIServerCrtAndKey(&certificate.KeyPair{Cert: cacrt, Key: cakey}, nkas.GetName(), "", cluster.Spec.ControlPlaneEndpoint.Host)
 	if err != nil {
 		return err
@@ -253,9 +252,5 @@ func (r *NestedAPIServerReconciler) createAPIServerClientCrts(ctx context.Contex
 	}
 
 	controllerRef := metav1.NewControllerRef(ncp, controlplanev1.GroupVersion.WithKind("NestedControlPlane"))
-	if err := certs.LookupOrSave(ctx, r.Client, util.ObjectKey(cluster), *controllerRef); err != nil {
-		return err
-	}
-
-	return nil
+	return certs.LookupOrSave(ctx, r.Client, util.ObjectKey(cluster), *controllerRef)
 }

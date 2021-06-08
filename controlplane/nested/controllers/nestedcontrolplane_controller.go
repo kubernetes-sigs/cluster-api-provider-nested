@@ -49,16 +49,16 @@ import (
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrolplanes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrolplanes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrollermanagers/finalizers,verbs=update
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete.
 
-// NestedControlPlaneReconciler reconciles a NestedControlPlane object
+// NestedControlPlaneReconciler reconciles a NestedControlPlane object.
 type NestedControlPlaneReconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
-// SetupWithManager will configure the controller with the manager
+// SetupWithManager will configure the controller with the manager.
 func (r *NestedControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&controlplanev1.NestedControlPlane{}).
@@ -68,7 +68,7 @@ func (r *NestedControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Complete(r)
 }
 
-// Reconcile is ths main process which will handle updating the NCP
+// Reconcile is ths main process which will handle updating the NCP.
 func (r *NestedControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("nestedcontrolplane", req.NamespacedName)
 	log.Info("Reconciling NestedControlPlane...")
@@ -134,7 +134,7 @@ func (r *NestedControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.R
 	return r.reconcile(ctx, log, cluster, ncp)
 }
 
-// reconcileDelete will delete the control plane and all it's nestedcomponents
+// reconcileDelete will delete the control plane and all it's nestedcomponents.
 func (r *NestedControlPlaneReconciler) reconcileDelete(ctx context.Context, log logr.Logger, ncp *controlplanev1.NestedControlPlane) (ctrl.Result, error) {
 	patchHelper, err := patch.NewHelper(ncp, r.Client)
 	if err != nil {
@@ -181,7 +181,7 @@ func patchControlPlane(ctx context.Context, patchHelper *patch.Helper, ncp *cont
 	)
 }
 
-// reconcile will handle all "normal" NCP reconciles this means create/update actions
+// reconcile will handle all "normal" NCP reconciles this means create/update actions.
 func (r *NestedControlPlaneReconciler) reconcile(ctx context.Context, log logr.Logger, cluster *clusterv1.Cluster, ncp *controlplanev1.NestedControlPlane) (res ctrl.Result, reterr error) {
 	log.Info("Reconcile NestedControlPlane")
 
@@ -321,7 +321,7 @@ func (r *NestedControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, 
 }
 
 // reconcileControllerOwners will loop through any known nested components that
-// aren't owned by a control plane yet and associate them
+// aren't owned by a control plane yet and associate them.
 func (r *NestedControlPlaneReconciler) reconcileControllerOwners(ctx context.Context, ncp *controlplanev1.NestedControlPlane, addOwners []client.Object) error {
 	for _, component := range addOwners {
 		if err := ctrl.SetControllerReference(ncp, component, r.Scheme); err != nil {

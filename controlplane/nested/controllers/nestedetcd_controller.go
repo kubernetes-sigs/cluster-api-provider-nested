@@ -33,14 +33,13 @@ import (
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlcli "sigs.k8s.io/controller-runtime/pkg/client"
 
 	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/certificate"
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// NestedEtcdReconciler reconciles a NestedEtcd object
+// NestedEtcdReconciler reconciles a NestedEtcd object.
 type NestedEtcdReconciler struct {
 	client.Client
 	Log          logr.Logger
@@ -57,7 +56,7 @@ func (r *NestedEtcdReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	log.Info("Reconciling NestedEtcd...")
 	var netcd controlplanev1.NestedEtcd
 	if err := r.Get(ctx, req.NamespacedName, &netcd); err != nil {
-		return ctrl.Result{}, ctrlcli.IgnoreNotFound(err)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	log.Info("creating NestedEtcd",
 		"namespace", netcd.GetNamespace(),
@@ -79,7 +78,7 @@ func (r *NestedEtcdReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		log.Info("the owner could not be found, will retry later",
 			"namespace", netcd.GetNamespace(),
 			"name", owner.Name)
-		return ctrl.Result{}, ctrlcli.IgnoreNotFound(err)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	cluster, err := ncp.GetOwnerCluster(ctx, r.Client)
@@ -174,7 +173,7 @@ func (r *NestedEtcdReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if err := mgr.GetFieldIndexer().IndexField(context.TODO(),
 		&appsv1.StatefulSet{},
 		statefulsetOwnerKeyNEtcd,
-		func(rawObj ctrlcli.Object) []string {
+		func(rawObj client.Object) []string {
 			// grab the statefulset object, extract the owner
 			sts := rawObj.(*appsv1.StatefulSet)
 			owner := metav1.GetControllerOf(sts)
@@ -199,7 +198,7 @@ func (r *NestedEtcdReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func getNestedEtcdSvcClusterIP(ctx context.Context, cli ctrlcli.Client,
+func getNestedEtcdSvcClusterIP(ctx context.Context, cli client.Client,
 	clusterName string, netcd *controlplanev1.NestedEtcd) (string, error) {
 	var svc corev1.Service
 	if err := cli.Get(ctx, types.NamespacedName{
@@ -212,7 +211,7 @@ func getNestedEtcdSvcClusterIP(ctx context.Context, cli ctrlcli.Client,
 }
 
 // genInitialClusterArgs generates the values for `--initial-cluster` option of
-// etcd based on the number of replicas specified in etcd StatefulSet
+// etcd based on the number of replicas specified in etcd StatefulSet.
 func genInitialClusterArgs(replicas int32,
 	stsName, svcName, svcNamespace string) (argsVal string) {
 	for i := int32(0); i < replicas; i++ {
@@ -238,7 +237,7 @@ func getEtcdServers(name, namespace string, replicas int32) (etcdServers []strin
 	return etcdServers
 }
 
-// createEtcdClientCrts will find of create client certs for the etcd cluster
+// createEtcdClientCrts will find of create client certs for the etcd cluster.
 func (r *NestedEtcdReconciler) createEtcdClientCrts(ctx context.Context, cluster *controlplanev1alpha4.Cluster, ncp *controlplanev1.NestedControlPlane, netcd *controlplanev1.NestedEtcd) error {
 	certificates := secret.NewCertificatesForInitialControlPlane(nil)
 	if err := certificates.Lookup(ctx, r.Client, util.ObjectKey(cluster)); err != nil {
@@ -259,7 +258,7 @@ func (r *NestedEtcdReconciler) createEtcdClientCrts(ctx context.Context, cluster
 		return err
 	}
 
-	etcdKeyPair, err := certificate.NewEtcdServerCrtAndKey(&certificate.KeyPair{Cert: crt, Key: key}, getEtcdServers(cluster.GetName(), cluster.GetNamespace(), netcd.Spec.Replicas))
+	etcdKeyPair, err := certificate.NewEtcdServerCertAndKey(&certificate.KeyPair{Cert: crt, Key: key}, getEtcdServers(cluster.GetName(), cluster.GetNamespace(), netcd.Spec.Replicas))
 	if err != nil {
 		return err
 	}
@@ -275,9 +274,5 @@ func (r *NestedEtcdReconciler) createEtcdClientCrts(ctx context.Context, cluster
 	}
 
 	controllerRef := metav1.NewControllerRef(ncp, controlplanev1.GroupVersion.WithKind("NestedControlPlane"))
-	if err := certs.LookupOrSave(ctx, r.Client, util.ObjectKey(cluster), *controllerRef); err != nil {
-		return err
-	}
-
-	return nil
+	return certs.LookupOrSave(ctx, r.Client, util.ObjectKey(cluster), *controllerRef)
 }

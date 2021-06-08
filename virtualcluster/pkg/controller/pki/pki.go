@@ -119,8 +119,8 @@ func NewAPIServerKubeletClientCertAndKey(ca *CrtKeyPair) (*x509.Certificate, *rs
 	return apiClientCert, rsaKey, nil
 }
 
-// NewEtcdServerCrtAndKey creates new crt-key pair using ca for etcd
-func NewEtcdServerCrtAndKey(ca *CrtKeyPair, etcdDomains []string) (*CrtKeyPair, error) {
+// NewEtcdServerCertAndKey creates new crt-key pair using ca for etcd
+func NewEtcdServerCertAndKey(ca *CrtKeyPair, etcdDomains []string) (*CrtKeyPair, error) {
 	// create AltNames with defaults DNSNames/IPs
 	altNames := &cert.AltNames{
 		DNSNames: etcdDomains,

@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// AsSecret will take a KeyPair and convert it into a corev1.Secret.
 func (k *KeyPair) AsSecret(clusterName client.ObjectKey, owner metav1.OwnerReference) *corev1.Secret {
 	s := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

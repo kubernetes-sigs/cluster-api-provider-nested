@@ -21,14 +21,14 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
-// NestedClusterSpec defines the desired state of NestedCluster
+// NestedClusterSpec defines the desired state of NestedCluster.
 type NestedClusterSpec struct {
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
 }
 
-// NestedClusterStatus defines the observed state of NestedCluster
+// NestedClusterStatus defines the observed state of NestedCluster.
 type NestedClusterStatus struct {
 	// Ready is when the NestedControlPlane has a API server URL.
 	// +optional
@@ -41,7 +41,7 @@ type NestedClusterStatus struct {
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 //+kubebuilder:subresource:status
 
-// NestedCluster is the Schema for the nestedclusters API
+// NestedCluster is the Schema for the nestedclusters API.
 type NestedCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -52,7 +52,7 @@ type NestedCluster struct {
 
 //+kubebuilder:object:root=true
 
-// NestedClusterList contains a list of NestedCluster
+// NestedClusterList contains a list of NestedCluster.
 type NestedClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

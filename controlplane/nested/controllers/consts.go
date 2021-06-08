@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package controllers contains the controller for the Control Plane
+// api group.
 package controllers
 
 const (

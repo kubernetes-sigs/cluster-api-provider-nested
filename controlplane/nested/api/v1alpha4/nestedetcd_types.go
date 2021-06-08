@@ -21,33 +21,33 @@ import (
 	addonv1alpha1 "sigs.k8s.io/kubebuilder-declarative-pattern/pkg/patterns/addon/pkg/apis/v1alpha1"
 )
 
-// NestedEtcdSpec defines the desired state of NestedEtcd
+// NestedEtcdSpec defines the desired state of NestedEtcd.
 type NestedEtcdSpec struct {
 	// NestedComponentSpec contains the common and user-specified information
-	// that are required for creating the component
+	// that are required for creating the component.
 	// +optional
 	NestedComponentSpec `json:",inline"`
 }
 
-// NestedEtcdStatus defines the observed state of NestedEtcd
+// NestedEtcdStatus defines the observed state of NestedEtcd.
 type NestedEtcdStatus struct {
-	// EtcdDomain defines how to address the etcd instance
+	// EtcdDomain defines how to address the etcd instance.
 	Addresses []NestedEtcdAddress `json:"addresses,omitempty"`
 
-	// CommonStatus allows addons status monitoring
+	// CommonStatus allows addons status monitoring.
 	addonv1alpha1.CommonStatus `json:",inline"`
 }
 
-// EtcdAddress defines the observed addresses for etcd
+// NestedEtcdAddress defines the observed addresses for etcd.
 type NestedEtcdAddress struct {
 	// IP Address of the etcd instance.
 	// +optional
 	IP string `json:"ip,omitempty"`
 
-	// Hostname of the etcd instance
+	// Hostname of the etcd instance.
 	Hostname string `json:"hostname,omitempty"`
 
-	// Port of the etcd instance
+	// Port of the etcd instance.
 	// +optional
 	Port int32 `json:"port"`
 }
@@ -58,7 +58,7 @@ type NestedEtcdAddress struct {
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 //+kubebuilder:subresource:status
 
-// NestedEtcd is the Schema for the nestedetcds API
+// NestedEtcd is the Schema for the nestedetcds API.
 type NestedEtcd struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -69,7 +69,7 @@ type NestedEtcd struct {
 
 //+kubebuilder:object:root=true
 
-// NestedEtcdList contains a list of NestedEtcd
+// NestedEtcdList contains a list of NestedEtcd.
 type NestedEtcdList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -84,30 +84,30 @@ var _ addonv1alpha1.CommonObject = &NestedEtcd{}
 var _ addonv1alpha1.Patchable = &NestedEtcd{}
 
 // ComponentName returns the name of the component for use with
-// addonv1alpha1.CommonObjec
+// addonv1alpha1.CommonObject.
 func (c *NestedEtcd) ComponentName() string {
 	return string(Etcd)
 }
 
 // CommonSpec returns the addons spec of the object allowing common funcs like
-// Channel & Version to be usabl
+// Channel & Version to be usable.
 func (c *NestedEtcd) CommonSpec() addonv1alpha1.CommonSpec {
 	return c.Spec.CommonSpec
 }
 
 // GetCommonStatus will return the common status for checking is a component
-// was successfully deployed
+// was successfully deployed.
 func (c *NestedEtcd) GetCommonStatus() addonv1alpha1.CommonStatus {
 	return c.Status.CommonStatus
 }
 
 // SetCommonStatus will set the status so that abstract representations can set
-// Ready and Phases
+// Ready and Phases.
 func (c *NestedEtcd) SetCommonStatus(s addonv1alpha1.CommonStatus) {
 	c.Status.CommonStatus = s
 }
 
-// PatchSpec returns the patches to be applie
+// PatchSpec returns the patches to be applied.
 func (c *NestedEtcd) PatchSpec() addonv1alpha1.PatchSpec {
 	return c.Spec.PatchSpec
 }
