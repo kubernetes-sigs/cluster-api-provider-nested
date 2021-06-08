@@ -56,8 +56,8 @@ REGISTRY ?= gcr.io
 ifneq ($(shell gcloud config get-value project), )
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 endif
-STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api-provider-nested
-PROD_REGISTRY ?= us.gcr.io/k8s-artifacts-prod/cluster-api-provider-nested
+STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api-nested
+PROD_REGISTRY ?= us.gcr.io/k8s-artifacts-prod/cluster-api-nested
 
 # Infrastructure
 IMAGE_NAME ?= cluster-api-nested-controller
