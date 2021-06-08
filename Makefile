@@ -266,6 +266,7 @@ docker-controlplane-build-%:
 .PHONY: docker-push-all ## Push all the architecture docker images
 docker-push-all: $(addprefix docker-infrastructure-push-,$(ALL_ARCH)) $(addprefix docker-controlplane-push-,$(ALL_ARCH))
 	$(MAKE) docker-push-core-manifest
+	$(MAKE) docker-push-nested-control-plane-manifest
 
 .PHONY: docker-push
 docker-push:
@@ -288,6 +289,15 @@ docker-push-core-manifest: ## Push the fat manifest docker image for the core im
 	docker manifest push --purge $(CONTROLLER_IMG):$(TAG)
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
+
+.PHONY: docker-push-nested-control-plane-manifest
+docker-push-nested-control-plane-manifest: ## Push the fat manifest docker image for the nested control plane image.
+	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
+	docker manifest create --amend $(CONTROLPLANE_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CONTROLPLANE_CONTROLLER_IMG)\-&:$(TAG)~g")
+	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CONTROLPLANE_CONTROLLER_IMG}:${TAG} ${CONTROLPLANE_CONTROLLER_IMG}-$${arch}:${TAG}; done
+	docker manifest push --purge $(CONTROLPLANE_CONTROLLER_IMG):$(TAG)
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLPLANE_CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/nested/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/nested/config/default/manager_pull_policy.yaml"
 
 .PHONY: set-manifest-pull-policy
 set-manifest-pull-policy:
