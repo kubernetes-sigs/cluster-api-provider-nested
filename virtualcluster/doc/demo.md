@@ -32,7 +32,7 @@ VirtualCluster offers a handy `kubectl` plugin, we can build and use it by follo
 
 ```bash
 # Clone the repo && cd to virtualcluster folder
-git clone https://github.com/kubernetes-sigs/multi-tenancy.git
+git clone https://github.com/kubernetes-sigs/cluster-api-provider-nested.git
 cd cluster-api-provider-nested/virtualcluster
 
 # Build it
