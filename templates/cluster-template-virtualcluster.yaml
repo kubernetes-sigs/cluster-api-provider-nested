@@ -1,0 +1,84 @@
+---
+apiVersion: cluster.x-k8s.io/v1alpha4
+kind: Cluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  controlPlaneEndpoint:
+    # currently this has to be the in-cluster endpoint, the in-cluster
+    # kubeconfig is used by controller-manager w/ ClusterIP services
+    # we can `port-forward` this service and be able to test, this includes
+    # NAMESPACE so we can connect to the VC syncer.
+    host: "${CLUSTER_NAME}-apiserver.${NAMESPACE}"
+    port: 6443
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+    kind: NestedCluster
+    name: "${CLUSTER_NAME}"
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+    kind: NestedControlPlane
+    name: "${CLUSTER_NAME}-control-plane"
+  
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: NestedCluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  controlPlaneEndpoint:
+    host: "localhost"
+    port: 6443
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+kind: NestedControlPlane
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  etcd:
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+    kind: NestedEtcd
+    name: "${CLUSTER_NAME}-nestedetcd"
+  apiserver:
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+    kind: NestedAPIServer
+    name: "${CLUSTER_NAME}-nestedapiserver"
+  controllerManager:
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+    kind: NestedControllerManager
+    name: "${CLUSTER_NAME}-nestedcontrollermanager"
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+kind: NestedEtcd
+metadata:
+  name: "${CLUSTER_NAME}-nestedetcd"
+spec:
+  replicas: 1
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+kind: NestedAPIServer
+metadata:
+  name: "${CLUSTER_NAME}-nestedapiserver"
+spec:
+  replicas: 1
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+kind: NestedControllerManager
+metadata:
+  name: "${CLUSTER_NAME}-nestedcontrollermanager"
+spec:
+  replicas: 1
+---
+apiVersion: tenancy.x-k8s.io/v1alpha1
+kind: VirtualCluster
+metadata:
+  name: ${CLUSTER_NAME}
+  annotations:
+    cluster.x-k8s.io/name: ${CLUSTER_NAME}
+    tenancy.x-k8s.io/secret.admin-kubeconfig: "${CLUSTER_NAME}-kubeconfig"
+spec:
+  clusterVersionName: "capi"
+  opaqueMetaPrefixes:
+     - "tenancy.x-k8s.io"
+  transparentMetaPrefixes:
+     - "k8s.net.status"

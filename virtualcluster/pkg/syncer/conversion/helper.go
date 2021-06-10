@@ -46,6 +46,11 @@ import (
 // ToClusterKey makes a unique key which is used to create the root namespace in super master for a virtual cluster.
 // To avoid name conflict, the key uses the format <namespace>-<hash>-<name>
 func ToClusterKey(vc *v1alpha1.VirtualCluster) string {
+	// If the ClusterNamespace is set then this will automatically return that prefix allowing us to override
+	// any other hooks for the ClusterNamespace.
+	if vc.Status.ClusterNamespace != "" {
+		return vc.Status.ClusterNamespace
+	}
 	digest := sha256.Sum256([]byte(vc.GetUID()))
 	return vc.GetNamespace() + "-" + hex.EncodeToString(digest[0:])[0:6] + "-" + vc.GetName()
 }
@@ -90,12 +95,20 @@ func GetKubeConfigOfVC(c v1core.CoreV1Interface, vc *v1alpha1.VirtualCluster) ([
 		return decoded, nil
 	}
 
+	// If VC has the Kubeconfig Secret Name Annotation, load the kubeconfig from there.
+	secretName := constants.KubeconfigAdminSecretName
+	secretFieldName := constants.KubeconfigAdminSecretName
+	if adminKubeConfigName, exists := vc.GetAnnotations()[constants.LabelSecretAdminKubeConfig]; exists {
+		secretName = adminKubeConfigName
+		secretFieldName = "value"
+	}
+
 	clusterName := ToClusterKey(vc)
-	adminKubeConfigSecret, err := c.Secrets(clusterName).Get(context.TODO(), constants.KubeconfigAdminSecretName, metav1.GetOptions{})
+	adminKubeConfigSecret, err := c.Secrets(clusterName).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get secret (%s) for virtual cluster in root namespace %s: %v", constants.KubeconfigAdminSecretName, clusterName, err)
 	}
-	return adminKubeConfigSecret.Data[constants.KubeconfigAdminSecretName], nil
+	return adminKubeConfigSecret.Data[secretFieldName], nil
 }
 
 func BuildMetadata(cluster, vcns, vcname, targetNamespace string, obj client.Object) (client.Object, error) {
