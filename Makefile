@@ -118,7 +118,7 @@ $(GOLANGCI_LINT): # Download golanci-lint using hack script into tools folder.
 		v1.40.1
 
 $(RELEASE_NOTES): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(RELEASE_NOTES_BIN) sigs.k8s.io/cluster-api/hack/tools/release
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(RELEASE_NOTES_BIN) ./release
 
 $(GO_APIDIFF): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(GO_APIDIFF_BIN) github.com/joelanford/go-apidiff
