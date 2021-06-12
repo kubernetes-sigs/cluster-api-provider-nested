@@ -350,6 +350,7 @@ release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) ## Builds the manifests to publis
 	cat $(RELEASE_DIR)/control-plane-components.yaml >> $(RELEASE_DIR)/cluster-api-provider-nested-components.yaml
 	# Add metadata to the release artifacts
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
+	cp templates/cluster-template*.yaml $(RELEASE_DIR)/
 
 
 .PHONY: release-staging
