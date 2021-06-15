@@ -7,15 +7,15 @@ go 1.16
 require (
 	github.com/google/cadvisor v0.39.1
 	github.com/pkg/errors v0.9.1
-	github.com/stretchr/testify v1.6.1
-	k8s.io/api v0.20.2
-	k8s.io/apimachinery v0.20.2
-	k8s.io/apiserver v0.20.2
-	k8s.io/client-go v0.20.2
-	k8s.io/cri-api v0.20.2
+	github.com/stretchr/testify v1.7.0
+	k8s.io/api v0.21.1
+	k8s.io/apimachinery v0.21.1
+	k8s.io/apiserver v0.21.1
+	k8s.io/client-go v0.21.1
+	k8s.io/cri-api v0.21.1
 	k8s.io/kubelet v0.0.0
 	k8s.io/kubernetes v1.20.2
-	k8s.io/utils v0.0.0-20210111153108-fddb29f9d009
+	k8s.io/utils v0.0.0-20210527160623-6fdb442a123b
 
 	// v0.0.0 does not really exist - the `replace` directive below pins it to
 	// the local copy stored in the parent directories.
@@ -33,7 +33,9 @@ require (
 //  and it is not advised that external projects depend upon k8s.io/kubernetes for
 //  this exact reason.
 replace (
+	github.com/google/cadvisor => github.com/google/cadvisor v0.38.6
 	github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.1
+	github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.0-rc92
 	k8s.io/api => k8s.io/api v0.20.2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.20.2
 	k8s.io/apimachinery => k8s.io/apimachinery v0.20.2
@@ -60,8 +62,6 @@ replace (
 	k8s.io/mount-utils => k8s.io/mount-utils v0.20.2
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.20.2
 	k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.20.2
-	github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.0-rc92
-	github.com/google/cadvisor => github.com/google/cadvisor v0.38.6
 
 	// Force Go to use the module as defined on disk in the parent module else
 	// we'll have to bump a revision/version every time anything changes in
