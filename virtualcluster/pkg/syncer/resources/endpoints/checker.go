@@ -88,9 +88,12 @@ func (c *controller) PatrollerDo() {
 
 	d := differ.HandlerFuncs{}
 	d.AddFunc = func(vObj differ.ClusterObject) {
-		// pEp not found and vEp still exists, report the inconsistent ep controller behavior
-		klog.Errorf("Cannot find pEp for vEp %s in cluster %s", vObj.Key, vObj.OwnerCluster)
 		atomic.AddUint64(&numMissingEndPoints, 1)
+		if err := c.MultiClusterController.RequeueObject(vObj.OwnerCluster, vObj); err != nil {
+			klog.Errorf("error requeue vEndpoints %s: %v", vObj.Key, err)
+		} else {
+			metrics.CheckerRemedyStats.WithLabelValues("RequeuedTenantEndpoints").Inc()
+		}
 	}
 	d.UpdateFunc = func(vObj, pObj differ.ClusterObject) {
 		v := vObj.Object.(*v1.Endpoints)
@@ -98,7 +101,11 @@ func (c *controller) PatrollerDo() {
 		updated := conversion.Equality(c.Config, nil).CheckEndpointsEquality(p, v)
 		if updated != nil {
 			atomic.AddUint64(&numMissMatchedEndPoints, 1)
-			klog.Warningf("Endpoint %s diff in super&tenant master", pObj.Key)
+			if err := c.MultiClusterController.RequeueObject(vObj.OwnerCluster, vObj); err != nil {
+				klog.Errorf("error requeue vEndpoints %s: %v", vObj.Key, err)
+			} else {
+				metrics.CheckerRemedyStats.WithLabelValues("RequeuedTenantEndpoints").Inc()
+			}
 		}
 	}
 
