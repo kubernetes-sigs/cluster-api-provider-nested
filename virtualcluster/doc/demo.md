@@ -341,6 +341,9 @@ kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-
 # The Virtual Cluster components
 kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/setup/all_in_one.yaml
 
+# The ValidatingWebhookConfiguration which generated runtime and is cluster-scoped resource
+kubectl delete ValidatingWebhookConfiguration virtualcluster-validating-webhook-configuration
+
 # The CRDs
 kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/crd/tenancy.x-k8s.io_virtualclusters.yaml
 kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/sampleswithspec/tenancy.x-k8s.io_clusterversions.yaml
