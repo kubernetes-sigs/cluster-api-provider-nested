@@ -71,8 +71,6 @@ func (r *ReconcileVirtualCluster) SetupWithManager(mgr ctrl.Manager, opts contro
 		Complete(r)
 }
 
-// Reconcile reads that state of the cluster for a VirtualCluster object and makes changes based on the state read
-// and what is in the VirtualCluster.Spec
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=statefulsets/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
@@ -85,6 +83,9 @@ func (r *ReconcileVirtualCluster) SetupWithManager(mgr ctrl.Manager, opts contro
 // +kubebuilder:rbac:groups=tenancy.x-k8s.io,resources=virtualclusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=tenancy.x-k8s.io,resources=clusterversions,verbs=get;list;watch
 // +kubebuilder:rbac:groups=tenancy.x-k8s.io,resources=clusterversions/status,verbs=get
+
+// Reconcile reads that state of the cluster for a VirtualCluster object and makes changes based on the state read
+// and what is in the VirtualCluster.Spec
 func (r *ReconcileVirtualCluster) Reconcile(ctx context.Context, request reconcile.Request) (rncilRslt reconcile.Result, err error) {
 	r.Log.Info("reconciling VirtualCluster...")
 	vc := &tenancyv1alpha1.VirtualCluster{}

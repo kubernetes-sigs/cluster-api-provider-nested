@@ -49,10 +49,11 @@ func (r *ReconcileClusterVersion) SetupWithManager(mgr ctrl.Manager, opts contro
 		Complete(r)
 }
 
-// Reconcile reads that state of the cluster for a ClusterVersion object and makes changes based on the state read
-// and what is in the ClusterVersion.Spec
 // +kubebuilder:rbac:groups=tenancy.x-k8s.io,resources=clusterversions,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=tenancy.x-k8s.io,resources=clusterversions/status,verbs=get;update;patch
+
+// Reconcile reads that state of the cluster for a ClusterVersion object and makes changes based on the state read
+// and what is in the ClusterVersion.Spec
 func (r *ReconcileClusterVersion) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the ClusterVersion instance
 	r.Log.Info("reconciling ClusterVersion...")

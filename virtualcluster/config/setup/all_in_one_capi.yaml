@@ -33,8 +33,10 @@ rules:
   - delete
 - apiGroups:
   - tenancy.x-k8s.io
+  - cluster.x-k8s.io
   resources:
   - clusterversions
+  - clusters
   verbs:
   - get
   - list
@@ -113,8 +115,10 @@ rules:
   - patch
 - apiGroups:
   - ""
+  - "coordination.k8s.io"
   resources:
   - configmaps
+  - leases
   verbs:
   - get
   - list
@@ -135,6 +139,7 @@ rules:
   - ""
   resources:
   - namespaces
+  - events
   verbs:
   - get
   - list
@@ -235,9 +240,10 @@ spec:
         - manager
         args:
         - --disable-stacktrace=true
-        - --enable-webhook=true
+        - --enable-webhook=false
+        - --master-prov=capi
         image: virtualcluster/manager-amd64
-        imagePullPolicy: Always
+        imagePullPolicy: Never
         name: vc-manager
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -377,7 +383,7 @@ spec:
         - command:
             - syncer
           image: virtualcluster/syncer-amd64
-          imagePullPolicy: Always
+          imagePullPolicy: Never
           name: vc-syncer
           livenessProbe:
             failureThreshold: 3
@@ -461,7 +467,7 @@ spec:
           - --kubelet-client-certificate=/etc/vn-agent/pki/client.crt
           - --kubelet-client-key=/etc/vn-agent/pki/client.key
           image: virtualcluster/vn-agent-amd64
-          imagePullPolicy: Always
+          imagePullPolicy: Never
           name: vn-agent
           volumeMounts:
           - name: kubelet-client-cert

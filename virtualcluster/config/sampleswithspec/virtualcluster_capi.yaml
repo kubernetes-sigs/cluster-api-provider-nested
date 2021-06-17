@@ -1,0 +1,13 @@
+apiVersion: tenancy.x-k8s.io/v1alpha1
+kind: VirtualCluster
+metadata:
+  name: vc-sample-1
+  annotations:
+    cluster.x-k8s.io/name: cluster-sample
+    tenancy.x-k8s.io/secret.admin-kubeconfig: cluster-sample-kubeconfig
+spec:
+  clusterVersionName: "capi"
+  opaqueMetaPrefixes:
+     - "tenancy.x-k8s.io"
+  transparentMetaPrefixes:
+     - "k8s.net.status"

@@ -19,4 +19,5 @@ package constants
 const (
 	VirtualClusterWebhookCertDir = "/tmp/k8s-webhook-server/serving-certs"
 	VirtualClusterWebhookPort    = 9443
+	VirtualClusterCAPIName       = "cluster.x-k8s.io/name"
 )

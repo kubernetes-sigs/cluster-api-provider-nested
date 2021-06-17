@@ -37,6 +37,19 @@ func (c *Controllers) SetupWithManager(mgr ctrl.Manager) error {
 	opts := controller.Options{
 		MaxConcurrentReconciles: c.MaxConcurrentReconciles,
 	}
+
+	// If Provisioner is CAPI exit fast and only implement CAPI
+	// VC reconciler.
+	if c.ProvisionerName == "capi" {
+		if err := (&controllers.ReconcileCAPIVirtualCluster{
+			Client: mgr.GetClient(),
+			Log:    c.Log.WithName("virtualcluster"),
+		}).SetupWithManager(mgr, opts); err != nil {
+			return err
+		}
+		return nil
+	}
+
 	// add controller based the type of the masterProvisioner
 	if c.ProvisionerName == "native" {
 		if err := (&controllers.ReconcileClusterVersion{
