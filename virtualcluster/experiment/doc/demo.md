@@ -39,7 +39,7 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-p
 Install vc-manager and vc-scheduler in the vc-manager namespacing using the following command:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/experiment/config/setup/all_in_one.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/experiment/config/setup/all_in_one_capi.yaml
 ```
 
 Although the per super cluster syncer will be installed in the meta cluster, its configuration relies on the super cluster deployment. We will describe
