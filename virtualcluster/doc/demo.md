@@ -59,7 +59,7 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-p
 To create all VirtualCluster components:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/setup/all_in_one_capi.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/setup/all_in_one.yaml
 ```
 
 Let's check out what we've installed:
@@ -339,7 +339,7 @@ Of course, you can delete all others VirtualCluster objects too to clean up ever
 kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/sampleswithspec/clusterversion_v1_nodeport.yaml
 
 # The Virtual Cluster components
-kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/setup/all_in_one_capi.yaml
+kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/setup/all_in_one.yaml
 
 # The ValidatingWebhookConfiguration which generated runtime and is cluster-scoped resource
 kubectl delete ValidatingWebhookConfiguration virtualcluster-validating-webhook-configuration
