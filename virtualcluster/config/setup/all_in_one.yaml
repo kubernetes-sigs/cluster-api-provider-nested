@@ -75,6 +75,7 @@ rules:
   - ""
   resources:
   - services
+  - events
   verbs:
   - get
   - list
@@ -182,6 +183,18 @@ rules:
   resources:
   - mutatingwebhookconfigurations
   - validatingwebhookconfigurations
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
   verbs:
   - get
   - list

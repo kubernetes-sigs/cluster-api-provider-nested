@@ -17,35 +17,24 @@ limitations under the License.
 package virtualcluster
 
 import (
+	"bytes"
 	"context"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	cryptorand "crypto/rand"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"net"
+	"math/big"
 	"os"
 	"path/filepath"
 	"time"
 
 	admv1beta1 "k8s.io/api/admissionregistration/v1beta1"
-	certificates "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/kubernetes"
-	certificatesclient "k8s.io/client-go/kubernetes/typed/certificates/v1"
-	"k8s.io/client-go/tools/cache"
-	watchtools "k8s.io/client-go/tools/watch"
-	"k8s.io/client-go/util/cert"
-	"k8s.io/client-go/util/certificate/csr"
-	"k8s.io/client-go/util/keyutil"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -88,13 +77,14 @@ func Add(mgr manager.Manager, certDir string) error {
 	}
 
 	// 2. generate the serving certificate for the webhook server
-	if err := genCertificate(mgr, certDir); err != nil {
-		return fmt.Errorf("fail to generate certificates for webhook server: %s", err)
+	caPEM, genCrtErr := genCertificate(mgr, certDir)
+	if genCrtErr != nil {
+		return fmt.Errorf("fail to generate certificates for webhook server: %s", genCrtErr)
 	}
 
 	// 3. create the ValidatingWebhookConfiguration
 	log.Info(fmt.Sprintf("will create validatingwebhookconfiguration/%s", VCWebhookCfgName))
-	if err := createValidatingWebhookConfiguration(mgr.GetClient()); err != nil {
+	if err := createValidatingWebhookConfiguration(mgr.GetClient(), caPEM); err != nil {
 		return fmt.Errorf("fail to create validating webhook configuration: %s", err)
 	}
 	log.Info(fmt.Sprintf("successfully created validatingwebhookconfiguration/%s", VCWebhookCfgName))
@@ -137,7 +127,7 @@ func createVirtualClusterWebhookService(client client.Client) error {
 }
 
 // createValidatingWebhookConfiguration creates the validatingwebhookconfiguration for the webhook
-func createValidatingWebhookConfiguration(client client.Client) error {
+func createValidatingWebhookConfiguration(client client.Client, caPEM []byte) error {
 	validatePath := "/validate-tenancy-x-k8s-io-v1alpha1-virtualcluster"
 	svcPort := int32(constants.VirtualClusterWebhookPort)
 	// reject request if the webhook doesn't work
@@ -159,6 +149,7 @@ func createValidatingWebhookConfiguration(client client.Client) error {
 						Path:      &validatePath,
 						Port:      &svcPort,
 					},
+					CABundle: caPEM,
 				},
 				FailurePolicy: &failPolicy,
 				Rules: []admv1beta1.RuleWithOperations{
@@ -189,167 +180,107 @@ func createValidatingWebhookConfiguration(client client.Client) error {
 }
 
 // genCertificate generates the serving cerficiate for the webhook server
-func genCertificate(mgr manager.Manager, certDir string) error {
-	// client-go client for generating certificate
-	clientSet, err := kubernetes.NewForConfig(mgr.GetConfig())
+func genCertificate(mgr manager.Manager, certDir string) ([]byte, error) {
+	caPEM, certPEM, keyPEM, err := genSelfSignedCert()
 	if err != nil {
-		return fmt.Errorf("fail to generate the clientset: %s", err)
-	}
-	csrClient := clientSet.CertificatesV1().CertificateSigningRequests()
-
-	// 1. delete the VC CSR if exist
-	if err := delVCWebhookCSRIfExist(csrClient); err != nil {
-		return fmt.Errorf("fail to delete existing webhook: %s", err)
-	}
-	// 2. generate csr
-	csrPEM, keyPEM, privateKey, err := generateCSR(clientSet)
-	if err != nil {
-		return fmt.Errorf("fail to geneate csr: %s", err)
-	}
-
-	// 3. approve the csr
-	go approveVCWebhookCSR(csrClient)
-
-	// 4. submit csr and wait for it to be signed
-	// NOTE this step will block until the CSR is issued
-	csrPEM, err = submitCSRAndWait(clientSet, csrPEM, privateKey)
-	if err != nil {
-		return fmt.Errorf("fail to submit CSR: %s", err)
+		log.Error(err, "fail to generate self-signed certificate")
+		return nil, err
 	}
 
 	// 5. generate certificate files (i.e., tls.crt and tls.key)
-	if err := genCertAndKeyFile(csrPEM, keyPEM, certDir); err != nil {
-		return fmt.Errorf("fail to generate certificate and key: %s", err)
+	if err := genCertAndKeyFile(certPEM, keyPEM, certDir); err != nil {
+		return nil, fmt.Errorf("fail to generate certificate and key: %s", err)
 	}
 
-	return nil
+	return caPEM, nil
 }
 
-// delVCWebhookCSRIfExist deletes the validatingwebhookconfiguration/<VCWebhookCfgName> if exist
-func delVCWebhookCSRIfExist(csrClient certificatesclient.CertificateSigningRequestInterface) error {
-	if err := csrClient.Delete(context.TODO(), VCWebhookCSRName, metav1.DeleteOptions{}); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return err
-		}
-		log.Info("there is no legacy virtualcluster-webhook CSR")
-	}
-	return nil
-}
-
-// approveVCWebhookCSR approves the first observered CSR whose name is <VCWebhookCSRName>,
-// CommonName is <VCWebhookCertCommonName>, and Organization is <VCWebhookCertOrg>
-func approveVCWebhookCSR(csrClient certificatesclient.CertificateSigningRequestInterface) {
-	_, _ = watchtools.Until(
-		context.Background(),
-		"0",
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				return csrClient.List(context.TODO(), options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return csrClient.Watch(context.TODO(), options)
-			},
+// genSelfSignedCert generates the self signed Certificate/Key pair
+func genSelfSignedCert() (caPEMByte, certPEMByte, keyPEMByte []byte, err error) {
+	// CA config
+	ca := &x509.Certificate{
+		SerialNumber: big.NewInt(2021),
+		Subject: pkix.Name{
+			Organization: []string{"tenancy.x-k8s.io"},
 		},
-		func(event watch.Event) (bool, error) {
-			switch event.Type {
-			// only react to Modified and Added event
-			case watch.Modified, watch.Added:
-			case watch.Deleted:
-				return false, nil
-			default:
-				return false, nil
-			}
-			csr := event.Object.(*certificates.CertificateSigningRequest)
-			if !isVCWebhookCSR(csr) {
-				return false, nil
-			}
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(10, 0, 0),
+		IsCA:                  true,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
 
-			approved, denied := getCertCondition(&csr.Status)
-			// return if the CSR has already been approved or denied
-			if approved || denied {
-				return true, nil
-			}
+	// CA private key
+	caPrvKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
-			log.Info("will try to approve the CSR", "CSR", csr.GetName())
-			// approve the virtualcluster webhook csr
-			csr.Status.Conditions = append(csr.Status.Conditions,
-				certificates.CertificateSigningRequestCondition{
-					Type:    certificates.CertificateApproved,
-					Reason:  "AutoApproved",
-					Message: fmt.Sprintf("Approve the csr/%s", csr.GetName()),
-				})
+	// Self signed CA certificate
+	caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &caPrvKey.PublicKey, caPrvKey)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
-			result, err := csrClient.UpdateApproval(context.TODO(), csr.GetName(), csr, metav1.UpdateOptions{})
-			if err != nil {
-				if result == nil {
-					log.Error(err, fmt.Sprintf("failed to approve virtualcluster csr, %v", err))
-				} else {
-					log.Error(err, fmt.Sprintf("failed to approve virtualcluster csr(%s), %v", result.Name, err))
-				}
-				return false, err
-			}
-			log.Info("successfully approve virtualcluster csr", "csr", result.Name)
-			return true, nil
+	// PEM encode CA cert
+	caPEM := new(bytes.Buffer)
+	_ = pem.Encode(caPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: caBytes,
+	})
+	caPEMByte = caPEM.Bytes()
+
+	dnsNames := []string{
+		VCWebhookServiceName,
+		VCWebhookServiceName + "." + VCWebhookServiceNs,
+		VCWebhookServiceName + "." + VCWebhookServiceNs + ".svc",
+	}
+	commonName := VCWebhookServiceName + "." + VCWebhookServiceNs + ".svc"
+
+	// server cert config
+	cert := &x509.Certificate{
+		DNSNames:     dnsNames,
+		SerialNumber: big.NewInt(2021),
+		Subject: pkix.Name{
+			CommonName:   commonName,
+			Organization: []string{"tenancy.x-k8s.io"},
 		},
-	)
-}
-
-// isVCWebhookCSR check if the given csr is a VirtualCluster Webhook related csr
-func isVCWebhookCSR(csr *certificates.CertificateSigningRequest) bool {
-	pemBytes := csr.Spec.Request
-	block, _ := pem.Decode(pemBytes)
-	if block == nil || block.Type != "CERTIFICATE REQUEST" {
-		return false
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().AddDate(10, 0, 0),
+		SubjectKeyId: []byte{1, 2, 3, 4, 6},
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:     x509.KeyUsageDigitalSignature,
 	}
-	x509cr, err := x509.ParseCertificateRequest(block.Bytes)
+
+	// server private key
+	certPrvKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
-		return false
+		return nil, nil, nil, err
 	}
 
-	if x509cr.Subject.CommonName != VCWebhookCertCommonName {
-		return false
-	}
-
-	if csr.GetName() != VCWebhookCSRName {
-		log.Info(fmt.Sprintf("will not approve CSR, only approve CSR with name %s", VCWebhookCSRName),
-			"CSR", csr.GetName())
-		return false
-	}
-
-	for _, org := range x509cr.Subject.Organization {
-		if org == VCWebhookCertOrg {
-			return true
-		}
-	}
-	return false
-}
-
-// getCertCondition checks if the given CSR status is approved or denied
-func getCertCondition(status *certificates.CertificateSigningRequestStatus) (bool, bool) {
-	var approved, denied bool
-	for _, c := range status.Conditions {
-		if c.Type == certificates.CertificateApproved {
-			approved = true
-		}
-		if c.Type == certificates.CertificateDenied {
-			denied = true
-		}
-	}
-	return approved, denied
-}
-
-// getSVCClusterIP returns the clusterIP of the webhook service, which will be written
-// into the certificate
-func getSVCClusterIP(clientSet kubernetes.Interface) (net.IP, error) {
-	whSvc, err := clientSet.CoreV1().Services(VCWebhookServiceNs).
-		Get(context.TODO(), VCWebhookServiceName, metav1.GetOptions{})
+	// sign the server cert
+	certBytes, err := x509.CreateCertificate(rand.Reader, cert, ca, &certPrvKey.PublicKey, caPrvKey)
 	if err != nil {
-		return nil, fmt.Errorf("fail to get serivce clusterIP: %s", err)
+		return nil, nil, nil, err
 	}
-	if whSvc.Spec.ClusterIP == "" {
-		return nil, fmt.Errorf("ClusterIP of the service/%s is not set", VCWebhookServiceName)
-	}
-	return net.ParseIP(whSvc.Spec.ClusterIP), nil
+
+	// PEM encode the  server cert and key
+	certPEM := new(bytes.Buffer)
+	_ = pem.Encode(certPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: certBytes,
+	})
+	certPEMByte = certPEM.Bytes()
+
+	certPrvKeyPEM := new(bytes.Buffer)
+	_ = pem.Encode(certPrvKeyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(certPrvKey),
+	})
+	keyPEMByte = certPrvKeyPEM.Bytes()
+
+	return
 }
 
 // genCertAndKeyFile creates the serving certificate/key files for the webhook server
@@ -386,67 +317,4 @@ func genCertAndKeyFile(certData, keyData []byte, certDir string) error {
 	pem.Encode(kf, keyBlock)
 	log.Info("successfully generate certificate and key file")
 	return nil
-}
-
-// submitCSRAndWait submits the CSR and wait for apiserver to signed it
-func submitCSRAndWait(clientset kubernetes.Interface,
-	csrPEM []byte,
-	privateKey interface{}) ([]byte, error) {
-	reqName, reqUID, err := csr.RequestCertificate(
-		clientset, csrPEM, VCWebhookCSRName, "kubernetes.io/legacy-unknown",
-		[]certificates.KeyUsage{certificates.UsageServerAuth},
-		privateKey)
-	if err != nil {
-		return nil, fmt.Errorf("fail to request certificate: %s", err)
-	}
-	log.Info("CSR request submitted, will wait 2 seconds for it to be signed", "CSR reqest", reqName)
-	timeoutCtx, cancelFn := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancelFn()
-	crtPEM, err := csr.WaitForCertificate(timeoutCtx, clientset, reqName, reqUID)
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Certificate request was not signed: %v", err))
-		return nil, nil
-	}
-	log.Info("CSR is signed", "CSR reqest", reqName)
-	return crtPEM, nil
-}
-
-// generateCSR generate the csrPEM and corresponding keyPEM
-func generateCSR(clientSet kubernetes.Interface) (csrPEM []byte, keyPEM []byte, key interface{}, err error) {
-	// Generate a new private key.
-	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), cryptorand.Reader)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("unable to generate a new private key: %v", err)
-	}
-	der, err := x509.MarshalECPrivateKey(privateKey)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("unable to marshal the new key to DER: %v", err)
-	}
-
-	keyPEM = pem.EncodeToMemory(&pem.Block{Type: keyutil.ECPrivateKeyBlockType, Bytes: der})
-
-	whSvcIP, err := getSVCClusterIP(clientSet)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	template := &x509.CertificateRequest{
-		Subject: pkix.Name{
-			CommonName:   VCWebhookCertCommonName,
-			Organization: []string{VCWebhookCertOrg},
-		},
-		DNSNames: []string{
-			VCWebhookServiceName,
-			VCWebhookServiceName + "." + VCWebhookServiceNs,
-			VCWebhookServiceName + "." + VCWebhookServiceNs + ".svc",
-		},
-		IPAddresses: []net.IP{whSvcIP},
-	}
-
-	csrPEM, err = cert.MakeCSRFromTemplate(privateKey, template)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("unable to create a csr from the private key: %v", err)
-	}
-	log.Info("CSR is generated")
-	return csrPEM, keyPEM, privateKey, nil
 }
