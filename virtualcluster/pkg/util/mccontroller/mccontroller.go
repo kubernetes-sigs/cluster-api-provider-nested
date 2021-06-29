@@ -36,6 +36,7 @@ import (
 	clientgocache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -114,13 +115,17 @@ type ClusterInterface interface {
 
 // NewMCController creates a new MultiClusterController.
 func NewMCController(objectType client.Object, objectListType client.ObjectList, rc reconciler.DWReconciler, opts ...OptConfig) (*MultiClusterController, error) {
-	kind := objectType.GetObjectKind().GroupVersionKind().Kind
+	kinds, _, err := scheme.Scheme.ObjectKinds(objectType)
+	if err != nil || len(kinds) == 0 {
+		return nil, fmt.Errorf("mccontroller: unknown object kind %+v", objectType)
+	}
+
 	c := &MultiClusterController{
 		objectType: objectType,
-		objectKind: kind,
+		objectKind: kinds[0].Kind,
 		clusters:   make(map[string]ClusterInterface),
 		Options: Options{
-			name:                    fmt.Sprintf("%s-mccontroller", strings.ToLower(kind)),
+			name:                    fmt.Sprintf("%s-mccontroller", strings.ToLower(kinds[0].Kind)),
 			JitterPeriod:            1 * time.Second,
 			MaxConcurrentReconciles: constants.DwsControllerWorkerLow,
 			Reconciler:              rc,
