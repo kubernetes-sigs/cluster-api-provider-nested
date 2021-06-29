@@ -32,35 +32,12 @@ cd cluster-api
 make clusterctl
 ```
 
-### Create Dev Repo
-
-```
-mkdir -p ~/.cluster-api/dev-repository/
-```
-
-### Update config for CAPI Beta
-
-In order to use the `beta` build with `clusterctl` you need to tell it where to find the proper images for the core and bootstrap components.
-
-```
-cat <<EOF >>~/.cluster-api/dev-repository/config.yaml
----
-providers:
-- name: "cluster-api"
-  url: "https://github.com/kubernetes-sigs/cluster-api/releases/v0.4.0-beta.0/core-components.yaml"
-  type: "CoreProvider"
-- name: "kubeadm"
-  url: "https://github.com/kubernetes-sigs/cluster-api/releases/v0.4.0-beta.0/bootstrap-components.yaml"
-  type: "BootstrapProvider"
-EOF
-```
-
 ### Init control plane, infrastructure etc
 
 If you aren't familar with CAPI & `clusterctl` this command will deploy the core components, as well as the Nested components for infra providers and for control plane providers. 
 
 ```shell
-./bin/clusterctl init --core cluster-api:v0.4.0-beta.0  --control-plane nested:v0.1.0  --infrastructure nested:v0.1.0 --config ~/.cluster-api/dev-repository/config.yaml
+./bin/clusterctl init --core cluster-api:v0.4.0  --control-plane nested:v0.1.0  --infrastructure nested:v0.1.0
 ```
 
 you should see something like:
@@ -68,8 +45,8 @@ you should see something like:
 Fetching providers
 Installing cert-manager Version="v1.1.0"
 Waiting for cert-manager to be available...
-Installing Provider="cluster-api" Version="v0.4.0-beta.0" TargetNamespace="capi-system"
-Installing Provider="bootstrap-kubeadm" Version="v0.4.0-beta.0" TargetNamespace="capi-kubeadm-bootstrap-system"
+Installing Provider="cluster-api" Version="v0.4.0" TargetNamespace="capi-system"
+Installing Provider="bootstrap-kubeadm" Version="v0.4.0" TargetNamespace="capi-kubeadm-bootstrap-system"
 Installing Provider="control-plane-nested" Version="v0.1.0" TargetNamespace="capn-nested-control-plane-system"
 Installing Provider="infrastructure-nested" Version="v0.1.0" TargetNamespace="capn-system"
 
