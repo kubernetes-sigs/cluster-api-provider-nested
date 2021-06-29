@@ -9,16 +9,9 @@ a `kind` cluster as the management cluster as well as the nested workload cluste
 Please install the latest version of [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation) 
 and [kubectl](https://kubernetes.io/docs/tasks/tools/)
 
-### Clone CAPN
-
-```shell
-git clone https://github.com/kubernetes-sigs/cluster-api-provider-nested
-cd cluster-api-provider-nested
-```
-
 ### Create `kind` cluster
 
-```shell
+```console
 kind create cluster --name=capn
 ```
 
@@ -26,7 +19,7 @@ kind create cluster --name=capn
 
 As a Cluster API (CAPI) provider, CAPN needs the `clusterctl` binary to install and manage clusters.
 
-```shell
+```console
 git clone git@github.com:kubernetes-sigs/cluster-api.git
 cd cluster-api
 make clusterctl
@@ -36,7 +29,7 @@ make clusterctl
 
 If you aren't familar with CAPI & `clusterctl` this command will deploy the core components, as well as the Nested components for infra providers and for control plane providers. 
 
-```shell
+```console
 ./bin/clusterctl init --core cluster-api:v0.4.0  --control-plane nested:v0.1.0  --infrastructure nested:v0.1.0
 ```
 
@@ -58,8 +51,8 @@ You can now create your first workload cluster by running the following:
 ```
 
 and wait for all pods to be `Running` before proceed to next step:
-```
-kubectl get pods --all-namespaces
+```console
+$ kubectl get pods --all-namespaces
 NAMESPACE                          NAME                                                            READY   STATUS    RESTARTS   AGE
 capi-kubeadm-bootstrap-system      capi-kubeadm-bootstrap-controller-manager-c59c94d6f-l8f4v       1/1     Running   0          4m45s
 capi-system                        capi-controller-manager-6c555b545d-rtw8k                        1/1     Running   0          4m46s
@@ -81,13 +74,13 @@ local-path-storage                 local-path-provisioner-78776bfc44-qcx49      
 
 ### Set clustername (in our example, we set clustername to `cluster-sample`)
 
-```shell
+```console
 export CLUSTER_NAME=cluster-sample
 ```
 
 ### Generate custom resource (`Cluster`, `NestedCluster` etc) and apply to our cluster
 
-```shell
+```console
 ./bin/clusterctl generate cluster ${CLUSTER_NAME} --infrastructure=nested:v0.1.0 | kubectl apply -f -
 ```
 
@@ -96,7 +89,7 @@ export CLUSTER_NAME=cluster-sample
 We will use the `clusterctl` command-line tool to generate the `KUBECONFIG`, which 
 will be used to access the nested controlplane later.
 
-```shell
+```console
 ./bin/clusterctl get kubeconfig ${CLUSTER_NAME} > ../kubeconfig
 ```
 
@@ -106,16 +99,16 @@ Error: "cluster-sample-kubeconfig" not found in namespace "default": secrets "cl
 ```
 
 Run following command and make sure the `Ready` is true before retry above command.
-```
-kubectl get nestedcluster -w
+```console
+$ kubectl get nestedcluster -w
 NAME             READY   AGE
 cluster-sample   true    26h
 ```
 
 ### Make sure `cluster-sample` related pods are running before proceed.
 
-```
-kubectl get pods
+```console
+$ kubectl get pods
 NAME                                  READY   STATUS    RESTARTS   AGE
 cluster-sample-apiserver-0            1/1     Running   0          25h
 cluster-sample-controller-manager-0   1/1     Running   0          25h
@@ -127,8 +120,8 @@ cluster-sample-etcd-0                 1/1     Running   0          25h
 To access the nested controlplane, in a separate shell, you will need 
 to `port-forward` the apiserver service.
 
-```shell
-kubectl port-forward svc/cluster-sample-apiserver 6443:6443
+```console
+$ kubectl port-forward svc/cluster-sample-apiserver 6443:6443
 Forwarding from 127.0.0.1:6443 -> 6443
 Forwarding from [::1]:6443 -> 6443
 ```
@@ -145,8 +138,8 @@ following line to `/etc/hosts`.
 
 ### Connect to the Cluster! :tada:
 
-```shell
-kubectl --kubeconfig kubeconfig get all -A
+```console
+$ kubectl --kubeconfig kubeconfig get all -A
 NAMESPACE   NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
 default     service/kubernetes   ClusterIP   10.32.0.1    <none>        443/TCP   25h
 
@@ -154,6 +147,6 @@ default     service/kubernetes   ClusterIP   10.32.0.1    <none>        443/TCP 
 
 ### Clean Up
 
-```shell
+```console
 kind delete cluster --name=capn
 ```
