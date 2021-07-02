@@ -11,7 +11,7 @@ CR Syncer relies on CR specific components, e.g., CR controller, CR Downward Syn
 
 In order for CR Syncer to work, custom defined resource type (CRD) must be deployed in both super cluster and tenant virtual cluster. CRD synchronization has been handled by: virtualcluster/pkg/syncer/resources/crd/
 
-CRDs with label: [tenancy.x-k8s.io/super.public: "true"](https://sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants/constants.go#L67-L68) will be synced up into tenant’s virtual cluster. The syncing happens when virtual cluster is created or once annotation is changed. 
+CRDs with label: [tenancy.x-k8s.io/super.public: "true"](https://sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants/constants.go#L67-L68) will be synced up into tenant’s virtual cluster. The syncing happens when virtual cluster is created or once label is changed. 
 
 CRD synchronization ensures all custom defined resource type is deployed in virtual cluster, and CRD cache is properly initialized.
 
