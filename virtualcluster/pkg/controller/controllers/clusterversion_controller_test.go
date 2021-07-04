@@ -465,6 +465,7 @@ var defaultClusterVersion = &v1alpha1.ClusterVersionSpec{
 									"--use-service-account-credentials=true",
 									"--experimental-cluster-signing-duration=87600h",
 									"--node-monitor-grace-period=200s",
+									"--controllers=*,-nodelifecycle",
 									"--v=2",
 								},
 								LivenessProbe: &corev1.Probe{
