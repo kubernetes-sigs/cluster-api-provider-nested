@@ -1,0 +1,293 @@
+---
+apiVersion: cluster.x-k8s.io/v1alpha4
+kind: Cluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  controlPlaneEndpoint:
+    # currently this has to be the in-cluster endpoint, the in-cluster
+    # kubeconfig is used by controller-manager w/ ClusterIP services
+    # we can `port-forward` this service and be able to test
+    host: "${CLUSTER_NAME}-apiserver"
+    port: 6443
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+    kind: NestedCluster
+    name: "${CLUSTER_NAME}"
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+    kind: NestedControlPlane
+    name: "${CLUSTER_NAME}-control-plane"
+  
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: NestedCluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  controlPlaneEndpoint:
+    host: "localhost"
+    port: 6443
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+kind: NestedControlPlane
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  etcd:
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+    kind: NestedEtcd
+    name: "${CLUSTER_NAME}-nestedetcd"
+  apiserver:
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+    kind: NestedAPIServer
+    name: "${CLUSTER_NAME}-nestedapiserver"
+  controllerManager:
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+    kind: NestedControllerManager
+    name: "${CLUSTER_NAME}-nestedcontrollermanager"
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+kind: NestedEtcd
+metadata:
+  name: "${CLUSTER_NAME}-nestedetcd"
+spec:
+  replicas: 1
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+kind: NestedAPIServer
+metadata:
+  name: "${CLUSTER_NAME}-nestedapiserver"
+spec:
+  replicas: 1
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+kind: NestedControllerManager
+metadata:
+  name: "${CLUSTER_NAME}-nestedcontrollermanager"
+spec:
+  replicas: 1
+---
+### self-signed issuer for generating the root CA ###
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-issuer
+spec:
+  selfSigned: {}
+---
+### apiserver CA ###
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: "${CLUSTER_NAME}-ca"
+spec:
+  isCA: true
+  commonName: "${CLUSTER_NAME}-ca"
+  secretName: "${CLUSTER_NAME}-ca"
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+### apiserver CA Issuer ###
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: "${CLUSTER_NAME}-ca-issuer"
+spec:
+  ca:
+    secretName: "${CLUSTER_NAME}-ca"
+---
+### apiserver-client ###
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: "${CLUSTER_NAME}-apiserver-client"
+spec:
+  secretName: "${CLUSTER_NAME}-apiserver-client"
+  duration: 8760h # 1y
+  renewBefore: 4380h # 6m
+  commonName: "${CLUSTER_NAME}-apiserver-client"
+  isCA: false
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+    - server auth
+    - client auth
+  dnsNames:
+  - kubernetes
+  - kubernetes.default
+  - kubernetes.default.svc.cluster.local
+  - "${CLUSTER_NAME}-apiserver"
+  - "${CLUSTER_NAME}"
+  ipAddresses:
+  - 127.0.0.1
+  - 0.0.0.0
+  issuerRef:
+    name: "${CLUSTER_NAME}-ca-issuer"
+    kind: Issuer
+    group: cert-manager.io
+---
+## kubelet-client ###
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: "${CLUSTER_NAME}-kubelet-client"
+spec:
+  secretName: "${CLUSTER_NAME}-kubelet-client"
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  subject:
+    organizations:
+    - system:masters 
+  commonName: kube-apiserver-kubelet-client
+  isCA: false
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+  - client auth
+  issuerRef:
+    name: "${CLUSTER_NAME}-ca-issuer"
+    kind: Issuer
+    group: cert-manager.io
+---
+### etcd CA ###
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: "${CLUSTER_NAME}-etcd"
+spec:
+  isCA: true
+  commonName: "${CLUSTER_NAME}-etcd"
+  secretName: "${CLUSTER_NAME}-etcd"
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+### etcd CA Issuer ###
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: "${CLUSTER_NAME}-etcd-issuer"
+spec:
+  ca:
+    secretName: "${CLUSTER_NAME}-etcd"
+---
+### etcd-client 
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: "${CLUSTER_NAME}-etcd-client"
+spec:
+  secretName: "${CLUSTER_NAME}-etcd-client"
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  commonName: "${CLUSTER_NAME}-etcd-client"
+  isCA: false
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+    - server auth
+    - client auth
+  dnsNames:
+  - "${CLUSTER_NAME}-etcd"
+  - "${CLUSTER_NAME}-etcd-0"
+  - "${CLUSTER_NAME}-etcd-0.${CLUSTER_NAME}-etcd.default"
+  ipAddresses:
+  - 127.0.0.1
+  issuerRef:
+    name: "${CLUSTER_NAME}-etcd-issuer"
+    kind: Issuer
+    group: cert-manager.io
+---
+### etcd-health-client
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: "${CLUSTER_NAME}-etcd-health-client"
+spec:
+  secretName: "${CLUSTER_NAME}-etcd-health-client"
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  subject:
+    organizations: 
+    # the organization name will be used for authorization
+    - system:masters
+  commonName: kube-etcd-healthcheck-client
+  isCA: false
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+    - client auth
+  issuerRef:
+    name: "${CLUSTER_NAME}-etcd-issuer"
+    kind: Issuer
+    group: cert-manager.io
+
+---
+### proxy CA ###
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: "${CLUSTER_NAME}-proxy"
+spec:
+  isCA: true
+  commonName: "${CLUSTER_NAME}-proxy"
+  secretName: "${CLUSTER_NAME}-proxy"
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+### proxy CA Issuer ###
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: "${CLUSTER_NAME}-proxy-issuer"
+spec:
+  ca:
+    secretName: "${CLUSTER_NAME}-proxy"
+---
+### proxy-client
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: "${CLUSTER_NAME}-proxy-client"
+spec:
+  secretName: "${CLUSTER_NAME}-proxy-client"
+  duration: 8760h # 1y
+  renewBefore: 4380h # 6m 
+  commonName: front-proxy-client
+  isCA: false
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+  - client auth
+  issuerRef:
+    name: "${CLUSTER_NAME}-proxy-issuer"
+    kind: Issuer
+    group: cert-manager.io
