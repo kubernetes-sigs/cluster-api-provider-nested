@@ -172,7 +172,17 @@ func createValidatingWebhookConfiguration(client client.Client, caPEM []byte) er
 		if !apierrors.IsAlreadyExists(err) {
 			return err
 		}
-		log.Info(fmt.Sprintf("validatingwebhookconfiguration/%s already exist", VCWebhookCfgName))
+		log.Info(fmt.Sprintf("validatingwebhookconfiguration/%s already exist, need remove firstly", VCWebhookCfgName))
+		err := client.Delete(context.TODO(), &vwhCfg)
+		if err != nil {
+			return err
+		}
+
+		err = client.Create(context.TODO(), &vwhCfg)
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 	log.Info(fmt.Sprintf("successfully created validatingwebhookconfiguration/%s", VCWebhookCfgName))
