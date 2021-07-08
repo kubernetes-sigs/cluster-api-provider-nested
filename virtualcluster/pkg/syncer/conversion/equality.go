@@ -17,8 +17,9 @@ limitations under the License.
 package conversion
 
 import (
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"strings"
+
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 
 	v1 "k8s.io/api/core/v1"
 	v1beta1extensions "k8s.io/api/extensions/v1beta1"
@@ -675,6 +676,7 @@ func (e vcEquality) CheckServiceEquality(pObj, vObj *v1.Service) *v1.Service {
 	vSpec := filterNodePort(vObj)
 	pSpec := filterNodePort(pObj)
 	vSpec.ClusterIP = pSpec.ClusterIP
+	vSpec.ClusterIPs = pSpec.ClusterIPs
 
 	if !equality.Semantic.DeepEqual(vSpec, pSpec) {
 		if updated == nil {
