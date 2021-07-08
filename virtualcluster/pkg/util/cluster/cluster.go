@@ -79,7 +79,7 @@ type Cluster struct {
 	// a flag indicates that the cluster cache has been synced
 	synced bool
 
-	stopCh chan struct{}
+	cancelContext context.CancelFunc
 
 	context context.Context
 }
@@ -131,7 +131,6 @@ func NewCluster(key, namespace, name, uid string, getter mccontroller.Getter, co
 		RestConfig: clusterRestConfig,
 		options:    o,
 		synced:     false,
-		stopCh:     make(chan struct{}),
 		context:    context.Background(),
 	}, nil
 }
@@ -293,14 +292,17 @@ func (c *Cluster) GetInformer(objectType client.Object) (cache.Informer, error) 
 }
 
 // Start starts the Cluster's cache and blocks,
-// until an empty struct is sent to the stop channel.
+// until context for the cache is cancelled.
 func (c *Cluster) Start() error {
 	ca, err := c.getCache()
 	if err != nil {
 		return err
 	}
 
-	return ca.Start(c.context)
+	ctx, cancel := context.WithCancel(c.context)
+	c.cancelContext = cancel
+
+	return ca.Start(ctx)
 }
 
 // WaitForCacheSync waits for the Cluster's cache to sync,
@@ -322,7 +324,8 @@ func (c *Cluster) SetKey(k string) {
 	c.key = k
 }
 
-// Stop send a msg to stopCh, stop the cache.
+// Stop cancel/close the cache to terminate informers.
 func (c *Cluster) Stop() {
-	close(c.stopCh)
+
+	c.cancelContext()
 }
