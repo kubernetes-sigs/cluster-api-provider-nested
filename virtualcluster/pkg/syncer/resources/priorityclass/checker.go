@@ -48,7 +48,7 @@ func (c *controller) StartPatrol(stopCh <-chan struct{}) error {
 func (c *controller) PatrollerDo() {
 	clusterNames := c.MultiClusterController.GetClusterNames()
 	if len(clusterNames) == 0 {
-		klog.V(2).Infof("tenant masters has no clusters, give up priority class period checker")
+		klog.Infof("super cluster has no tenant control planes, giving up periodic checker: %s", "priorityclass")
 		return
 	}
 

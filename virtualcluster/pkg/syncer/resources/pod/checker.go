@@ -134,7 +134,7 @@ func (c *controller) deleteClusterVNode(cluster, nodeName string) {
 func (c *controller) PatrollerDo() {
 	clusterNames := c.MultiClusterController.GetClusterNames()
 	if len(clusterNames) == 0 {
-		klog.Infof("tenant masters has no clusters, give up period checker")
+		klog.Infof("super cluster has no tenant control planes, giving up periodic checker: %s", "pod")
 		return
 	}
 
