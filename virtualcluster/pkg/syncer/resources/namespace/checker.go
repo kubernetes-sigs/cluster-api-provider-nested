@@ -84,7 +84,7 @@ func (c *controller) shouldBeGarbageCollected(ns *v1.Namespace) bool {
 func (c *controller) PatrollerDo() {
 	clusterNames := c.MultiClusterController.GetClusterNames()
 	if len(clusterNames) == 0 {
-		klog.V(4).Infof("tenant masters has no clusters, still check pNamespace for gc purpose")
+		klog.V(4).Infof("super cluster has no tenant control planes, still check %s for gc purpose", "namespace")
 	}
 
 	pList, err := c.nsLister.List(labels.Everything())
