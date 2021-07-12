@@ -159,6 +159,14 @@ spec:
               - --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota
               - --apiserver-count=1
               - --endpoint-reconciler-type=master-count
+              - --enable-aggregator-routing=true
+              - --requestheader-client-ca-file=/etc/kubernetes/pki/root/tls.crt
+              - --requestheader-allowed-names=""
+              - --requestheader-username-headers=X-Remote-User
+              - --requestheader-group-headers=X-Remote-Group
+              - --requestheader-extra-headers-prefix=X-Remote-Extra-
+              - --proxy-client-key-file=/etc/kubernetes/pki/frontproxy/tls.key
+              - --proxy-client-cert-file=/etc/kubernetes/pki/frontproxy/tls.crt
               - --v=2
               ports:
               - containerPort: 6443
@@ -185,6 +193,9 @@ spec:
               - mountPath: /etc/kubernetes/pki/apiserver
                 name: apiserver-ca
                 readOnly: true
+              - mountPath: /etc/kubernetes/pki/frontproxy
+                name: front-proxy-ca
+                readOnly: true
               - mountPath: /etc/kubernetes/pki/root
                 name: root-ca
                 readOnly: true
@@ -205,6 +216,10 @@ spec:
               secret:
                 defaultMode: 420
                 secretName: root-ca
+            - name: front-proxy-ca
+              secret:
+                defaultMode: 420
+                secretName: front-proxy-ca
             - name: serviceaccount-rsa
               secret:
                 defaultMode: 420

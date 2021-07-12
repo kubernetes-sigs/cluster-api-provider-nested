@@ -30,6 +30,7 @@ const (
 	RootCASecretName            = "root-ca"
 	APIServerCASecretName       = "apiserver-ca"
 	ETCDCASecretName            = "etcd-ca"
+	FrontProxyCASecretName      = "front-proxy-ca"
 	ControllerManagerSecretName = "controller-manager-kubeconfig"
 	AdminSecretName             = "admin-kubeconfig"
 	ServiceAccountSecretName    = "serviceaccount-rsa"

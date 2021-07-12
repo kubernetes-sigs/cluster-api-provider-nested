@@ -218,6 +218,9 @@ func (mpn *ProvisionerNative) createPKISecrets(caGroup *vcpki.ClusterCAGroup, na
 	// create secret for etcd crt/key pair
 	etcdSrt := secret.CrtKeyPairToSecret(secret.ETCDCASecretName,
 		namespace, caGroup.ETCD)
+	// create secret for front proxy crt/key pair
+	frontProxySrt := secret.CrtKeyPairToSecret(secret.FrontProxyCASecretName,
+		namespace, caGroup.FrontProxy)
 	// create secret for controller manager kubeconfig
 	ctrlMgrSrt := secret.KubeconfigToSecret(secret.ControllerManagerSecretName,
 		namespace, caGroup.CtrlMgrKbCfg)
@@ -230,7 +233,7 @@ func (mpn *ProvisionerNative) createPKISecrets(caGroup *vcpki.ClusterCAGroup, na
 	if err != nil {
 		return err
 	}
-	secrets := []*v1.Secret{rootSrt, apiserverSrt, etcdSrt,
+	secrets := []*v1.Secret{rootSrt, apiserverSrt, etcdSrt, frontProxySrt,
 		ctrlMgrSrt, adminSrt, svcActSrt}
 
 	// create all secrets on metacluster
@@ -286,6 +289,13 @@ func (mpn *ProvisionerNative) createPKI(vc *tenancyv1alpha1.VirtualCluster, cv *
 		return etcdCrtErr
 	}
 	caGroup.ETCD = etcdCAPair
+
+	// create crt, key for frontendproxy
+	frontProxyCAPair, frontProxyCrtErr := vcpki.NewFrontProxyClientCertAndKey(rootCAPair)
+	if frontProxyCrtErr != nil {
+		return frontProxyCrtErr
+	}
+	caGroup.FrontProxy = frontProxyCAPair
 
 	clusterIP := ""
 	if isClusterIP {

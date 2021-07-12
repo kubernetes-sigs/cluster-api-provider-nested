@@ -44,6 +44,7 @@ type ClusterCAGroup struct {
 	RootCA                   *CrtKeyPair
 	APIServer                *CrtKeyPair
 	ETCD                     *CrtKeyPair
+	FrontProxy               *CrtKeyPair
 	CtrlMgrKbCfg             string // the kubeconfig used by controller-manager
 	AdminKbCfg               string // the kubeconfig used by admin user
 	ServiceAccountPrivateKey *rsa.PrivateKey
