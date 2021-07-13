@@ -323,6 +323,37 @@ Load average: 0.45 0.47 0.54 1/1308 23
   PID  PPID USER     STAT   VSZ %VSZ CPU %CPU COMMAND
 ```
 
+## (Optional) use `kubectl vc exec` to enter cluster context and regenerate kubeconfig for particular virtualcluster
+
+You can use `kubectl vc exec` to operate on desired virtualcluster, for example:
+```bash
+$ kubectl vc exec vc-sample-1
+kubeconfig for virtualcluster default/vc-sample-1 is placed at:
+
+        ~/.kube/vc/default-b9bf25-vc-sample-1.kubeconfig
+
+❗ You are now at VirtualCluster default/vc-sample-1
+❗ use regular kubectl commands to operate vc in this temporary workspace
+❗ type 'exit' to exit
+```
+
+Then you can see the pods in that cluster (this example we have a `test-deploy-5f4bcd8c-4nfxg` pod):
+```bash
+# kubectl get pods
+NAME                         READY   STATUS    RESTARTS   AGE
+test-deploy-5f4bcd8c-4nfxg   1/1     Running   0          42h
+```
+
+Also, the kubeconfig is generated and stored at `~/.kube/vc/` with name `<namespace>-<cluster name>.kubeconfig`, in our example, it's
+ `~/.kube/vc/default-b9bf25-vc-sample-1.kubeconfig`, you can use it if the original kubeconfig is lost.
+
+Use `exit` command to exit the cluster context
+```bash
+# exit
+exit
+❗ exit VirtualCluster default/vc-sample-1
+```
+
 ## Clean Up
 
 By deleting the VirtualCluster CR, all the tenant resources created in the super master will be deleted.
