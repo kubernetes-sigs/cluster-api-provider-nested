@@ -179,13 +179,17 @@ Once it's created, a kubeconfig file specified by `-o`, namely `vc-1.kubeconfig`
 
 The generated `vc-1.kubeconfig` can be used as a normal `kubeconfig` to access the tenant virtual cluster.
 
-Please note that if you're working on `kind` cluster which, by default, exposes one random host port pointing to Kubernetes' default API Server port `6443`. In this case, we need to work around it and the simplest way is to deploy a "sidecar" container as the proxy to route management traffic to the service:
-
 ```bash
 # Do this only when you're working in `kind`:
 
 # Retrieve the tenant namespace
 $ VC_NAMESPACE="$(kubectl get VirtualCluster vc-sample-1 -o json | jq -r '.status.clusterNamespace')"
+```
+
+Please note that if you're working on `kind` cluster which, by default, exposes one random host port pointing to Kubernetes' default API Server port `6443`. In this case, we need to work around it and the simplest way is to deploy a "sidecar" container as the proxy to route management traffic to the service, otherwise skip this step:
+
+```bash
+# Optional for non-kind cluster
 
 # The svc node port exposed
 $ VC_SVC_PORT="$(kubectl get -n ${VC_NAMESPACE} svc/apiserver-svc -o json | jq '.spec.ports[0].nodePort')"
