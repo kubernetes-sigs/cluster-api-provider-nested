@@ -226,7 +226,7 @@ func (r *NestedAPIServerReconciler) createAPIServerClientCrts(ctx context.Contex
 	}
 
 	fpcert := certificates.GetByPurpose(secret.FrontProxyCA)
-	if cacert == nil {
+	if fpcert == nil {
 		return fmt.Errorf("could not fetch FrontProxyCA")
 	}
 
