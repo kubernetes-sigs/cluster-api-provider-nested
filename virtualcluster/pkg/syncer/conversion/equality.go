@@ -677,6 +677,8 @@ func (e vcEquality) CheckServiceEquality(pObj, vObj *v1.Service) *v1.Service {
 	pSpec := filterNodePort(pObj)
 	vSpec.ClusterIP = pSpec.ClusterIP
 	vSpec.ClusterIPs = pSpec.ClusterIPs
+	vSpec.IPFamilies = pSpec.IPFamilies
+	vSpec.IPFamilyPolicy = pSpec.IPFamilyPolicy
 
 	if !equality.Semantic.DeepEqual(vSpec, pSpec) {
 		if updated == nil {
