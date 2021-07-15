@@ -167,7 +167,7 @@ spec:
               - --endpoint-reconciler-type=master-count
               - --enable-aggregator-routing=true
               - --requestheader-client-ca-file=/etc/kubernetes/pki/root/tls.crt
-              - --requestheader-allowed-names=""
+              - --requestheader-allowed-names=front-proxy-client
               - --requestheader-username-headers=X-Remote-User
               - --requestheader-group-headers=X-Remote-Group
               - --requestheader-extra-headers-prefix=X-Remote-Extra-
