@@ -56,7 +56,7 @@ spec:
         - --apiserver-count=1
         - --endpoint-reconciler-type=master-count
         - --enable-aggregator-routing=true
-        - --requestheader-client-ca-file=/etc/kubernetes/pki/root/tls.crt
+        - --requestheader-client-ca-file=/etc/kubernetes/pki/proxy/ca/tls.crt
         - --requestheader-allowed-names=front-proxy-client
         - --requestheader-username-headers=X-Remote-User
         - --requestheader-group-headers=X-Remote-Group
@@ -86,6 +86,9 @@ spec:
           periodSeconds: 2
           timeoutSeconds: 30
         volumeMounts:
+        - mountPath: /etc/kubernetes/pki/proxy/ca
+          name: {{.clusterName}}-proxy-client-ca
+          readOnly: true
         - mountPath: /etc/kubernetes/pki/proxy
           name: {{.clusterName}}-proxy-client
           readOnly: true
@@ -124,6 +127,10 @@ spec:
         secret:
           defaultMode: 420
           secretName: {{.clusterName}}-etcd-client
+      - name: {{.clusterName}}-proxy-client-ca
+        secret:
+          defaultMode: 420
+          secretName: {{.clusterName}}-proxy
       - name: {{.clusterName}}-proxy-client
         secret:
           defaultMode: 420
