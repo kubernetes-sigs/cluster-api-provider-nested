@@ -1,0 +1,20 @@
+@startuml
+skinparam backgroundColor #FFFAFA
+skinparam defaultTextAlignment center
+start
+: User Apply KubeadmControlPlane CR \n and NestedMachineTemplate CR;
+repeat
+: KubeadmControlPlane controller check \n if NestedCluster is ready;
+repeat while (exist?) is (no)
+->yes;
+: KubeadmControlPlane controller uses the NestedMachineTemplate \n to create NestedMachines;
+: KubeadmControlPlane controller generates the KubeadmConfig CR;
+: KubeadmControlPlane controller sets ObjectReference \n to the KubeadmConfig CR for the owned NestedMachines;
+repeat
+:NestedMachines controller check \n if the KubeadmConfig is assigned to the NestedMachine;
+repeat while (is attached?) is (no)
+->yes;
+: NestedMachine controller generates \n the static pod template;
+: NestedMachine controller creates \n the statefulset objects; 
+stop
+@enduml
