@@ -50,7 +50,7 @@ func TestKeyPairs_Lookup(t *testing.T) {
 		{
 			"TestNotFoundCertificateTrue",
 			KeyPairs{&KeyPair{Purpose: EtcdClient, New: false}},
-			args{ctx, fake.NewFakeClient(newSecret()), clusterName},
+			args{ctx, fake.NewClientBuilder().WithRuntimeObjects(newSecret()).Build(), clusterName},
 			false,
 			true,
 		},
@@ -59,10 +59,10 @@ func TestKeyPairs_Lookup(t *testing.T) {
 			KeyPairs{&KeyPair{Purpose: EtcdClient, New: true}},
 			args{
 				ctx,
-				fake.NewFakeClient(newSecret(func(s *corev1.Secret) {
+				fake.NewClientBuilder().WithRuntimeObjects(newSecret(func(s *corev1.Secret) {
 					s.Name = "test-cluster-etcd-client"
 					s.Namespace = "default"
-				})),
+				})).Build(),
 				clusterName,
 			},
 			false,
@@ -108,7 +108,7 @@ func TestKeyPairs_SaveGenerated(t *testing.T) {
 			},
 			args{
 				ctx,
-				fake.NewFakeClient(),
+				fake.NewClientBuilder().WithRuntimeObjects().Build(),
 				clusterName,
 				*controllerRef,
 			},
