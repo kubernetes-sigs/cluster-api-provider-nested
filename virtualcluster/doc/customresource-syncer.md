@@ -79,7 +79,7 @@ multiClusterFooController, err := mccontroller.NewMCController(&v1alpha1.Foo{}, 
 Foo Patroller can be constructed as:
 
 ```
-fooPatroller, err := patrol.NewPatroller(&alpha1.Project{}, c, pa.WithOptions(options.PatrolOptions))
+fooPatroller, err := patrol.NewPatroller(&v1alpha1.Foo{}, c, pa.WithOptions(options.PatrolOptions))
 ```
 
 Foo Listener is constructed as:
