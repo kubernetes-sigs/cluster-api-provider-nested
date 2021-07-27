@@ -30,7 +30,13 @@ Please install the latest version of [kind](https://kind.sigs.k8s.io/docs/user/q
 ### Create `kind` cluster
 
 ```console
+# For Kind
 kind create cluster --name=capn
+```
+
+```console
+# For Minikube
+minikube start
 ```
 
 ### Install `cert-manager`
@@ -106,8 +112,18 @@ cd cluster-api-provider-nested
 
 ```console
 PULL_POLICY=Never TAG=dev make docker-build release-manifests
+```
+
+```console
+# For Kind
 kind load docker-image gcr.io/cluster-api-nested-controller-amd64:dev --name=capn
 kind load docker-image gcr.io/nested-controlplane-controller-amd64:dev --name=capn
+```
+
+```console
+# For Minikube
+minikube image load gcr.io/nested-controlplane-controller-amd64:dev
+minikube image load gcr.io/cluster-api-nested-controller-amd64:dev
 ```
 
 ### Deploy CAPN
@@ -209,9 +225,17 @@ Events:
 Please follow the following guidnace to workaround:
 
 ```console
+# Kind
 kind load docker-image docker.io/virtualcluster/apiserver-v1.16.2:latest --name=capn
 kind load docker-image docker.io/virtualcluster/controller-manager-v1.16.2:latest --name=capn
 kind load docker-image docker.io/virtualcluster/etcd-v3.4.0:latest --name=capn
+```
+
+```console
+# Minikube
+minikube image load docker.io/virtualcluster/apiserver-v1.16.2:latest
+minikube image load docker.io/virtualcluster/controller-manager-v1.16.2:latest
+minikube image load docker.io/virtualcluster/etcd-v3.4.0:latest
 ```
 
 Get all of the StatefulSet for Tenant Cluster and update the `imagePullPolicy` to `Never`.
@@ -268,5 +292,11 @@ kubectl --kubeconfig kubeconfig get all -A
 ### Clean Up
 
 ```shell
+# For Kind
 kind delete cluster --name=capn
+```
+
+```shell
+# For Minikube
+Minikube delete
 ```
