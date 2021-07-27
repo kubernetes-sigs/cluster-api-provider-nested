@@ -153,6 +153,12 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "NestedCluster")
 		os.Exit(1)
 	}
+
+	if err := (&infrastructurev1.NestedCluster{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "NestedCluster")
+		os.Exit(1)
+	}
+
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("Starting manager", "version", version.Get().String())

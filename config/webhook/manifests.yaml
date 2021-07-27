@@ -1,0 +1,29 @@
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  creationTimestamp: null
+  name: validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
+    service:
+      name: capn-capn-webhook-service
+      namespace: capn-system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-nestedcluster
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.nestedclusters.infrastructure.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - nestedclusters
+  sideEffects: None

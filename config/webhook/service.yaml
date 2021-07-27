@@ -2,8 +2,8 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: webhook-service
-  namespace: system
+  name: capn-webhook-service
+  namespace: capn-system
 spec:
   ports:
     - port: 443
