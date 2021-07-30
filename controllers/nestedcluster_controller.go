@@ -20,15 +20,25 @@ package controllers
 
 import (
 	"context"
-	"time"
+	"reflect"
 
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-nested/api/v1alpha4"
 	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
@@ -48,10 +58,52 @@ type NestedClusterReconciler struct {
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *NestedClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *NestedClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	clusterToInfraFn := util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("NestedCluster"))
+	log := ctrl.LoggerFrom(ctx)
+
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&infrav1.NestedCluster{}).
+		WithOptions(options).
+		For(&infrav1.NestedCluster{},
+			builder.WithPredicates(
+				predicate.Funcs{
+					// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
+					UpdateFunc: func(e event.UpdateEvent) bool {
+						oldCluster := e.ObjectOld.(*infrav1.NestedCluster).DeepCopy()
+						newCluster := e.ObjectNew.(*infrav1.NestedCluster).DeepCopy()
+						oldCluster.Status = infrav1.NestedClusterStatus{}
+						newCluster.Status = infrav1.NestedClusterStatus{}
+						oldCluster.ObjectMeta.ResourceVersion = ""
+						newCluster.ObjectMeta.ResourceVersion = ""
+						return !reflect.DeepEqual(oldCluster, newCluster)
+					},
+				},
+			),
+		).
 		Owns(&controlplanev1.NestedControlPlane{}).
+		Watches(
+			&source.Kind{Type: &clusterv1.Cluster{}},
+			handler.EnqueueRequestsFromMapFunc(func(o client.Object) []reconcile.Request {
+				requests := clusterToInfraFn(o)
+				if len(requests) < 1 {
+					return nil
+				}
+
+				c := &infrav1.NestedCluster{}
+				if err := r.Client.Get(ctx, requests[0].NamespacedName, c); err != nil {
+					log.V(4).Error(err, "Failed to get Nested cluster")
+					return nil
+				}
+
+				if annotations.IsExternallyManaged(c) {
+					log.V(4).Info("Nested cluster is externally managed, skipping mapping.")
+					return nil
+				}
+				return requests
+			}),
+			builder.WithPredicates(predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx))),
+		).
+		WithEventFilter(predicates.ResourceIsNotExternallyManaged(ctrl.LoggerFrom(ctx))).
 		Complete(r)
 }
 
@@ -101,5 +153,5 @@ func (r *NestedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	return ctrl.Result{}, nil
 }
