@@ -67,7 +67,7 @@ func (c *controller) PatrollerDo() {
 		vList := &v1.ServiceAccountList{}
 		if err := c.MultiClusterController.List(cluster, vList); err != nil {
 			klog.Errorf("error listing serviceaccount from cluster %s informer cache: %v", cluster, err)
-			knownClusterSet.Insert(cluster)
+			knownClusterSet.Delete(cluster)
 			continue
 		}
 

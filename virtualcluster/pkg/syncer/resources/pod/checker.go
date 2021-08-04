@@ -160,7 +160,7 @@ func (c *controller) PatrollerDo() {
 		vList := &v1.PodList{}
 		if err := c.MultiClusterController.List(cluster, vList); err != nil {
 			klog.Errorf("error listing pod from cluster %s informer cache: %v", cluster, err)
-			knownClusterSet.Insert(cluster)
+			knownClusterSet.Delete(cluster)
 			continue
 		}
 
