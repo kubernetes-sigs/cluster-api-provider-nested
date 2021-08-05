@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/version"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
 	infrastructurev1 "sigs.k8s.io/cluster-api-provider-nested/api/v1alpha4"
@@ -55,6 +56,7 @@ var (
 	syncPeriod                  time.Duration
 	webhookPort                 int
 	healthAddr                  string
+	nestedclusterConcurrency    int
 )
 
 func init() {
@@ -92,6 +94,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.IntVar(&webhookPort, "webhook-port", 0,
 		"Webhook Server port, disabled by default. When enabled, the manager will only work as webhook server, no reconcilers are installed.")
+
+	fs.IntVar(&nestedclusterConcurrency, "nestedcluster-concurrency", 10,
+		"Number of NestedClusters to process simultaneously")
 
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
@@ -149,7 +154,7 @@ func main() {
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("infrastructure").WithName("NestedCluster"),
 		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(nestedclusterConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NestedCluster")
 		os.Exit(1)
 	}
@@ -166,4 +171,8 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func concurrency(c int) controller.Options {
+	return controller.Options{MaxConcurrentReconciles: c}
 }
