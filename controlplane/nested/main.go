@@ -97,8 +97,8 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 
-	fs.StringVar(&templatePath, "template-path", "/component-templates",
-		"The address the health endpoint binds to.")
+	fs.StringVar(&templatePath, "template-path", "/home/nonroot/component-templates",
+		"The address the health endpoint binds to is.")
 
 	feature.MutableGates.AddFlag(fs)
 }

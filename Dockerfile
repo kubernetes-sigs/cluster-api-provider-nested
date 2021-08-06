@@ -53,6 +53,6 @@ FROM gcr.io/distroless/static:nonroot
 # Copy the controller-manager into a thin image
 WORKDIR /
 COPY --from=builder /workspace/manager .
-COPY controlplane/nested/component-templates/ ./component-templates/
+COPY controlplane/nested/component-templates/ ./home/nonroot/component-templates/
 USER 65532:65532
 ENTRYPOINT ["/manager"]
