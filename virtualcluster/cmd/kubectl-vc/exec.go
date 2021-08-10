@@ -154,6 +154,7 @@ func enterVCShell(kbFilePath, ns, name string) error {
 	c.Stderr = os.Stderr
 
 	defer func() {
+		_ = os.Remove(kbFilePath)
 		fmt.Printf("%s exit VirtualCluster %s/%s\n", warningPrompt, ns, name)
 	}()
 	return c.Run()
