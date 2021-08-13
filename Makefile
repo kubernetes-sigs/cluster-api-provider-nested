@@ -11,9 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+SHELL:=/usr/bin/env bash
+
+ROOT_DIR_RELATIVE := .
+
+include $(ROOT_DIR_RELATIVE)/common.mk
 
 # Ensure Make is run with bash shell as some syntax below is bash-specific
-SHELL:=/usr/bin/env bash
 
 .DEFAULT_GOAL:=help
 
@@ -41,6 +45,40 @@ GO_APIDIFF_BIN := bin/go-apidiff
 GO_APIDIFF := $(TOOLS_DIR)/$(GO_APIDIFF_BIN)
 ENVSUBST_BIN := bin/envsubst
 ENVSUBST := $(TOOLS_DIR)/$(ENVSUBST_BIN)
+
+
+export GO111MODULE=on
+unexport GOPATH
+
+# Directories.
+ARTIFACTS ?= $(REPO_ROOT)/_artifacts
+TOOLS_DIR_DEPS := $(TOOLS_DIR)/go.sum $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/Makefile
+
+REPO_ROOT := $(shell git rev-parse --show-toplevel)
+GH_REPO ?= kubernetes-sigs/cluster-api-provider-openstack
+TEST_E2E_DIR := test/e2e
+
+# Files
+E2E_DATA_DIR ?= $(REPO_ROOT)/test/e2e/data
+E2E_CONF_PATH  ?= $(E2E_DATA_DIR)/e2e_conf.yaml
+KUBETEST_CONF_PATH ?= $(abspath $(E2E_DATA_DIR)/kubetest/conformance.yaml)
+KUBETEST_FAST_CONF_PATH ?= $(abspath $(E2E_DATA_DIR)/kubetest/conformance-fast.yaml)
+
+# Binaries.
+CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
+CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
+DEFAULTER_GEN := $(TOOLS_BIN_DIR)/defaulter-gen
+ENVSUBST := $(TOOLS_BIN_DIR)/envsubst
+GINKGO := $(TOOLS_BIN_DIR)/ginkgo
+GOJQ := $(TOOLS_BIN_DIR)/gojq
+GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
+KIND := $(TOOLS_BIN_DIR)/kind
+KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
+MOCKGEN := $(TOOLS_BIN_DIR)/mockgen
+RELEASE_NOTES := $(TOOLS_BIN_DIR)/release-notes
+
+
+
 
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
