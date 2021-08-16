@@ -1,0 +1,68 @@
+@startuml
+
+skinparam defaultTextAlignment center
+skinparam backgroundColor #FFFFFE
+
+actor ClusterAdmin
+
+card kdmcp [
+    KdmControlplane
+    CR
+]
+
+card kdmcfg [
+    KdmConfig
+    CR
+]
+
+card nc [
+    NestedCluster
+    CR
+]
+
+card nmt [
+    NestedMachineTemplate
+    CR
+]
+
+collections nm [
+    NestedMachine
+    CRs
+]
+
+component kdmctrl [
+    KubeadmControlPlane
+    Controller
+]
+
+node container {
+    component nmctrl [
+        NestedMachine 
+        Controller
+    ]
+
+    file kdm [
+        Kubeadm 
+        Executable
+    ]
+}
+
+collections pods [
+    NestedComponent
+    Pods 
+]
+
+ClusterAdmin --> kdmcp : 1.a. Apply
+ClusterAdmin --> nmt : 1.b. Apply
+ClusterAdmin --> nc : 1.c. Apply
+kdmctrl --> nc : 2. Detect \nReady
+kdmctrl --> nmt : 3.1 Use
+nmt --> nm : 3.2 Create 
+kdmctrl --> kdmcp : 4.1 Use
+kdmcp --> kdmcfg : 4.2 Generate
+kdmcfg --> nm : 5. Assign \nKubeadmConfig
+nmctrl --> nm : 6. Detect \nReady
+kdm --> nmctrl : 7. Generate \nManifests
+nmctrl --> pods : 8. Create
+
+@enduml

@@ -1,5 +1,5 @@
 ---
-title: Proposal Template
+title: Using KubeadmControlPlane Provider For CAPN
 authors:
   - "@charleszheng44"
   - "@christopherhein"
@@ -21,10 +21,18 @@ replaces:
 
 ## Table of Contents
 
-<!-- TODO generate TOC -->
-A table of contents is helpful for quickly jumping to sections of a proposal and for highlighting
-any additional information provided beyond the standard proposal template.
-[Tools for generating](https://github.com/ekalinin/github-markdown-toc) a table of contents from markdown are available.
+* [Using KubeadmControlPlane Provider For CAPN](#using-kubeadmcontrolplane-provider-for-capn)
+   * [Table of Contents](#table-of-contents)
+   * [Glossary](#glossary)
+   * [Summary](#summary)
+   * [Motivation](#motivation)
+      * [Goals](#goals)
+      * [Non-Goals/Future Work](#non-goalsfuture-work)
+   * [Proposal](#proposal)
+      * [Templating the Control Plane](#templating-the-control-plane)
+      * [User Stories](#user-stories)
+      * [Implementation Details](#implementation-details)
+   * [Implementation History](#implementation-history)
 
 ## Glossary
 
@@ -56,7 +64,9 @@ After spending time evaluating CAPI's in-tree `KubeadmControlPlaneProvider` we t
 
 ### Templating the Control Plane
 
-In this section, we will focus on the details of how to templating the control plane and would not discuss the details of how `NestedMachine` controller works. Assume that we have installed the `KubeadmControlPlaneController`, the `NestedMachineController`, and all necessary CAPI controllers on the meta cluster. We have also imported the `kubeadm` packages from the `kubernetes` module. Then, the templating process will include the following steps.
+In this section, we will focus on the details of how to templating the control plane and would not discuss the details of how `NestedMachine` controller works. To use `kubeadm` based specs, we can import the entire `k8s.io/kubernetes` repository as a module and call related functions under `kubeadm` package, while it is not recommended to import `k8s.io/kubernetes` as a module. We can also copy the functions/structs from the `k8s.io/kubernetes` repository; however, those functions/structs are deeply nested, which includes thousands of lines of code. Therefore, to reuse the `kubeadm` functionalities, we bake `kubeadm` binary into the container image of the `NestedControlPlane` controller, generate the manifests at runtime and share them with the `NestedControlPlane` controller through the container filesystem. 
+
+Assume that we have installed the `KubeadmControlPlaneController`, the `NestedMachineController`, and all necessary CAPI controllers on the management cluster. We have also imported the `kubeadm` packages from the `kubernetes` module. Then, the templating process will include the following steps.
 
 1. The user applies the `KubeadmControlPlane` CR and all other necessary CAPI CRs.
 2. The `KubeadmControlPlane` controller keeps checking if the `NestedCluster` CR is ready.
@@ -64,33 +74,35 @@ In this section, we will focus on the details of how to templating the control p
 4. The `KubeadmControlPlane` controller generates the `KubeadmConfig` CR based on the `KubeadmControlPlane` created in the first step. 
 5. The `KubeadmControlPlane` controller assigns the `KubeadmConfig` to the owned `NestedMachine` CR by setting the ObjectReference.
 6. The `NestedMachine` controller keeps checking if the `KubeadmConfig` has been assigned to the `NestedMachine` CR.
-7. If yes, the `NestedMachine` controller calls functions from the `kubeadm` package to generate the static pod template.
-8. The `NestedMachine` controller extracts the `PodTemplateSpec` from the static pod template generated in the sixth step and creates the StatefulSet template.
+7. If yes, the `NestedMachine` controller executes the `kubeadm` executable to generate the static pod template.
+8. The `NestedMachine` controller decorates the static pod template with the proper volume mounts and creates the raw pod objects, which allows the `KubeadmControlPlane` to manage these pods.
 
-![Templating the control plane](images/nestedcontrolplane/kdm-template.svg)
+![Templating the control plane](images/nestedcontrolplane/kdm-template.png)
 
 ### User Stories
 
-1. As the `NestedMachine` controller, I would like to create a `NestedControlPlane` with the same templates as the kubernetes control plane created by the `kubeadm`.
-2. As a user, I would like to customize the command line arguments of my `NestedControlPlane`'s components through a `KubeadmControlPlane` CR.
-3. As a user, I would like to customize the pod volumes of my `NestedControlPlane`'s components through a `KubeadmControlPlane` CR.
+1. As a user, I would like to have all my control plane components using standardized KubeadmControlPlane spec.
+1. As a user, I would like to customize the command line arguments of my `NestedControlPlane`'s components through a `KubeadmControlPlane` CR.
+2. As a user, I would like to customize the pod volumes of my `NestedControlPlane`'s components through a `KubeadmControlPlane` CR.
 
 ### Implementation Details
 
 The provisioning of the control plane requires the involvement of the `NestedMachine` controller. We will discuss the `NestedMachine` controller and the complete provisioning process in another CAEP. 
 This CAEP will focus on how to template the control plane in a more "CAPI" way, i.e., using `KubeadmControlPlane` provider and `kubeadm` libs from the `kubernetes` module.  
 
-- Use the existing `NestedControlPlane` implemenation for testing.
+- Bake the `kubeadm` executable into the container image of the `NestedControlPlane` controller (we will import the functions instead of embedding the binary, once `kubeadm` is independent from the `Kubernetes`).
+- Use the existing `NestedControlPlane` implementation for testing, which uses the NestedKASController, NestedKCMController and the NestedEtcdController.
 - Create `KubeadmConfig` CR manually.
 - Implement the generic functionality of extracting the`kubeadmapi.ClusterConfig` from the `KubeadmConfig` CR.
-- Copy the templating functions from the `kubeadm` libs in the `Kubernetes` module (we will import the functions instead of copying, once `kubeadm` is independent from the `Kubernetes`).
-- Import the `kubeadm` lib from the `Kubernetes` module and call related functions to get the static pod template for each component.
-- Reuse the static PodSpec to create the template of the StatefulSet for each controlplane component. 
+- Generate a config file that will be used by the `kubeadm` to generate the manifests.
+- Before adopting any nested component, `NestedControlPlane` will run the `kubeadm init --config` command to generate the static pod template for each component and create a configmap to store them.
+- Then the nested component controllers will use the static PodSpec to create the template of the StatefulSet. 
 
 ## Implementation History
 
 - [x] 07/21/2021: Propose idea in an issue or [community meeting]
 - [x] 07/21/2021: Open proposal PR
+- [x] 08/17/2021: Revise the proposal based on the feedbacks 
 - [x] 07/28/2021: Reimplement the templating process based on the proposed idea
 
 <!-- Links -->
