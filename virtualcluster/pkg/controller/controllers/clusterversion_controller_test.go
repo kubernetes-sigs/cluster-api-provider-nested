@@ -290,6 +290,14 @@ var defaultClusterVersion = &v1alpha1.ClusterVersionSpec{
 									"--enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota",
 									"--apiserver-count=1",
 									"--endpoint-reconciler-type=master-count",
+									"--enable-aggregator-routing=true",
+									"--requestheader-client-ca-file=/etc/kubernetes/pki/root/tls.crt",
+									"--requestheader-allowed-names=front-proxy-client",
+									"--requestheader-username-headers=X-Remote-User",
+									"--requestheader-group-headers=X-Remote-Group",
+									"--requestheader-extra-headers-prefix=X-Remote-Extra-",
+									"--proxy-client-key-file=/etc/kubernetes/pki/frontproxy/tls.key",
+									"--proxy-client-cert-file=/etc/kubernetes/pki/frontproxy/tls.crt",
 									"--v=2",
 								},
 								Ports: []corev1.ContainerPort{
@@ -335,6 +343,11 @@ var defaultClusterVersion = &v1alpha1.ClusterVersionSpec{
 										ReadOnly:  true,
 									},
 									{
+										MountPath: "/etc/kubernetes/pki/frontproxy",
+										Name:      "front-proxy-ca",
+										ReadOnly:  true,
+									},
+									{
 										MountPath: "/etc/kubernetes/pki/root",
 										Name:      "root-ca",
 										ReadOnly:  true,
@@ -368,6 +381,15 @@ var defaultClusterVersion = &v1alpha1.ClusterVersionSpec{
 									Secret: &corev1.SecretVolumeSource{
 										DefaultMode: pointer.Int32Ptr(420),
 										SecretName:  "root-ca",
+									},
+								},
+							},
+							{
+								Name: "front-proxy-ca",
+								VolumeSource: corev1.VolumeSource{
+									Secret: &corev1.SecretVolumeSource{
+										DefaultMode: pointer.Int32Ptr(420),
+										SecretName:  "front-proxy-ca",
 									},
 								},
 							},
