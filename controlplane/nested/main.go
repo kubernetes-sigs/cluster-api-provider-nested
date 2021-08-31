@@ -55,7 +55,6 @@ var (
 	syncPeriod                  time.Duration
 	webhookPort                 int
 	healthAddr                  string
-	templatePath                string
 )
 
 func init() {
@@ -95,9 +94,6 @@ func InitFlags(fs *pflag.FlagSet) {
 		"Webhook Server port, disabled by default. When enabled, the manager will only work as webhook server, no reconcilers are installed.")
 
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
-		"The address the health endpoint binds to.")
-
-	fs.StringVar(&templatePath, "template-path", "/component-templates",
 		"The address the health endpoint binds to.")
 
 	feature.MutableGates.AddFlag(fs)
@@ -159,30 +155,27 @@ func main() {
 	}
 
 	if err = (&controllers.NestedEtcdReconciler{
-		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName("controlplane").WithName("NestedEtcd"),
-		Scheme:       mgr.GetScheme(),
-		TemplatePath: templatePath,
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("controlplane").WithName("NestedEtcd"),
+		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NestedEtcd")
 		os.Exit(1)
 	}
 
 	if err = (&controllers.NestedAPIServerReconciler{
-		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName("controlplane").WithName("NestedAPIServer"),
-		Scheme:       mgr.GetScheme(),
-		TemplatePath: templatePath,
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("controlplane").WithName("NestedAPIServer"),
+		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NestedAPIServer")
 		os.Exit(1)
 	}
 
 	if err = (&controllers.NestedControllerManagerReconciler{
-		Client:       mgr.GetClient(),
-		Log:          ctrl.Log.WithName("controllers").WithName("controlplane").WithName("NestedControllerManager"),
-		Scheme:       mgr.GetScheme(),
-		TemplatePath: templatePath,
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("controlplane").WithName("NestedControllerManager"),
+		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NestedControllerManager")
 		os.Exit(1)

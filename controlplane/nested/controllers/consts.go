@@ -19,12 +19,14 @@ limitations under the License.
 package controllers
 
 const (
-	statefulsetOwnerKeyNEtcd  = ".metadata.netcd.controller"
-	statefulsetOwnerKeyNKas   = ".metadata.nkas.controller"
-	statefulsetOwnerKeyNKcm   = ".metadata.nkcm.controller"
-	defaultEtcdStatefulSetURL = "/nested-etcd/nested-etcd-statefulset-template.yaml"
-	defaultEtcdServiceURL     = "/nested-etcd/nested-etcd-service-template.yaml"
-	defaultKASStatefulSetURL  = "/nested-apiserver/nested-apiserver-statefulset-template.yaml"
-	defaultKASServiceURL      = "/nested-apiserver/nested-apiserver-service-template.yaml"
-	defaultKCMStatefulSetURL  = "/nested-controllermanager/nested-controllermanager-statefulset-template.yaml"
+	statefulsetOwnerKeyNEtcd = ".metadata.netcd.controller"
+	statefulsetOwnerKeyNKas  = ".metadata.nkas.controller"
+	statefulsetOwnerKeyNKcm  = ".metadata.nkcm.controller"
+	// KASManifestConfigmapName is the key name of the apiserver manifest in the configmap.
+	KASManifestConfigmapName = "nkas-manifest"
+	// KCMManifestConfigmapName is the key name of the controller-manager manifest in the configmap.
+	KCMManifestConfigmapName = "nkcm-manifest"
+	// EtcdManifestConfigmapName is the key name of the etcd manifest in the configmap.
+	EtcdManifestConfigmapName = "netcd-manifest"
+	loopbackAddress           = "127.0.0.1"
 )

@@ -45,14 +45,15 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.local/share/golang \
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags "${LDFLAGS} -extldflags '-static'"  -o manager ${package}
+RUN curl -L https://dl.k8s.io/release/v1.22.0/bin/linux/amd64/kubeadm -o kubeadm && chmod +x kubeadm
 ENTRYPOINT [ "/start.sh", "/workspace/manager" ]
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot
+FROM gcr.io/distroless/static-debian10
 # Copy the controller-manager into a thin image
 WORKDIR /
 COPY --from=builder /workspace/manager .
-COPY controlplane/nested/component-templates/ ./component-templates/
-USER 65532:65532
+COPY --from=builder /workspace/kubeadm kubeadm
+# USER 65532:65532
 ENTRYPOINT ["/manager"]

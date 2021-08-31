@@ -34,15 +34,15 @@ import (
 
 	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/certificate"
+	"sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/kubeadm"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 // NestedAPIServerReconciler reconciles a NestedAPIServer object.
 type NestedAPIServerReconciler struct {
 	client.Client
-	Log          logr.Logger
-	Scheme       *runtime.Scheme
-	TemplatePath string
+	Log    logr.Logger
+	Scheme *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedapiservers,verbs=get;list;watch;create;update;patch;delete
@@ -113,7 +113,7 @@ func (r *NestedAPIServerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			// the statefulset is not found, create one.
 			if err := createNestedComponentSts(ctx,
 				r.Client, nkas.ObjectMeta, nkas.Spec.NestedComponentSpec,
-				controlplanev1.APIServer, owner.Name, cluster.GetName(), r.TemplatePath, log); err != nil {
+				kubeadm.APIServer, cluster.GetName(), log); err != nil {
 				log.Error(err, "fail to create NestedAPIServer StatefulSet")
 				return ctrl.Result{}, err
 			}

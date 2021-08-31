@@ -43,6 +43,7 @@ import (
 	addonv1alpha1 "sigs.k8s.io/kubebuilder-declarative-pattern/pkg/patterns/addon/pkg/apis/v1alpha1"
 
 	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/kubeadm"
 )
 
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters,verbs=get;list;watch
@@ -50,6 +51,7 @@ import (
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrolplanes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrollermanagers/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete.
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete.
 
 // NestedControlPlaneReconciler reconciles a NestedControlPlane object.
 type NestedControlPlaneReconciler struct {
@@ -214,6 +216,25 @@ func (r *NestedControlPlaneReconciler) reconcile(ctx context.Context, log logr.L
 		&controlplanev1.NestedEtcd{}:              ncp.Spec.EtcdRef,
 		&controlplanev1.NestedAPIServer{}:         ncp.Spec.APIServerRef,
 		&controlplanev1.NestedControllerManager{}: ncp.Spec.ControllerManagerRef,
+	}
+
+	// generate manifests by calling the kubeadm
+	templates, err := kubeadm.GenerateTemplates(log, cluster.GetName())
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// complete the manifests with CAPN specific configurations
+	manifests, err := completeTemplates(templates, cluster.GetName())
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// create the configmap that holds the manifest of each component
+	if err := createManifestsConfigMap(r.Client,
+		manifests, cluster.GetName(),
+		ncp.GetNamespace()); err != nil && !apierrors.IsAlreadyExists(err) {
+		return ctrl.Result{}, err
 	}
 
 	// Adopt NestedComponents in the same Namespace
