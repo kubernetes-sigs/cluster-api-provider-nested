@@ -140,11 +140,12 @@ func main() {
 	}
 
 	if enableWebhook == true {
-		log.Info("setting up webhooks")
-		if err := webhook.AddToManager(mgr, mgrOpt.CertDir); err != nil {
-			log.Error(err, "unable to register webhooks to the manager")
-			os.Exit(1)
+		webhookHandler := &webhook.WebhookHandler{
+			Manager: mgr,
+			CertDir: mgrOpt.CertDir,
 		}
+
+		mgr.Add(webhookHandler)
 	}
 
 	// Start the Cmd

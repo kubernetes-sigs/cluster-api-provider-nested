@@ -17,17 +17,33 @@ limitations under the License.
 package webhook
 
 import (
+	"context"
+
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 // AddToManagerFuncs is a list of functions to add all Controllers to the Manager
 var AddToManagerFuncs []func(manager.Manager, string) error
 
+type WebhookHandler struct {
+	Manager manager.Manager
+	CertDir string
+}
+
+func (wh *WebhookHandler) Start(context context.Context) error {
+	addToManager(wh.Manager, wh.CertDir)
+	return nil
+}
+
+func (wh *WebhookHandler) NeedLeaderElection() bool {
+	return true
+}
+
 // AddToManager adds all Controllers to the Manager
 // +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=mutatingwebhookconfigurations;validatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
-func AddToManager(m manager.Manager, certDir string) error {
+func addToManager(m manager.Manager, certDir string) error {
 	for _, f := range AddToManagerFuncs {
 		if err := f(m, certDir); err != nil {
 			return err
