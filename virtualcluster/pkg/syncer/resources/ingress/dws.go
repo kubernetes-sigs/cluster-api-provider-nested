@@ -41,7 +41,7 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 
 func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, error) {
 	klog.V(4).Infof("reconcile ingress %s/%s for cluster %s", request.Namespace, request.Name, request.ClusterName)
-	targetNamespace := conversion.ToSuperMasterNamespace(request.ClusterName, request.Namespace)
+	targetNamespace := conversion.ToSuperClusterNamespace(request.ClusterName, request.Namespace)
 	pIngress, err := c.ingressLister.Ingresses(targetNamespace).Get(request.Name)
 	pExists := true
 	if err != nil {
@@ -84,11 +84,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 }
 
 func (c *controller) reconcileIngressCreate(clusterName, targetNamespace, requestUID string, ingress *v1beta1.Ingress) error {
-	vcName, vcNS, _, err := c.MultiClusterController.GetOwnerInfo(clusterName)
-	if err != nil {
-		return err
-	}
-	newObj, err := conversion.BuildMetadata(clusterName, vcNS, vcName, targetNamespace, ingress)
+	newObj, err := c.Conversion().BuildSuperClusterObject(clusterName, ingress)
 	if err != nil {
 		return err
 	}

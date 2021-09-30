@@ -46,7 +46,7 @@ func TestUWPVUpdate(t *testing.T) {
 	}
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
-	superDefaultNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, "default")
+	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
 	pvSource1 := &v1.PersistentVolumeSource{
 		CSI: &v1.CSIPersistentVolumeSource{
@@ -206,7 +206,7 @@ func TestUWPVCreation(t *testing.T) {
 	}
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
-	superDefaultNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, "default")
+	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object

@@ -78,10 +78,7 @@ func RunPatrol(
 		// Hence we don't have to populate the infomer cache.
 		tenantClient = fakeClient.NewFakeClient(existingObjectInTenant...)
 	}
-	tenantCluster, err := cluster.NewFakeTenantCluster(testTenant, tenantClientset, tenantClient)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error creating tenantCluster: %v", err)
-	}
+	tenantCluster := cluster.NewFakeTenantCluster(testTenant, tenantClientset, tenantClient)
 
 	// setup fake super cluster
 	superClient := fake.NewSimpleClientset()

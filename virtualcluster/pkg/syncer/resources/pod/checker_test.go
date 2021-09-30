@@ -87,7 +87,7 @@ func TestPodPatrol(t *testing.T) {
 	}
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
-	superDefaultNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, "default")
+	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
@@ -342,7 +342,7 @@ func TestVNodeGC(t *testing.T) {
 		},
 	}
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
-	superDefaultNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, "default")
+	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 	statusReadyAndRunning := &v1.PodStatus{
 		Phase: "Running",
 		Conditions: []v1.PodCondition{

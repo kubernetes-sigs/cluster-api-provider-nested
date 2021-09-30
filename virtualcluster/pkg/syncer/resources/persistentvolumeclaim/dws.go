@@ -43,7 +43,7 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, error) {
 	klog.V(4).Infof("reconcile pvc %s/%s event for cluster %s", request.Namespace, request.Name, request.ClusterName)
 
-	targetNamespace := conversion.ToSuperMasterNamespace(request.ClusterName, request.Namespace)
+	targetNamespace := conversion.ToSuperClusterNamespace(request.ClusterName, request.Namespace)
 	pPVC, err := c.pvcLister.PersistentVolumeClaims(targetNamespace).Get(request.Name)
 	pExists := true
 	if err != nil {
@@ -87,11 +87,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 }
 
 func (c *controller) reconcilePVCCreate(clusterName, targetNamespace, requestUID string, pvc *v1.PersistentVolumeClaim) error {
-	vcName, vcNS, _, err := c.MultiClusterController.GetOwnerInfo(clusterName)
-	if err != nil {
-		return err
-	}
-	newObj, err := conversion.BuildMetadata(clusterName, vcNS, vcName, targetNamespace, pvc)
+	newObj, err := c.Conversion().BuildSuperClusterObject(clusterName, pvc)
 	if err != nil {
 		return err
 	}

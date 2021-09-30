@@ -25,6 +25,7 @@ import (
 	vcclient "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/client/clientset/versioned"
 	vcinformers "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/client/informers/externalversions/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/apis/config"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
 	pa "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/patrol"
 	uw "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/uwcontroller"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/listener"
@@ -62,7 +63,7 @@ type ResourceSyncer interface {
 	StartPatrol(stopCh <-chan struct{}) error
 }
 
-// AddController adds a resource syncer to the ControllerManager.
+// AddResourceSyncer adds a resource syncer to the ControllerManager.
 func (m *ControllerManager) AddResourceSyncer(s ResourceSyncer) {
 	m.resourceSyncers[s] = struct{}{}
 
@@ -85,6 +86,7 @@ type BaseResourceSyncer struct {
 	MultiClusterController *mc.MultiClusterController
 	UpwardController       *uw.UpwardController
 	Patroller              *pa.Patroller
+	convertor              conversion.Conversion
 }
 
 var _ ResourceSyncer = &BaseResourceSyncer{}
@@ -123,6 +125,15 @@ func (b *BaseResourceSyncer) StartDWS(stopCh <-chan struct{}) error {
 
 func (b *BaseResourceSyncer) StartPatrol(stopCh <-chan struct{}) error {
 	return nil
+}
+
+// Conversion is a shortcut to construct a convertor
+func (b *BaseResourceSyncer) Conversion() conversion.Conversion {
+	if b.convertor == nil {
+		b.convertor = conversion.Convertor(b.Config, b.MultiClusterController)
+	}
+
+	return b.convertor
 }
 
 // Start gets all the unique caches of the controllers it manages, starts them,

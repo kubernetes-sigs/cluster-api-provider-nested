@@ -123,7 +123,7 @@ func TestDWSecretCreation(t *testing.T) {
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
 	defaultVCName, defaultVCNamespace := testTenant.Name, testTenant.Namespace
-	superDefaultNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, "default")
+	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
@@ -272,7 +272,7 @@ func TestDWSecretDeletion(t *testing.T) {
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
 	defaultVCName, defaultVCNamespace := testTenant.Name, testTenant.Namespace
-	superDefaultNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, "default")
+	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
@@ -365,7 +365,7 @@ func TestDWServiceAccountSecretDeletion(t *testing.T) {
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
 	defaultVCName, defaultVCNamespace := testTenant.Name, testTenant.Namespace
-	superDefaultNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, "default")
+	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper     []runtime.Object
@@ -465,7 +465,7 @@ func TestDWSecretUpdate(t *testing.T) {
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
 	defaultVCName, defaultVCNamespace := testTenant.Name, testTenant.Namespace
-	superDefaultNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, "default")
+	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object

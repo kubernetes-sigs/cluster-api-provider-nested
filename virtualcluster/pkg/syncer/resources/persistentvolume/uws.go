@@ -83,11 +83,7 @@ func (c *controller) BackPopulate(key string) error {
 				klog.Errorf("Cannot find the bound pvc %s/%s in tenant cluster %s for pv %v", vNamespace, pPVC.Name, clusterName, pPV)
 				return nil
 			}
-			vcName, vcNS, _, err := c.MultiClusterController.GetOwnerInfo(clusterName)
-			if err != nil {
-				return err
-			}
-			vPV := conversion.BuildVirtualPersistentVolume(clusterName, vcNS, vcName, pPV, vPVC)
+			vPV := conversion.BuildVirtualPersistentVolume(pPV, vPVC)
 			_, err = tenantClient.CoreV1().PersistentVolumes().Create(context.TODO(), vPV, metav1.CreateOptions{})
 			if err != nil {
 				return err

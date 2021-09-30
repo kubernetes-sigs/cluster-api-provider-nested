@@ -136,7 +136,7 @@ func TestPVPatrol(t *testing.T) {
 	}
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
-	superDefaultNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, "default")
+	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
 	pvSource1 := &v1.PersistentVolumeSource{
 		CSI: &v1.CSIPersistentVolumeSource{

@@ -130,7 +130,7 @@ func (c *controller) checkSecretOfTenantCluster(clusterName string) {
 	klog.V(4).Infof("check secrets consistency in cluster %s", clusterName)
 
 	for i, vSecret := range secretList.Items {
-		targetNamespace := conversion.ToSuperMasterNamespace(clusterName, vSecret.Namespace)
+		targetNamespace := conversion.ToSuperClusterNamespace(clusterName, vSecret.Namespace)
 
 		if vSecret.Type == v1.SecretTypeServiceAccountToken {
 			c.checkServiceAccountTokenTypeSecretOfTenantCluster(clusterName, targetNamespace, &secretList.Items[i])

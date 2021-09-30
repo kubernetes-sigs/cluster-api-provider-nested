@@ -25,22 +25,25 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	v1scheduling "k8s.io/api/scheduling/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	listersv1 "k8s.io/client-go/listers/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/apis/config"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
 )
 
 // ToClusterKey makes a unique key which is used to create the root namespace in super master for a virtual cluster.
@@ -55,7 +58,7 @@ func ToClusterKey(vc *v1alpha1.VirtualCluster) string {
 	return vc.GetNamespace() + "-" + hex.EncodeToString(digest[0:])[0:6] + "-" + vc.GetName()
 }
 
-func ToSuperMasterNamespace(cluster, ns string) string {
+func ToSuperClusterNamespace(cluster, ns string) string {
 	targetNamespace := strings.Join([]string{cluster, ns}, "-")
 	if len(targetNamespace) > validation.DNS1123SubdomainMaxLength {
 		digest := sha256.Sum256([]byte(targetNamespace))
@@ -111,31 +114,44 @@ func GetKubeConfigOfVC(c v1core.CoreV1Interface, vc *v1alpha1.VirtualCluster) ([
 	return adminKubeConfigSecret.Data[secretFieldName], nil
 }
 
-func BuildMetadata(cluster, vcns, vcname, targetNamespace string, obj client.Object) (client.Object, error) {
-	target := obj.DeepCopyObject()
-	accessor, err := meta.Accessor(target)
+type objectConversion struct {
+	config *config.SyncerConfiguration
+	mcc    mc.MultiClusterInterface
+}
+
+// Convertor implement the Conversion interface.
+func Convertor(syncerConfig *config.SyncerConfiguration, mcc mc.MultiClusterInterface) Conversion {
+	return &objectConversion{config: syncerConfig, mcc: mcc}
+}
+
+type Conversion interface {
+	BuildSuperClusterObject(cluster string, obj client.Object) (client.Object, error)
+	BuildSuperClusterNamespace(cluster string, obj client.Object) (client.Object, error)
+}
+
+func (c *objectConversion) BuildSuperClusterObject(cluster string, obj client.Object) (client.Object, error) {
+	m, err := c.buildCleanSuperClusterObject(cluster, obj)
 	if err != nil {
 		return nil, err
 	}
-	m := accessor.(client.Object)
 
-	ownerReferencesStr, err := json.Marshal(m.GetOwnerReferences())
+	vcName, vcNS, _, err := c.mcc.GetOwnerInfo(cluster)
+	if err != nil {
+		return nil, errors.Wrapf(err, "get cluster owner info")
+	}
+
+	ownerReferencesStr, err := json.Marshal(obj.GetOwnerReferences())
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to marshal owner references")
 	}
 
 	var tenantScopeMetaInAnnotation = map[string]string{
 		constants.LabelCluster:         cluster,
-		constants.LabelUID:             string(m.GetUID()),
+		constants.LabelUID:             string(obj.GetUID()),
 		constants.LabelOwnerReferences: string(ownerReferencesStr),
-		constants.LabelNamespace:       m.GetNamespace(),
-		constants.LabelVCName:          vcname,
-		constants.LabelVCNamespace:     vcns,
-	}
-
-	ResetMetadata(m)
-	if len(targetNamespace) > 0 {
-		m.SetNamespace(targetNamespace)
+		constants.LabelNamespace:       obj.GetNamespace(),
+		constants.LabelVCName:          vcName,
+		constants.LabelVCNamespace:     vcNS,
 	}
 
 	anno := m.GetAnnotations()
@@ -152,32 +168,53 @@ func BuildMetadata(cluster, vcns, vcname, targetNamespace string, obj client.Obj
 		labels = make(map[string]string)
 	}
 	var tenantScopeMetaInLabel = map[string]string{
-		constants.LabelVCName:      vcname,
-		constants.LabelVCNamespace: vcns,
+		constants.LabelVCName:      vcName,
+		constants.LabelVCNamespace: vcNS,
 	}
 	for k, v := range tenantScopeMetaInLabel {
 		labels[k] = v
 	}
 	m.SetLabels(labels)
 
-	return target.(client.Object), nil
+	m.SetNamespace(ToSuperClusterNamespace(cluster, obj.GetNamespace()))
+
+	return m, nil
 }
 
-func BuildSuperMasterNamespace(cluster, vcName, vcNamespace, vcUID string, obj client.Object) (client.Object, error) {
-	target := obj.DeepCopyObject()
-	accessor, err := meta.Accessor(target)
+func (c *objectConversion) CleanOpaqueKeys(vc *v1alpha1.VirtualCluster, keyMap map[string]string) {
+	var exceptionsList []string
+	if vc != nil {
+		exceptions := sets.NewString()
+		exceptions.Insert(vc.Spec.OpaqueMetaPrefixes...)
+		exceptions.Insert(constants.DefaultOpaqueMetaPrefix, constants.DefaultTransparentMetaPrefix)
+		exceptionsList = exceptions.UnsortedList()
+	}
+
+	for k := range keyMap {
+		if hasPrefixInArray(k, exceptionsList) || isOpaquedKey(c.config, k) {
+			delete(keyMap, k)
+		}
+	}
+}
+
+func (c *objectConversion) BuildSuperClusterNamespace(cluster string, obj client.Object) (client.Object, error) {
+	m, err := c.buildCleanSuperClusterObject(cluster, obj)
 	if err != nil {
 		return nil, err
 	}
-	m := accessor.(client.Object)
+
+	vcName, vcNamespace, vcUID, err := c.mcc.GetOwnerInfo(cluster)
+	if err != nil {
+		return nil, errors.Wrapf(err, "get cluster owner info")
+	}
 
 	anno := m.GetAnnotations()
 	if anno == nil {
 		anno = make(map[string]string)
 	}
 	anno[constants.LabelCluster] = cluster
-	anno[constants.LabelUID] = string(m.GetUID())
-	anno[constants.LabelNamespace] = m.GetName()
+	anno[constants.LabelUID] = string(obj.GetUID())
+	anno[constants.LabelNamespace] = obj.GetName()
 	// We put owner information in annotation instead of  metav1.OwnerReference because vc is a namespace scope resource
 	// and metav1.OwnerReference does not provide namespace field. The owner information is needed for super master ns gc.
 	anno[constants.LabelVCName] = vcName
@@ -185,14 +222,33 @@ func BuildSuperMasterNamespace(cluster, vcName, vcNamespace, vcUID string, obj c
 	anno[constants.LabelVCUID] = vcUID
 	m.SetAnnotations(anno)
 
+	m.SetName(ToSuperClusterNamespace(cluster, obj.GetName()))
+
+	return m, nil
+}
+
+func (c *objectConversion) buildCleanSuperClusterObject(cluster string, obj client.Object) (client.Object, error) {
+	target := obj.DeepCopyObject()
+	accessor, err := meta.Accessor(target)
+	if err != nil {
+		return nil, err
+	}
+	m := accessor.(client.Object)
+
+	vc, err := util.GetVirtualClusterObject(c.mcc, cluster)
+	if err != nil {
+		return nil, errors.Wrapf(err, "get virtualcluster")
+	}
+
+	c.CleanOpaqueKeys(vc, m.GetLabels())
+	c.CleanOpaqueKeys(vc, m.GetAnnotations())
+
 	ResetMetadata(m)
 
-	targetName := ToSuperMasterNamespace(cluster, m.GetName())
-	m.SetName(targetName)
 	return target.(client.Object), nil
 }
 
-func ResetMetadata(obj client.Object) {
+func ResetMetadata(obj metav1.Object) {
 	obj.SetSelfLink("")
 	obj.SetUID("")
 	obj.SetResourceVersion("")
@@ -236,9 +292,9 @@ func BuildVirtualCRD(cluster string, pCRD *v1beta1.CustomResourceDefinition) *v1
 	return vCRD
 }
 
-func BuildVirtualPersistentVolume(cluster, vcNS, vcName string, pPV *v1.PersistentVolume, vPVC *v1.PersistentVolumeClaim) *v1.PersistentVolume {
-	vPVobj, _ := BuildMetadata(cluster, vcNS, vcName, "", pPV)
-	vPV := vPVobj.(*v1.PersistentVolume)
+func BuildVirtualPersistentVolume(pPV *v1.PersistentVolume, vPVC *v1.PersistentVolumeClaim) *v1.PersistentVolume {
+	vPV := pPV.DeepCopy()
+	ResetMetadata(vPV)
 	// The pv needs to bind with the vPVC
 	vPV.Spec.ClaimRef.Namespace = vPVC.Namespace
 	vPV.Spec.ClaimRef.UID = vPVC.UID
@@ -248,7 +304,7 @@ func BuildVirtualPersistentVolume(cluster, vcNS, vcName string, pPV *v1.Persiste
 // IsControlPlaneService will return if the namespacedName matches the proper
 // NamespacedName in the tenant control plane
 func IsControlPlaneService(service *v1.Service, cluster string) bool {
-	kubernetesNamespace := ToSuperMasterNamespace(cluster, metav1.NamespaceDefault)
+	kubernetesNamespace := ToSuperClusterNamespace(cluster, metav1.NamespaceDefault)
 	kubernetesService := "kubernetes"
 
 	// If the super cluster service networking is enabled this supports allowing

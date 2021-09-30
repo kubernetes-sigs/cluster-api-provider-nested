@@ -249,7 +249,7 @@ func (e vcEquality) checkDWKVEquality(pKV, vKV map[string]string) (map[string]st
 			// tenant pod should not use exceptional keys. it may conflicts with syncer.
 			continue
 		}
-		if e.isOpaquedKey(vk) {
+		if isOpaquedKey(e.config, vk) {
 			continue
 		}
 		pv, ok := pKV[vk]
@@ -264,7 +264,7 @@ func (e vcEquality) checkDWKVEquality(pKV, vKV map[string]string) (map[string]st
 		if hasPrefixInArray(pk, exceptionsList) {
 			continue
 		}
-		if e.isOpaquedKey(pk) {
+		if isOpaquedKey(e.config, pk) {
 			continue
 		}
 
@@ -292,15 +292,15 @@ func (e vcEquality) checkDWKVEquality(pKV, vKV map[string]string) (map[string]st
 	return updated, false
 }
 
-func (e vcEquality) isOpaquedKey(key string) bool {
-	if e.config == nil {
+func isOpaquedKey(config *config.SyncerConfiguration, key string) bool {
+	if config == nil {
 		return false
 	}
 	tokens := strings.SplitN(key, "/", 2)
 	if len(tokens) < 1 {
 		return false
 	}
-	for _, domain := range e.config.DefaultOpaqueMetaDomains {
+	for _, domain := range config.DefaultOpaqueMetaDomains {
 		if strings.HasSuffix(tokens[0], domain) {
 			return true
 		}
@@ -445,7 +445,7 @@ func (e vcEquality) checkInt64Equality(pObj, vObj *int64) (*int64, bool) {
 	return updated, false
 }
 
-// CheckConfigMapEqualit checks whether super master ConfigMap and virtual ConfigMap
+// CheckConfigMapEquality checks whether super master ConfigMap and virtual ConfigMap
 // are logically equal. The source of truth is virtual object.
 func (e vcEquality) CheckConfigMapEquality(pObj, vObj *v1.ConfigMap) *v1.ConfigMap {
 	var updated *v1.ConfigMap

@@ -82,7 +82,7 @@ func TestDWPVCCreation(t *testing.T) {
 	}
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
-	superDefaultNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, "default")
+	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
@@ -172,7 +172,7 @@ func TestDWPVCDeletion(t *testing.T) {
 	}
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
-	superDefaultNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, "default")
+	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
@@ -261,7 +261,7 @@ func TestDWPVCUpdate(t *testing.T) {
 	}
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
-	superDefaultNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, "default")
+	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
 	spec1 := &v1.PersistentVolumeClaimSpec{
 		AccessModes: []v1.PersistentVolumeAccessMode{

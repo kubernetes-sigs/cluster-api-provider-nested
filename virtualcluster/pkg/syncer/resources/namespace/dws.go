@@ -43,7 +43,7 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 // The reconcile logic for tenant master namespace informer
 func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, error) {
 	klog.V(4).Infof("reconcile namespace %s for cluster %s", request.Name, request.ClusterName)
-	targetNamespace := conversion.ToSuperMasterNamespace(request.ClusterName, request.Name)
+	targetNamespace := conversion.ToSuperClusterNamespace(request.ClusterName, request.Name)
 	pNamespace, err := c.nsLister.Get(targetNamespace)
 	pExists := true
 	if err != nil {
@@ -86,12 +86,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 }
 
 func (c *controller) reconcileNamespaceCreate(clusterName, targetNamespace, requestUID string, vNamespace *v1.Namespace) error {
-	vcName, vcNamespace, vcUID, err := c.MultiClusterController.GetOwnerInfo(clusterName)
-	if err != nil {
-		return err
-	}
-
-	newObj, err := conversion.BuildSuperMasterNamespace(clusterName, vcName, vcNamespace, vcUID, vNamespace)
+	newObj, err := c.Conversion().BuildSuperClusterNamespace(clusterName, vNamespace)
 	if err != nil {
 		return err
 	}

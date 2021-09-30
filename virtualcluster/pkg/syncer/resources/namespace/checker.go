@@ -117,7 +117,7 @@ func (c *controller) PatrollerDo() {
 			vSet.Insert(differ.ClusterObject{
 				Object:       &vList.Items[i],
 				OwnerCluster: cluster,
-				Key:          conversion.ToSuperMasterNamespace(cluster, vList.Items[i].GetName()),
+				Key:          conversion.ToSuperClusterNamespace(cluster, vList.Items[i].GetName()),
 			})
 		}
 	}
