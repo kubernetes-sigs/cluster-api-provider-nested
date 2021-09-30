@@ -41,7 +41,7 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 // The reconcile logic for tenant master service account informer
 func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, error) {
 	klog.V(4).Infof("reconcile service account %s/%s for cluster %s", request.Namespace, request.Name, request.ClusterName)
-	targetNamespace := conversion.ToSuperMasterNamespace(request.ClusterName, request.Namespace)
+	targetNamespace := conversion.ToSuperClusterNamespace(request.ClusterName, request.Namespace)
 	pSa, err := c.saLister.ServiceAccounts(targetNamespace).Get(request.Name)
 	pExists := true
 	if err != nil {
@@ -85,11 +85,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 }
 
 func (c *controller) reconcileServiceAccountCreate(clusterName, targetNamespace, requestUID string, vSa *v1.ServiceAccount) error {
-	vcName, vcNS, _, err := c.MultiClusterController.GetOwnerInfo(clusterName)
-	if err != nil {
-		return err
-	}
-	newObj, err := conversion.BuildMetadata(clusterName, vcNS, vcName, targetNamespace, vSa)
+	newObj, err := c.Conversion().BuildSuperClusterObject(clusterName, vSa)
 	if err != nil {
 		return err
 	}

@@ -51,6 +51,46 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/record"
 )
 
+// Cache is the interface used by Controller to start and wait for caches to sync.
+type Cache interface {
+	Start() error
+	WaitForCacheSync() bool
+	Stop()
+}
+
+// Lister interface is used to get the CRD object that abstracts the cluster.
+type Getter interface {
+	GetObject(string, string) (client.Object, error)
+}
+
+// ClusterInterface decouples the controller package from the cluster package.
+type ClusterInterface interface {
+	GetClusterName() string
+	GetOwnerInfo() (string, string, string)
+	GetObject() (client.Object, error)
+	AddEventHandler(client.Object, clientgocache.ResourceEventHandler) error
+	GetInformer(objectType client.Object) (cache.Informer, error)
+	GetClientSet() (clientset.Interface, error)
+	GetDelegatingClient() (client.Client, error)
+	GetRestConfig() *rest.Config
+	Cache
+}
+
+type MultiClusterInterface interface {
+	WatchClusterResource(cluster ClusterInterface, o WatchOptions) error
+	RegisterClusterResource(cluster ClusterInterface, o WatchOptions) error
+	TeardownClusterResource(cluster ClusterInterface)
+	GetControllerName() string
+	GetObjectKind() string
+	Get(clusterName, namespace, name string, obj client.Object) error
+	List(clusterName string, instanceList client.ObjectList, opts ...client.ListOption) error
+	GetCluster(clusterName string) ClusterInterface
+	GetClusterClient(clusterName string) (clientset.Interface, error)
+	GetClusterObject(clusterName string) (client.Object, error)
+	GetOwnerInfo(clusterName string) (string, string, string, error)
+	GetClusterNames() []string
+}
+
 // MultiClusterController implements the multicluster controller pattern.
 // A MultiClusterController owns a client-go workqueue. The WatchClusterResource methods set
 // up the queue to receive reconcile requests, e.g., CRUD events from a tenant cluster.
@@ -58,6 +98,8 @@ import (
 // MultiClusterController saves all watched tenant clusters in a set.
 type MultiClusterController struct {
 	sync.Mutex
+
+	MultiClusterInterface
 
 	// objectType is the type of object to watch.  e.g. &v1.Pod{}
 	objectType client.Object
@@ -86,31 +128,6 @@ type Options struct {
 
 	// name is used to uniquely identify a Controller in tracing, logging and monitoring.  Name is required.
 	name string
-}
-
-// Cache is the interface used by Controller to start and wait for caches to sync.
-type Cache interface {
-	Start() error
-	WaitForCacheSync() bool
-	Stop()
-}
-
-// Lister interface is used to get the CRD object that abstracts the cluster.
-type Getter interface {
-	GetObject(string, string) (client.Object, error)
-}
-
-// ClusterInterface decouples the controller package from the cluster package.
-type ClusterInterface interface {
-	GetClusterName() string
-	GetOwnerInfo() (string, string, string)
-	GetObject() (client.Object, error)
-	AddEventHandler(client.Object, clientgocache.ResourceEventHandler) error
-	GetInformer(objectType client.Object) (cache.Informer, error)
-	GetClientSet() (clientset.Interface, error)
-	GetDelegatingClient() (client.Client, error)
-	GetRestConfig() *rest.Config
-	Cache
 }
 
 // NewMCController creates a new MultiClusterController.

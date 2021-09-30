@@ -68,7 +68,7 @@ func TestNamespacePatrol(t *testing.T) {
 	}
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
-	superDefaultNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, "default")
+	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 	utilconst.SuperClusterID = "test-super"
 
 	testcases := map[string]struct {

@@ -79,7 +79,7 @@ func TestDWConfigMapCreation(t *testing.T) {
 	}
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
-	superDefaultNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, "default")
+	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
@@ -176,7 +176,7 @@ func TestDWConfigMapDeletion(t *testing.T) {
 	}
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
-	superDefaultNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, "default")
+	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
@@ -274,7 +274,7 @@ func TestDWConfigMapUpdate(t *testing.T) {
 	}
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
-	superDefaultNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, "default")
+	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
 	data1 := "data1"
 	data2 := "data2"

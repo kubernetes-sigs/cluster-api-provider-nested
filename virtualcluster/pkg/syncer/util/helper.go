@@ -23,7 +23,7 @@ import (
 	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
 )
 
-func GetVirtualClusterObject(mc *mc.MultiClusterController, clustername string) (*v1alpha1.VirtualCluster, error) {
+func GetVirtualClusterObject(mc mc.MultiClusterInterface, clustername string) (*v1alpha1.VirtualCluster, error) {
 	obj, err := mc.GetClusterObject(clustername)
 	if err != nil {
 		return nil, fmt.Errorf("fail to obtain the virtualcluster object")

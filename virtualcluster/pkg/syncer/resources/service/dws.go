@@ -41,7 +41,7 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 
 func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, error) {
 	klog.V(4).Infof("reconcile service %s/%s for cluster %s", request.Namespace, request.Name, request.ClusterName)
-	targetNamespace := conversion.ToSuperMasterNamespace(request.ClusterName, request.Namespace)
+	targetNamespace := conversion.ToSuperClusterNamespace(request.ClusterName, request.Namespace)
 	pService, err := c.serviceLister.Services(targetNamespace).Get(request.Name)
 	pExists := true
 	if err != nil {
@@ -84,11 +84,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 }
 
 func (c *controller) reconcileServiceCreate(clusterName, targetNamespace, requestUID string, service *v1.Service) error {
-	vcName, vcNS, _, err := c.MultiClusterController.GetOwnerInfo(clusterName)
-	if err != nil {
-		return err
-	}
-	newObj, err := conversion.BuildMetadata(clusterName, vcNS, vcName, targetNamespace, service)
+	newObj, err := c.Conversion().BuildSuperClusterObject(clusterName, service)
 	if err != nil {
 		return err
 	}

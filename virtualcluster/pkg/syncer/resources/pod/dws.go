@@ -51,7 +51,7 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 
 func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Result, retErr error) {
 	klog.V(4).Infof("reconcile pod %s/%s for cluster %s", request.Namespace, request.Name, request.ClusterName)
-	targetNamespace := conversion.ToSuperMasterNamespace(request.ClusterName, request.Namespace)
+	targetNamespace := conversion.ToSuperClusterNamespace(request.ClusterName, request.Namespace)
 
 	pPod, err := c.podLister.Pods(targetNamespace).Get(request.Name)
 	if err != nil && !errors.IsNotFound(err) {
@@ -172,11 +172,7 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 		return err
 	}
 
-	vcName, vcNS, _, err := c.MultiClusterController.GetOwnerInfo(clusterName)
-	if err != nil {
-		return err
-	}
-	newObj, err := conversion.BuildMetadata(clusterName, vcNS, vcName, targetNamespace, vPod)
+	newObj, err := c.Conversion().BuildSuperClusterObject(clusterName, vPod)
 	if err != nil {
 		return err
 	}
@@ -259,7 +255,7 @@ func (c *controller) findPodServiceAccountSecret(clusterName string, pPod, vPod 
 }
 
 func (c *controller) getClusterNameServer(cluster string) (string, error) {
-	svc, err := c.serviceLister.Services(conversion.ToSuperMasterNamespace(cluster, constants.TenantDNSServerNS)).Get(constants.TenantDNSServerServiceName)
+	svc, err := c.serviceLister.Services(conversion.ToSuperClusterNamespace(cluster, constants.TenantDNSServerNS)).Get(constants.TenantDNSServerServiceName)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return "", nil
@@ -295,7 +291,7 @@ func (c *controller) getPodRelatedServices(cluster string, pPod *v1.Pod) ([]*v1.
 			list = append(list, &serviceList.Items[i])
 		}
 	} else {
-		list, err = c.serviceLister.Services(conversion.ToSuperMasterNamespace(cluster, metav1.NamespaceDefault)).List(labels.Everything())
+		list, err = c.serviceLister.Services(conversion.ToSuperClusterNamespace(cluster, metav1.NamespaceDefault)).List(labels.Everything())
 		if err != nil {
 			return nil, err
 		}

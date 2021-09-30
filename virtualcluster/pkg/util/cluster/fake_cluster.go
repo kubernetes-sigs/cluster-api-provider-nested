@@ -35,9 +35,7 @@ type fakeCluster struct {
 	fakeClient    client.Client
 }
 
-var _ mccontroller.ClusterInterface = &fakeCluster{}
-
-func NewFakeTenantCluster(vc *v1alpha1.VirtualCluster, fakeClientSet clientset.Interface, fakeClient client.Client) (*fakeCluster, error) {
+func NewFakeTenantCluster(vc *v1alpha1.VirtualCluster, fakeClientSet clientset.Interface, fakeClient client.Client) mccontroller.ClusterInterface {
 	cluster := &fakeCluster{
 		key:           conversion.ToClusterKey(vc),
 		vc:            vc,
@@ -45,7 +43,7 @@ func NewFakeTenantCluster(vc *v1alpha1.VirtualCluster, fakeClientSet clientset.I
 		fakeClient:    fakeClient,
 	}
 
-	return cluster, nil
+	return cluster
 }
 
 func (c *fakeCluster) GetClusterName() string {

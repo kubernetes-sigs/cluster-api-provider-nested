@@ -100,7 +100,7 @@ func TestDWNamespaceCreation(t *testing.T) {
 
 	defaultNSName := "default"
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
-	defaultSuperNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, defaultNSName)
+	defaultSuperNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, defaultNSName)
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
@@ -190,7 +190,7 @@ func TestDWNamespaceDeletion(t *testing.T) {
 
 	defaultNSName := "default"
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
-	defaultSuperNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, defaultNSName)
+	defaultSuperNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, defaultNSName)
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper []runtime.Object

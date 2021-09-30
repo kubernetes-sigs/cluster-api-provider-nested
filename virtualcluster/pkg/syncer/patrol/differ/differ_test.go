@@ -79,9 +79,9 @@ func TestDifferSet(t *testing.T) {
 
 func TestDifferSetDifference(t *testing.T) {
 	ta := ClusterObject{Key: "t1-n1/a", OwnerCluster: "t1", Object: makeObject("n1", "a")}
-	a := ClusterObject{Key: "t1-n1/a", Object: makeObject(conversion.ToSuperMasterNamespace("t1", "n1"), "a")}
+	a := ClusterObject{Key: "t1-n1/a", Object: makeObject(conversion.ToSuperClusterNamespace("t1", "n1"), "a")}
 	tb := ClusterObject{Key: "t1-n1/b", OwnerCluster: "t1", Object: makeObject("n1", "b")}
-	c := ClusterObject{Key: "t1-n1/c", Object: makeObject(conversion.ToSuperMasterNamespace("t1", "n1"), "c")}
+	c := ClusterObject{Key: "t1-n1/c", Object: makeObject(conversion.ToSuperClusterNamespace("t1", "n1"), "c")}
 
 	vSet := NewDiffSet(ta, tb)
 	pSet := NewDiffSet(a, c)
@@ -131,7 +131,7 @@ func Benchmark_Difference_1000(b *testing.B) {
 	for i := 0; i < groupNum; i++ {
 		for j := 0; j < totalNum/groupNum; j++ {
 			cluster := strconv.Itoa(i)
-			obj := makeObject(conversion.ToSuperMasterNamespace(cluster, "n"), strconv.Itoa(j))
+			obj := makeObject(conversion.ToSuperClusterNamespace(cluster, "n"), strconv.Itoa(j))
 			pSet.Insert(ClusterObject{
 				Object: obj,
 				Key:    DefaultClusterObjectKey(obj, ""),

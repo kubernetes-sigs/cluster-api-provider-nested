@@ -44,7 +44,7 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 // The reconcile logic for tenant master secret informer
 func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, error) {
 	klog.V(4).Infof("reconcile secret %s/%s for cluster %s", request.Namespace, request.Name, request.ClusterName)
-	targetNamespace := conversion.ToSuperMasterNamespace(request.ClusterName, request.Namespace)
+	targetNamespace := conversion.ToSuperClusterNamespace(request.ClusterName, request.Namespace)
 	vSecret := &v1.Secret{}
 	err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vSecret)
 	if err == nil {
@@ -117,11 +117,7 @@ func (c *controller) reconcileSecretCreate(clusterName, targetNamespace, request
 }
 
 func (c *controller) reconcileServiceAccountSecretCreate(clusterName, targetNamespace string, vSecret *v1.Secret) error {
-	vcName, vcNS, _, err := c.MultiClusterController.GetOwnerInfo(clusterName)
-	if err != nil {
-		return err
-	}
-	newObj, err := conversion.BuildMetadata(clusterName, vcNS, vcName, targetNamespace, vSecret)
+	newObj, err := c.Conversion().BuildSuperClusterObject(clusterName, vSecret)
 	if err != nil {
 		return err
 	}
@@ -155,11 +151,7 @@ func (c *controller) reconcileServiceAccountSecretUpdate(clusterName, targetName
 }
 
 func (c *controller) reconcileNormalSecretCreate(clusterName, targetNamespace, requestUID string, secret *v1.Secret) error {
-	vcName, vcNS, _, err := c.MultiClusterController.GetOwnerInfo(clusterName)
-	if err != nil {
-		return err
-	}
-	newObj, err := conversion.BuildMetadata(clusterName, vcNS, vcName, targetNamespace, secret)
+	newObj, err := c.Conversion().BuildSuperClusterObject(clusterName, secret)
 	if err != nil {
 		return err
 	}

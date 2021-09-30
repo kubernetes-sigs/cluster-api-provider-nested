@@ -53,7 +53,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		}
 	}
 	klog.V(4).Infof("reconcile endpoints %s/%s for cluster %s", request.Namespace, request.Name, request.ClusterName)
-	targetNamespace := conversion.ToSuperMasterNamespace(request.ClusterName, request.Namespace)
+	targetNamespace := conversion.ToSuperClusterNamespace(request.ClusterName, request.Namespace)
 	pEndpoints, err := c.endpointsLister.Endpoints(targetNamespace).Get(request.Name)
 	pExists := true
 	if err != nil {
@@ -96,11 +96,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 }
 
 func (c *controller) reconcileEndpointsCreate(clusterName, targetNamespace, requestUID string, ep *v1.Endpoints) error {
-	vcName, vcNS, _, err := c.MultiClusterController.GetOwnerInfo(clusterName)
-	if err != nil {
-		return err
-	}
-	newObj, err := conversion.BuildMetadata(clusterName, vcNS, vcName, targetNamespace, ep)
+	newObj, err := c.Conversion().BuildSuperClusterObject(clusterName, ep)
 	if err != nil {
 		return err
 	}

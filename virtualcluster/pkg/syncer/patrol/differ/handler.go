@@ -108,7 +108,7 @@ func DefaultDifferFilter(knownClusterSet sets.String) func(obj ClusterObject) bo
 func DefaultClusterObjectKey(obj metav1.Object, ownerCluster string) string {
 	var ns = obj.GetNamespace()
 	if ownerCluster != "" {
-		ns = conversion.ToSuperMasterNamespace(ownerCluster, ns)
+		ns = conversion.ToSuperClusterNamespace(ownerCluster, ns)
 	}
 	return fmt.Sprintf("%s%c%s", ns, '/', obj.GetName())
 }

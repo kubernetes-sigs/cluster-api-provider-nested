@@ -117,7 +117,7 @@ func superPod(clusterKey, vcName, vcNamespace, name, namespace, uid string) *v1.
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: conversion.ToSuperMasterNamespace(clusterKey, namespace),
+			Namespace: conversion.ToSuperClusterNamespace(clusterKey, namespace),
 			Labels: map[string]string{
 				constants.LabelCluster:     clusterKey,
 				constants.LabelVCName:      vcName,
@@ -241,7 +241,7 @@ func TestDWPodCreation(t *testing.T) {
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
 	defaultVCName, defaultVCNamespace := testTenant.Name, testTenant.Namespace
-	superDefaultNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, "default")
+	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
@@ -329,8 +329,8 @@ func TestDWPodCreation(t *testing.T) {
 		},
 		"only a dns service": {
 			ExistingObjectInSuper: []runtime.Object{
-				superSecret("default-token-12345", conversion.ToSuperMasterNamespace(defaultClusterKey, "kube-system"), "s12345"),
-				superService(constants.TenantDNSServerServiceName, conversion.ToSuperMasterNamespace(defaultClusterKey, constants.TenantDNSServerNS), "12345", "192.168.0.10"),
+				superSecret("default-token-12345", conversion.ToSuperClusterNamespace(defaultClusterKey, "kube-system"), "s12345"),
+				superService(constants.TenantDNSServerServiceName, conversion.ToSuperClusterNamespace(defaultClusterKey, constants.TenantDNSServerNS), "12345", "192.168.0.10"),
 			},
 			ExistingObjectInTenant: []runtime.Object{
 				tenantPod("pod-1", "kube-system", "12345"),
@@ -433,7 +433,7 @@ func TestDWPodDeletion(t *testing.T) {
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
 	defaultVCName, defaultVCNamespace := testTenant.Name, testTenant.Namespace
-	superDefaultNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, "default")
+	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object

@@ -118,7 +118,7 @@ func (c *controller) checkIngressesOfTenantCluster(clusterName string) {
 	klog.V(4).Infof("check ingresss consistency in cluster %s", clusterName)
 
 	for i, vIngress := range ingList.Items {
-		targetNamespace := conversion.ToSuperMasterNamespace(clusterName, vIngress.Namespace)
+		targetNamespace := conversion.ToSuperClusterNamespace(clusterName, vIngress.Namespace)
 		pIngress, err := c.ingressLister.Ingresses(targetNamespace).Get(vIngress.Name)
 		if errors.IsNotFound(err) {
 			if err := c.MultiClusterController.RequeueObject(clusterName, &ingList.Items[i]); err != nil {

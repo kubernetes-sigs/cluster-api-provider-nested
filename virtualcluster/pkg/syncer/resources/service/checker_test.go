@@ -42,7 +42,7 @@ func TestServicePatrol(t *testing.T) {
 	}
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
-	superDefaultNSName := conversion.ToSuperMasterNamespace(defaultClusterKey, "default")
+	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
 	spec1 := &v1.ServiceSpec{
 		Type:      v1.ServiceTypeClusterIP,
