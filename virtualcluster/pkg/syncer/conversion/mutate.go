@@ -91,6 +91,9 @@ func mutatePodAffinityTerms(terms []v1.PodAffinityTerm, clusterName string) {
 			}
 			terms[i].LabelSelector.MatchLabels[constants.LabelCluster] = clusterName
 		}
+		for ni, ns := range terms[i].Namespaces {
+			terms[i].Namespaces[ni] = ToSuperClusterNamespace(clusterName, ns)
+		}
 	}
 }
 
@@ -101,6 +104,9 @@ func mutateWeightedPodAffinityTerms(weightedTerms []v1.WeightedPodAffinityTerm, 
 				weightedTerms[i].PodAffinityTerm.LabelSelector.MatchLabels = make(map[string]string)
 			}
 			weightedTerms[i].PodAffinityTerm.LabelSelector.MatchLabels[constants.LabelCluster] = clusterName
+		}
+		for ni, ns := range weightedTerms[i].PodAffinityTerm.Namespaces {
+			weightedTerms[i].PodAffinityTerm.Namespaces[ni] = ToSuperClusterNamespace(clusterName, ns)
 		}
 	}
 }
