@@ -111,6 +111,24 @@ maintains the one to one mapping between a virtual node in tenant control plane 
 in the super cluster. It preserves the Kubernetes API compatibility as closely as possible. Additionally, 
 it provides fair queuing to mitigate tenant contention.
 
+### Q: What is the difference between VirtualCluster and Loft vCluster?
+
+Although VirtualCluster and vCluster share similar architecture such that each tenant is given
+a dedicated control plane to achieve strong isolation, their target use cases are different.
+The difference leads to divergent implementations which impact API compatibility
+non-obviously. Loft vCluster follows a self-service usage model in which a user logs in to the super
+cluster and launches a vCluster instance from the permitted namespace voluntarily. The objects in
+vCluster are synchronized to the **SINGLE** permitted namespace in the super cluster.
+The caveat is that the APIs that depend on the namespace object in vCluster 
+cannot be supported transparently such as network policy and Pod security admission control 
+that uses namespace labels. In contrast, VirtualCluster follows a serverless usage model
+in which the tenant control plane is managed by a super cluster administrator and tenants normally 
+are not allowed to access the super cluster. In this model, there is a **ONE-TO-ONE** mapping between
+a namespace in the tenant control plane and a synchronized namespace in the super cluster, without
+introducing any compatibility issue. In addition, VirtualCluster can be extended to support
+multiple super clusters without tenant awareness. There are other subtle differences between VirtualCluster
+and vCluster but the mechanism to deal with tenant namespace object is the fundamental distinction.
+
 ## Release
 
 The first release is coming soon.
