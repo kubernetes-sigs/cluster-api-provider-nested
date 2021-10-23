@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -28,8 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	kcpv1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	kcpv1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -70,7 +71,7 @@ func (r *NestedControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager) error 
 
 // Reconcile is ths main process which will handle updating the NCP.
 func (r *NestedControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("nestedcontrolplane", req.NamespacedName)
+	log := log.FromContext(ctx)
 	log.Info("Reconciling NestedControlPlane...")
 	// Fetch the NestedControlPlane
 	ncp := &controlplanev1.NestedControlPlane{}

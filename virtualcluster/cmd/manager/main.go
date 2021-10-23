@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/webhook"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"

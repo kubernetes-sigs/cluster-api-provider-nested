@@ -19,8 +19,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,7 +35,6 @@ import (
 // NestedControllerManagerReconciler reconciles a NestedControllerManager object.
 type NestedControllerManagerReconciler struct {
 	client.Client
-	Log          logr.Logger
 	Scheme       *runtime.Scheme
 	TemplatePath string
 }
@@ -45,7 +44,7 @@ type NestedControllerManagerReconciler struct {
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrollermanagers/finalizers,verbs=update
 
 func (r *NestedControllerManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("nestedcontrollermanager", req.NamespacedName)
+	log := log.FromContext(ctx)
 	log.Info("Reconciling NestedControllerManager...")
 	var nkcm controlplanev1.NestedControllerManager
 	if err := r.Get(ctx, req.NamespacedName, &nkcm); err != nil {

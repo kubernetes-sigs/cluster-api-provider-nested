@@ -27,12 +27,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/klog/v2"
-	"k8s.io/klog/v2/klogr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/version"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	infrastructurev1 "sigs.k8s.io/cluster-api-provider-nested/api/v1alpha4"
@@ -59,7 +60,6 @@ var (
 )
 
 func init() {
-	klog.InitFlags(nil)
 
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
@@ -108,14 +108,22 @@ func main() {
 
 	InitFlags(pflag.CommandLine)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	opts := zap.Options{
+		Development: true,
+	}
+	opts.BindFlags(flag.CommandLine)
+
 	pflag.Parse()
 
-	ctrl.SetLogger(klogr.New())
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	if profilerAddress != "" {
-		klog.Infof("Profiler listening for requests at %s", profilerAddress)
+		setupLog.Info("Profiler listening for requests at "+profilerAddress, "address", profilerAddress)
 		go func() {
-			klog.Info(http.ListenAndServe(profilerAddress, nil))
+			err := http.ListenAndServe(profilerAddress, nil)
+			if err != nil {
+				setupLog.Error(err, "address", profilerAddress)
+			}
 		}()
 	}
 
@@ -151,7 +159,6 @@ func main() {
 
 	if err = (&controllers.NestedClusterReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("infrastructure").WithName("NestedCluster"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(ctx, mgr, concurrency(nestedclusterConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NestedCluster")

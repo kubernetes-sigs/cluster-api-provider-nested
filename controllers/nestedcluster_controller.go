@@ -22,11 +22,11 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/go-logr/logr"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -53,14 +53,13 @@ import (
 // NestedClusterReconciler reconciles a NestedCluster object.
 type NestedClusterReconciler struct {
 	client.Client
-	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *NestedClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	clusterToInfraFn := util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("NestedCluster"))
-	log := ctrl.LoggerFrom(ctx)
+	log := log.FromContext(ctx)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
@@ -117,7 +116,7 @@ func (r *NestedClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.2/pkg/reconcile
 func (r *NestedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("nestedcluster", req.NamespacedName)
+	log := log.FromContext(ctx)
 	log.Info("Reconciling NestedCluster...")
 	nc := &infrav1.NestedCluster{}
 	if err := r.Get(ctx, req.NamespacedName, nc); err != nil {

@@ -19,8 +19,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,13 +34,12 @@ import (
 
 	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/certificate"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // NestedAPIServerReconciler reconciles a NestedAPIServer object.
 type NestedAPIServerReconciler struct {
 	client.Client
-	Log          logr.Logger
 	Scheme       *runtime.Scheme
 	TemplatePath string
 }
@@ -50,7 +49,7 @@ type NestedAPIServerReconciler struct {
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedapiservers/finalizers,verbs=update
 
 func (r *NestedAPIServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("nestedapiserver", req.NamespacedName)
+	log := log.FromContext(ctx)
 	log.Info("Reconciling NestedAPIServer...")
 	var nkas controlplanev1.NestedAPIServer
 	if err := r.Get(ctx, req.NamespacedName, &nkas); err != nil {

@@ -19,8 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
-
-	"github.com/go-logr/logr"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -28,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	controlplanev1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	controlplanev1alpha4 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/secret"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -42,7 +41,6 @@ import (
 // NestedEtcdReconciler reconciles a NestedEtcd object.
 type NestedEtcdReconciler struct {
 	client.Client
-	Log          logr.Logger
 	Scheme       *runtime.Scheme
 	TemplatePath string
 }
@@ -52,7 +50,7 @@ type NestedEtcdReconciler struct {
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedetcds/finalizers,verbs=update
 
 func (r *NestedEtcdReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("nestedetcd", req.NamespacedName)
+	log := log.FromContext(ctx)
 	log.Info("Reconciling NestedEtcd...")
 	var netcd controlplanev1.NestedEtcd
 	if err := r.Get(ctx, req.NamespacedName, &netcd); err != nil {

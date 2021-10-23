@@ -18,7 +18,7 @@ bases:
 # [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER'. 'WEBHOOK' components are required.
 - ../certmanager
 # [PROMETHEUS] To enable prometheus monitor, uncomment all sections with 'PROMETHEUS'.
-#- ../prometheus
+- ../prometheus
 
 patchesStrategicMerge:
   # Protect the /metrics endpoint by putting it behind auth.
@@ -44,7 +44,7 @@ vars:
   objref:
     kind: Certificate
     group: cert-manager.io
-    version: v1alpha2
+    version: v1
     name: serving-cert # this name should match the one in certificate.yaml
   fieldref:
     fieldpath: metadata.namespace
@@ -52,7 +52,7 @@ vars:
   objref:
     kind: Certificate
     group: cert-manager.io
-    version: v1alpha2
+    version: v1
     name: serving-cert # this name should match the one in certificate.yaml
 - name: SERVICE_NAMESPACE # namespace of the service
   objref:
