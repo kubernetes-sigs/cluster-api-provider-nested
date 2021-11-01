@@ -81,6 +81,15 @@ func tenantPod(name, namespace, uid string) *v1.Pod {
 						},
 					},
 				},
+				{
+					Name: "i-do-not-exist-optional",
+					VolumeSource: v1.VolumeSource{
+						Secret: &v1.SecretVolumeSource{
+							SecretName: "i-do-not-exist",
+							Optional:   pointer.Bool(true),
+						},
+					},
+				},
 			},
 		},
 	}
@@ -170,6 +179,15 @@ func superPod(clusterKey, vcName, vcNamespace, name, namespace, uid string) *v1.
 					VolumeSource: v1.VolumeSource{
 						Secret: &v1.SecretVolumeSource{
 							SecretName: testSuperServiceAccountTokenSecretName,
+						},
+					},
+				},
+				{
+					Name: "i-do-not-exist-optional",
+					VolumeSource: v1.VolumeSource{
+						Secret: &v1.SecretVolumeSource{
+							SecretName: "i-do-not-exist",
+							Optional:   pointer.Bool(true),
 						},
 					},
 				},

@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
+	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
@@ -222,7 +223,7 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 func (c *controller) findPodServiceAccountSecret(clusterName string, pPod, vPod *v1.Pod) (map[string]string, error) {
 	mountSecretSet := sets.NewString()
 	for _, volume := range vPod.Spec.Volumes {
-		if volume.Secret != nil {
+		if volume.Secret != nil && !pointer.BoolDeref(volume.Secret.Optional, false) {
 			mountSecretSet.Insert(volume.Secret.SecretName)
 		}
 	}
