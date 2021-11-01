@@ -45,10 +45,11 @@ type SyncerConfiguration struct {
 	// ["aaa"]                  | ["foo=bar", "foo.kubernetes.io/foo=bar", "aaa/b=c"]
 	DefaultOpaqueMetaDomains []string
 
-	//ExtraSyncingResources defines additional resources that need to be synced for each Virtual CLuster
+	//ExtraSyncingResources defines additional resources that need to be synced for each Virtual Cluster
 	ExtraSyncingResources []string
 
-	// DisableServiceAccountToken indicates whether disable service account token automatically mounted.
+	// DisableServiceAccountToken indicates whether to disable super cluster service account tokens being auto generated
+	// and mounted in vc pods.
 	DisableServiceAccountToken bool
 
 	// DisablePodServiceLinks indicates whether to disable the `EnableServiceLinks` field in pPod spec.
