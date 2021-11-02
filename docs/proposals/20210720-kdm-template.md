@@ -90,12 +90,12 @@ Assume that we have installed the `KubeadmControlPlaneController`, the `NestedMa
 The provisioning of the control plane requires the involvement of the `NestedMachine` controller. We will discuss the `NestedMachine` controller and the complete provisioning process in another CAEP. 
 This CAEP will focus on how to template the control plane in a more "CAPI" way, i.e., using `KubeadmControlPlane` provider and `kubeadm` libs from the `kubernetes` module.  
 
-- Bake the `kubeadm` executable into the container image of the `NestedControlPlane` controller (we will import the functions instead of embedding the binary, once `kubeadm` is independent from the `Kubernetes`).
+- Bake the `kubeadm` executable into the container image of the `NestedControlPlane` controller.
 - Use the existing `NestedControlPlane` implementation for testing, which uses the NestedKASController, NestedKCMController and the NestedEtcdController.
 - Create `KubeadmConfig` CR manually.
 - Implement the generic functionality of extracting the`kubeadmapi.ClusterConfig` from the `KubeadmConfig` CR.
 - Generate a config file that will be used by the `kubeadm` to generate the manifests.
-- Before adopting any nested component, `NestedControlPlane` will run the `kubeadm init --config` command to generate the static pod template for each component and create a configmap to store them.
+- Before adopting any nested component, `NestedControlPlane` will run the `kubeadm` binary to generate the static pod template for each component and create a configmap to store them.
 - Then the nested component controllers will use the static PodSpec to create the template of the StatefulSet. 
 
 ## Implementation History
