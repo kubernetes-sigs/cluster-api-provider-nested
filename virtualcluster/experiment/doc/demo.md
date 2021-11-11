@@ -33,7 +33,7 @@ Besides the VirtualCluster and ClusterVersion CRDs, the Cluster CRD needs be ins
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/crd/tenancy.x-k8s.io_clusterversions.yaml
 kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/crd/tenancy.x-k8s.io_virtualclusters.yaml
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/crd/cluster.x-k8s.io_clusters.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/experiment/config/crd/cluster.x-k8s.io_clusters.yaml
 ```
 
 Install vc-manager and vc-scheduler in the vc-manager namespacing using the following command:
