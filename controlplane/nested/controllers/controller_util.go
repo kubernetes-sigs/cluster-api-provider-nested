@@ -20,23 +20,26 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"strings"
 	"text/template"
 
-	openuri "github.com/utahta/go-openuri"
-
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrlcli "sigs.k8s.io/controller-runtime/pkg/client"
 
 	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/kubeadm"
 	addonv1alpha1 "sigs.k8s.io/kubebuilder-declarative-pattern/pkg/patterns/addon/pkg/apis/v1alpha1"
 )
 
@@ -48,31 +51,21 @@ import (
 func createNestedComponentSts(ctx context.Context,
 	cli ctrlcli.Client, ncMeta metav1.ObjectMeta,
 	ncSpec controlplanev1.NestedComponentSpec,
-	ncKind controlplanev1.ComponentKind,
-	controlPlaneName, clusterName, templatePath string, log logr.Logger) error {
-	ncSts := &appsv1.StatefulSet{}
-	ncSvc := &corev1.Service{}
-	// Setup the ownerReferences for all objects
+	ncKind, clusterName string, log logr.Logger) error {
+	// setup the ownerReferences for all objects
 	or := metav1.NewControllerRef(&ncMeta,
-		controlplanev1.GroupVersion.WithKind(string(ncKind)))
+		controlplanev1.GroupVersion.WithKind(ncKind))
 
-	// 1. Using the template defined by version/channel to create the
-	// StatefulSet and the Service
-	// TODO check the template version/channel, if not set, use the default.
-	if ncSpec.Version != "" && ncSpec.Channel != "" {
-		panic("NOT IMPLEMENT YET")
+	ncSts, err := genStatefulSetObject(cli, ncMeta, ncSpec, ncKind, clusterName, log)
+	if err != nil {
+		return errors.Errorf("fail to generate the Statefulset object: %v", err)
 	}
 
-	log.V(4).Info("The Version and Channel are not set, " +
-		"will use the default template.")
-	if err := genStatefulSetObject(templatePath, ncMeta, ncSpec, ncKind, controlPlaneName, clusterName, log, ncSts); err != nil {
-		return fmt.Errorf("fail to generate the Statefulset object: %v", err)
-	}
-
-	if ncKind != controlplanev1.ControllerManager {
+	if ncKind != kubeadm.ControllerManager {
 		// no need to create the service for the NestedControllerManager
-		if err := genServiceObject(templatePath, ncMeta, ncSpec, ncKind, controlPlaneName, clusterName, log, ncSvc); err != nil {
-			return fmt.Errorf("fail to generate the Service object: %v", err)
+		ncSvc, err := genServiceObject(ncKind, clusterName, ncMeta.GetName(), ncMeta.GetNamespace())
+		if err != nil {
+			return errors.Errorf("fail to generate the Service object: %v", err)
 		}
 
 		ncSvc.SetOwnerReferences([]metav1.OwnerReference{*or})
@@ -83,101 +76,140 @@ func createNestedComponentSts(ctx context.Context,
 			"component", ncKind)
 	}
 
-	// 2. set the NestedComponent object as the owner of the StatefulSet
+	// set the NestedComponent object as the owner of the StatefulSet
 	ncSts.SetOwnerReferences([]metav1.OwnerReference{*or})
 
-	// 4. create the NestedComponent StatefulSet
+	// create the NestedComponent StatefulSet
 	return cli.Create(ctx, ncSts)
 }
 
-// genServiceObject generates the Service object corresponding to the
-// NestedComponent.
-func genServiceObject(
-	templatePath string,
-	ncMeta metav1.ObjectMeta,
-	ncSpec controlplanev1.NestedComponentSpec, ncKind controlplanev1.ComponentKind,
-	controlPlaneName, clusterName string, log logr.Logger, svc *corev1.Service) error {
-	var templateURL string
-	if ncSpec.Version == "" && ncSpec.Channel == "" {
-		switch ncKind {
-		case controlplanev1.APIServer:
-			templateURL = templatePath + defaultKASServiceURL
-		case controlplanev1.Etcd:
-			templateURL = templatePath + defaultEtcdServiceURL
-		default:
-			panic("Unreachable")
-		}
-	} else {
-		panic("NOT IMPLEMENT YET")
+// genServiceObject generates the Service object corresponding to the NestedComponent.
+func genServiceObject(ncKind, clusterName, componentName, componentNamespace string) (*corev1.Service, error) {
+	switch ncKind {
+	case kubeadm.APIServer:
+		return &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterName + "-apiserver",
+				Namespace: componentNamespace,
+				Labels: map[string]string{
+					"component-name": componentName,
+				},
+			},
+			Spec: corev1.ServiceSpec{
+				Selector: map[string]string{
+					"component-name": componentName,
+				},
+				Type: corev1.ServiceTypeClusterIP,
+				Ports: []corev1.ServicePort{
+					{
+						Name:       "api",
+						Port:       6443,
+						Protocol:   corev1.ProtocolTCP,
+						TargetPort: intstr.FromString("api"),
+					},
+				},
+			},
+		}, nil
+	case kubeadm.Etcd:
+		return &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterName + "-etcd",
+				Namespace: componentNamespace,
+				Labels: map[string]string{
+					"component-name": componentName,
+				},
+			},
+			Spec: corev1.ServiceSpec{
+				PublishNotReadyAddresses: true,
+				ClusterIP:                "None",
+				Selector: map[string]string{
+					"component-name": componentName,
+				},
+			},
+		}, nil
+	default:
+		return nil, errors.Errorf("unknown component type: %s", ncKind)
 	}
-	svcTmpl, err := fetchTemplate(templateURL)
-	if err != nil {
-		return fmt.Errorf("fail to fetch the default template "+
-			"for the %s service: %v", ncKind, err)
-	}
-
-	templateCtx := getTemplateArgs(ncMeta, controlPlaneName, clusterName)
-
-	svcStr, err := substituteTemplate(templateCtx, svcTmpl)
-	if err != nil {
-		return fmt.Errorf("fail to substitute the default template "+
-			"for the nestedetcd Service: %v", err)
-	}
-	if err := yamlToObject([]byte(svcStr), svc); err != nil {
-		return fmt.Errorf("fail to convert yaml file to Serivce: %v", err)
-	}
-	log.Info("deserialize yaml to runtime object(Service)")
-
-	return nil
 }
 
-// genStatefulSetObject generates the StatefulSet object corresponding to the
-// NestedComponent.
+// objectToYaml serialize the runtime object to the yaml.
+func objectToYaml(obj runtime.Object) ([]byte, error) {
+	serializer := json.NewYAMLSerializer(json.DefaultMetaFactory, nil, nil)
+	buf := bytes.NewBuffer([]byte{})
+	if err := serializer.Encode(obj, buf); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// genStatefulSetManifest complete the pod spec and use it to generate the
+// statefulset manifest.
+func genStatefulSetManifest(podManifest, ncKind, clusterName, componentName, componentNamespace string) (*appsv1.StatefulSet, error) {
+	pod := corev1.Pod{}
+	if err := yamlToObject([]byte(podManifest), &pod); err != nil {
+		return nil, errors.Errorf("fail to convert yaml file to pod: %v", err)
+	}
+	switch ncKind {
+	case kubeadm.APIServer:
+	case kubeadm.Etcd:
+	case kubeadm.ControllerManager:
+	default:
+		return nil, errors.Errorf("invalid component type: %s", ncKind)
+	}
+	return &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterName + "-" + ncKind,
+			Namespace: componentNamespace,
+		},
+		Spec: appsv1.StatefulSetSpec{
+			ServiceName: clusterName + "-" + ncKind,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"component-name": componentName,
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"component-name": componentName,
+					},
+				},
+				Spec: pod.Spec,
+			},
+		},
+	}, nil
+}
+
+// genStatefulSetObject generates the StatefulSet object corresponding to the NestedComponent.
 func genStatefulSetObject(
-	templatePath string,
+	cli ctrlcli.Client,
 	ncMeta metav1.ObjectMeta,
 	ncSpec controlplanev1.NestedComponentSpec,
-	ncKind controlplanev1.ComponentKind, controlPlaneName, clusterName string,
-	log logr.Logger, ncSts *appsv1.StatefulSet) error {
-	var templateURL string
-	if ncSpec.Version == "" && ncSpec.Channel == "" {
-		log.V(4).Info("The Version and Channel are not set, " +
-			"will use the default template.")
-		switch ncKind {
-		case controlplanev1.APIServer:
-			templateURL = templatePath + defaultKASStatefulSetURL
-		case controlplanev1.Etcd:
-			templateURL = templatePath + defaultEtcdStatefulSetURL
-		case controlplanev1.ControllerManager:
-			templateURL = templatePath + defaultKCMStatefulSetURL
-		default:
-			panic("Unreachable")
+	ncKind, clusterName string,
+	log logr.Logger) (*appsv1.StatefulSet, error) {
+	cm := corev1.ConfigMap{}
+	if err := cli.Get(context.TODO(), types.NamespacedName{
+		Namespace: ncMeta.Namespace,
+		Name:      clusterName + "-" + kubeadm.ManifestsConfigmapSuffix,
+	}, &cm); err != nil {
+		if apierrors.IsNotFound(err) {
+			log.Error(err, "manifests configmap not found")
 		}
-	} else {
-		panic("NOT IMPLEMENT YET")
+		return nil, err
 	}
 
-	// 1 fetch the statefulset template
-	stsTmpl, err := fetchTemplate(templateURL)
+	// 1. get the pod spec
+	podManifest := cm.Data[ncKind]
+	if podManifest == "" {
+		return nil, errors.Errorf("data %s is not found", ncKind)
+	}
+	// 2. generate the statefulset manifest
+	ncSts, err := genStatefulSetManifest(podManifest, ncKind, clusterName, ncMeta.GetName(), ncMeta.GetNamespace())
 	if err != nil {
-		return fmt.Errorf("fail to fetch the default template "+
-			"for the %s StatefulSet: %v", ncKind, err)
+		return nil, errors.Wrap(err, "failed to generate the statefulset manifest")
 	}
-	// 2 substitute the statefulset template
-	templateCtx := getTemplateArgs(ncMeta, controlPlaneName, clusterName)
-	stsStr, err := substituteTemplate(templateCtx, stsTmpl)
-	if err != nil {
-		return fmt.Errorf("fail to substitute the default template "+
-			"for the %s StatefulSet: %v", ncKind, err)
-	}
-	// 3 deserialize the yaml string to the StatefulSet object
 
-	if err := yamlToObject([]byte(stsStr), ncSts); err != nil {
-		return fmt.Errorf("fail to convert yaml file to StatefulSet: %v", err)
-	}
-	log.V(5).Info("deserialize yaml to runtime object(StatefulSet)")
-
-	// 5 apply NestedComponent.Spec.Resources and NestedComponent.Spec.Replicas
+	// 3. apply NestedComponent.Spec.Resources and NestedComponent.Spec.Replicas
 	// to the NestedComponent StatefulSet
 	for i := range ncSts.Spec.Template.Spec.Containers {
 		ncSts.Spec.Template.Spec.Containers[i].Resources =
@@ -190,26 +222,15 @@ func genStatefulSetObject(
 		"Replicas fields are set",
 		"StatefulSet", ncSts.GetName())
 
-	// 6 set the "--initial-cluster" command line flag for the Etcd container
-	if ncKind == controlplanev1.Etcd {
+	// 4. set the "--initial-cluster" command line flag for the Etcd container
+	if ncKind == kubeadm.Etcd {
 		icaVal := genInitialClusterArgs(1, clusterName, clusterName, ncMeta.GetNamespace())
-		stsArgs := append(ncSts.Spec.Template.Spec.Containers[0].Args,
-			"--initial-cluster", icaVal)
-		ncSts.Spec.Template.Spec.Containers[0].Args = stsArgs
+		ncSts.Spec.Template.Spec.Containers[0].Command = append(
+			ncSts.Spec.Template.Spec.Containers[0].Command,
+			fmt.Sprintf("--initial-cluster=%s", icaVal))
 		log.V(5).Info("The '--initial-cluster' command line option is set")
 	}
-
-	// 7 TODO validate the patch and apply it to the template.
-	return nil
-}
-
-func getTemplateArgs(ncMeta metav1.ObjectMeta, controlPlaneName, clusterName string) map[string]string {
-	return map[string]string{
-		"componentName":      ncMeta.GetName(),
-		"componentNamespace": ncMeta.GetNamespace(),
-		"clusterName":        clusterName,
-		"controlPlaneName":   controlPlaneName,
-	}
+	return ncSts, nil
 }
 
 // yamlToObject deserialize the yaml to the runtime object.
@@ -236,22 +257,6 @@ func substituteTemplate(context interface{}, tmpl string) (string, error) {
 	}
 
 	return writer.String(), nil
-}
-
-// fetchTemplate fetches the component template through the tmplateURL.
-func fetchTemplate(templateURL string) (string, error) {
-	rep, err := openuri.Open(templateURL)
-	if err != nil {
-		return "", err
-	}
-	defer rep.Close()
-
-	bodyBytes, err := ioutil.ReadAll(rep)
-	if err != nil {
-		return "", err
-	}
-
-	return string(bodyBytes), nil
 }
 
 // getOwner gets the ownerreference of the NestedComponent.
@@ -301,4 +306,372 @@ func genObjRefFromObj(obj ctrlcli.Object) corev1.ObjectReference {
 // IsComponentReady will return bool if status Ready.
 func IsComponentReady(status addonv1alpha1.CommonStatus) bool {
 	return status.Phase == string(controlplanev1.Ready)
+}
+
+// createManifestsConfigMap create the configmap that holds the manifests of
+// the NestedComponent. NOTE this function will be deprecated once the
+// nestedmachine_controller is implemented.
+func createManifestsConfigMap(cli ctrlcli.Client, manifests map[string]corev1.Pod, clusterName, namespace string) error {
+	data := map[string]string{}
+	for name, pod := range manifests {
+		tmpPod := pod
+		podYaml, err := objectToYaml(&tmpPod)
+		if err != nil {
+			return err
+		}
+		data[name] = string(podYaml)
+	}
+	cm := corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      clusterName + "-" + kubeadm.ManifestsConfigmapSuffix,
+		},
+		Data: data,
+	}
+	return cli.Create(context.TODO(), &cm)
+}
+
+// completeTemplates completes the pod templates of nested control plane
+// components.
+func completeTemplates(templates map[string]string, clusterName string) (map[string]corev1.Pod, error) {
+	var ret map[string]corev1.Pod = make(map[string]corev1.Pod)
+	for name, podTemplate := range templates {
+		pod := corev1.Pod{}
+		if err := yamlToObject([]byte(podTemplate), &pod); err != nil {
+			return nil, err
+		}
+		switch name {
+		case kubeadm.APIServer:
+			ret[kubeadm.APIServer] = completeKASPodSpec(pod, clusterName)
+		case kubeadm.ControllerManager:
+			ret[kubeadm.ControllerManager] = completeKCMPodSpec(pod, clusterName)
+		case kubeadm.Etcd:
+			ret[kubeadm.Etcd] = completeEtcdPodSpec(pod, clusterName)
+		default:
+			return nil, errors.New("unknown component: " + name)
+		}
+	}
+	return ret, nil
+}
+
+// completeKASPodSpec sets volumes, envs and other fields for the kube-apiserver pod spec.
+func completeKASPodSpec(pod corev1.Pod, clusterName string) corev1.Pod {
+	ps := pod.Spec
+	pod.Spec.DNSConfig = &corev1.PodDNSConfig{
+		Searches: []string{"cluster.local"},
+	}
+	ps.Hostname = kubeadm.APIServer
+	ps.Subdomain = clusterName + "-apiserver"
+	ps.Containers[0].Env = []corev1.EnvVar{
+		{
+			Name: "NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.namespace",
+				},
+			},
+		},
+	}
+	ps.Containers[0].VolumeMounts = []corev1.VolumeMount{
+		{
+			MountPath: "/etc/kubernetes/pki/etcd/ca",
+			Name:      clusterName + "-etcd-ca",
+			ReadOnly:  true,
+		},
+		{
+			MountPath: "/etc/kubernetes/pki/etcd",
+			Name:      clusterName + "-etcd-client",
+			ReadOnly:  true,
+		},
+		{
+			MountPath: "/etc/kubernetes/pki/apiserver/ca",
+			Name:      clusterName + "-ca",
+			ReadOnly:  true,
+		},
+		{
+			MountPath: "/etc/kubernetes/pki/apiserver",
+			Name:      clusterName + "-apiserver-client",
+			ReadOnly:  true,
+		},
+		{
+			MountPath: "/etc/kubernetes/pki/kubelet",
+			Name:      clusterName + "-kubelet-client",
+			ReadOnly:  true,
+		},
+		{
+			MountPath: "/etc/kubernetes/pki/service-account",
+			Name:      clusterName + "-sa",
+			ReadOnly:  true,
+		},
+		{
+			MountPath: "/etc/kubernetes/pki/proxy/ca",
+			Name:      clusterName + "-proxy",
+			ReadOnly:  true,
+		},
+		{
+			MountPath: "/etc/kubernetes/pki/proxy",
+			Name:      clusterName + "-proxy-client",
+			ReadOnly:  true,
+		},
+	}
+	ps.Containers[0].Ports = append(ps.Containers[0].Ports, corev1.ContainerPort{
+		Name:          "api",
+		ContainerPort: 6443,
+	})
+	ps.Containers[0].LivenessProbe.Handler.HTTPGet.Host = loopbackAddress
+	ps.Containers[0].ReadinessProbe.Handler.HTTPGet.Host = loopbackAddress
+	ps.Containers[0].StartupProbe.Handler.HTTPGet.Host = loopbackAddress
+
+	// disable the hostnetwork
+	ps.HostNetwork = false
+	var volSrtMode int32 = 420
+	ps.Volumes = []corev1.Volume{
+		{
+			Name: clusterName + "-apiserver-client",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &volSrtMode,
+					SecretName:  clusterName + "-apiserver-client",
+				},
+			},
+		},
+		{
+			Name: clusterName + "-etcd-ca",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &volSrtMode,
+					SecretName:  clusterName + "-etcd",
+				},
+			},
+		},
+		{
+			Name: clusterName + "-etcd-client",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &volSrtMode,
+					SecretName:  clusterName + "-etcd-client",
+				},
+			},
+		},
+		{
+			Name: clusterName + "-kubelet-client",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &volSrtMode,
+					SecretName:  clusterName + "-kubelet-client",
+				},
+			},
+		},
+		{
+			Name: clusterName + "-ca",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &volSrtMode,
+					SecretName:  clusterName + "-ca",
+				},
+			},
+		},
+		{
+			Name: clusterName + "-sa",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &volSrtMode,
+					SecretName:  clusterName + "-sa",
+				},
+			},
+		},
+		{
+			Name: clusterName + "-proxy",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &volSrtMode,
+					SecretName:  clusterName + "-proxy",
+				},
+			},
+		},
+		{
+			Name: clusterName + "-proxy-client",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &volSrtMode,
+					SecretName:  clusterName + "-proxy-client",
+				},
+			},
+		},
+	}
+	pod.Spec = ps
+	return pod
+}
+
+// completeKCMPodSpec sets volumes and other fields for the kube-controller-manager pod spec.
+func completeKCMPodSpec(pod corev1.Pod, clusterName string) corev1.Pod {
+	ps := pod.Spec
+	ps.Containers[0].VolumeMounts = []corev1.VolumeMount{
+		{
+			MountPath: "/etc/kubernetes/pki/root/ca",
+			Name:      clusterName + "-ca",
+			ReadOnly:  true,
+		},
+		{
+			MountPath: "/etc/kubernetes/pki/root",
+			Name:      clusterName + "-apiserver-client",
+			ReadOnly:  true,
+		},
+		{
+			MountPath: "/etc/kubernetes/pki/service-account",
+			Name:      clusterName + "-sa",
+			ReadOnly:  true,
+		},
+		{
+			MountPath: "/etc/kubernetes/pki/proxy/ca",
+			Name:      clusterName + "-proxy",
+			ReadOnly:  true,
+		},
+		{
+			MountPath: "/etc/kubernetes/kubeconfig",
+			Name:      clusterName + "-kubeconfig",
+			ReadOnly:  true,
+		},
+	}
+
+	// disable the hostnetwork
+	ps.HostNetwork = false
+
+	var volSrtMode int32 = 420
+	ps.Volumes = []corev1.Volume{
+		{
+			Name: clusterName + "-ca",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &volSrtMode,
+					SecretName:  clusterName + "-ca",
+				},
+			},
+		},
+		{
+			Name: clusterName + "-apiserver-client",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &volSrtMode,
+					SecretName:  clusterName + "-apiserver-client",
+				},
+			},
+		},
+		{
+			Name: clusterName + "-sa",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &volSrtMode,
+					SecretName:  clusterName + "-sa",
+				},
+			},
+		},
+		{
+			Name: clusterName + "-proxy",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &volSrtMode,
+					SecretName:  clusterName + "-proxy",
+				},
+			},
+		},
+		{
+			Name: clusterName + "-kubeconfig",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &volSrtMode,
+					SecretName:  clusterName + "-kubeconfig",
+					Items: []corev1.KeyToPath{
+						{
+							Key:  "value",
+							Path: "controller-manager-kubeconfig",
+						},
+					},
+				},
+			},
+		},
+	}
+	pod.Spec = ps
+	return pod
+}
+
+// completeEtcdPodSpec sets volumes, envs and other fields for the etcd pod spec.
+func completeEtcdPodSpec(pod corev1.Pod, clusterName string) corev1.Pod {
+	ps := pod.Spec
+	ps.Containers[0].Env = []corev1.EnvVar{
+		{
+			Name: "HOSTNAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		},
+		{
+			Name: "NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.namespace",
+				},
+			},
+		},
+	}
+	ps.Containers[0].VolumeMounts = []corev1.VolumeMount{
+		{
+			MountPath: "/etc/kubernetes/pki/ca",
+			Name:      clusterName + "-etcd-ca",
+			ReadOnly:  true,
+		},
+		{
+			MountPath: "/etc/kubernetes/pki/etcd",
+			Name:      clusterName + "-etcd-client",
+			ReadOnly:  true,
+		},
+		{
+			MountPath: "/etc/kubernetes/pki/health",
+			Name:      clusterName + "-etcd-health-client",
+			ReadOnly:  true,
+		},
+	}
+	// remove the --initial-cluster option
+	for i, cmd := range ps.Containers[0].Command {
+		if strings.Contains(cmd, "initial-cluster") {
+			ps.Containers[0].Command = append(ps.Containers[0].Command[:i], ps.Containers[0].Command[i+1:]...)
+		}
+	}
+	// disable the hostnetwork
+	ps.HostNetwork = false
+
+	var volSrtMode int32 = 420
+	ps.Volumes = []corev1.Volume{
+		{
+			Name: clusterName + "-etcd-ca",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &volSrtMode,
+					SecretName:  clusterName + "-etcd",
+				},
+			},
+		},
+		{
+			Name: clusterName + "-etcd-client",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &volSrtMode,
+					SecretName:  clusterName + "-etcd-client",
+				},
+			},
+		},
+		{
+			Name: clusterName + "-etcd-health-client",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					DefaultMode: &volSrtMode,
+					SecretName:  clusterName + "-etcd-health-client",
+				},
+			},
+		},
+	}
+	pod.Spec = ps
+	return pod
 }

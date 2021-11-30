@@ -30,14 +30,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
+	"sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/kubeadm"
 )
 
 // NestedControllerManagerReconciler reconciles a NestedControllerManager object.
 type NestedControllerManagerReconciler struct {
 	client.Client
-	Log          logr.Logger
-	Scheme       *runtime.Scheme
-	TemplatePath string
+	Log    logr.Logger
+	Scheme *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedcontrollermanagers,verbs=get;list;watch;create;update;patch;delete
@@ -104,7 +104,7 @@ func (r *NestedControllerManagerReconciler) Reconcile(ctx context.Context, req c
 			// the statefulset is not found, create one
 			if err := createNestedComponentSts(ctx,
 				r.Client, nkcm.ObjectMeta, nkcm.Spec.NestedComponentSpec,
-				controlplanev1.ControllerManager, owner.Name, cluster.GetName(), r.TemplatePath, log); err != nil {
+				kubeadm.ControllerManager, cluster.GetName(), log); err != nil {
 				log.Error(err, "fail to create NestedControllerManager StatefulSet")
 				return ctrl.Result{}, err
 			}

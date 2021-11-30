@@ -36,15 +36,15 @@ import (
 
 	controlplanev1 "sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/api/v1alpha4"
 	"sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/certificate"
+	"sigs.k8s.io/cluster-api-provider-nested/controlplane/nested/kubeadm"
 	"sigs.k8s.io/cluster-api/util"
 )
 
 // NestedEtcdReconciler reconciles a NestedEtcd object.
 type NestedEtcdReconciler struct {
 	client.Client
-	Log          logr.Logger
-	Scheme       *runtime.Scheme
-	TemplatePath string
+	Log    logr.Logger
+	Scheme *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=nestedetcds,verbs=get;list;watch;create;update;patch;delete
@@ -115,7 +115,7 @@ func (r *NestedEtcdReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			if err := createNestedComponentSts(ctx,
 				r.Client, netcd.ObjectMeta,
 				netcd.Spec.NestedComponentSpec,
-				controlplanev1.Etcd, owner.Name, cluster.GetName(), r.TemplatePath, log); err != nil {
+				kubeadm.Etcd, cluster.GetName(), log); err != nil {
 				log.Error(err, "fail to create NestedEtcd StatefulSet")
 				return ctrl.Result{}, err
 			}
