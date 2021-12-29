@@ -58,6 +58,9 @@ func NewServiceAccountController(config *config.SyncerConfiguration,
 	vcInformer vcinformers.VirtualClusterInformer,
 	options manager.ResourceSyncerOptions) (manager.ResourceSyncer, error) {
 	c := &controller{
+		BaseResourceSyncer: manager.BaseResourceSyncer{
+			Config: config,
+		},
 		saClient: client.CoreV1(),
 	}
 

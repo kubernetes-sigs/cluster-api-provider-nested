@@ -58,6 +58,9 @@ func NewSecretController(config *config.SyncerConfiguration,
 	vcInformer vcinformers.VirtualClusterInformer,
 	options manager.ResourceSyncerOptions) (manager.ResourceSyncer, error) {
 	c := &controller{
+		BaseResourceSyncer: manager.BaseResourceSyncer{
+			Config: config,
+		},
 		secretClient: client.CoreV1(),
 	}
 
