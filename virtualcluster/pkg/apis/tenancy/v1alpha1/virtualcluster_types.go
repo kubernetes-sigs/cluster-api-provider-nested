@@ -121,6 +121,10 @@ type ClusterCondition struct {
 
 // VirtualCluster is the Schema for the virtualclusters API
 // +k8s:openapi-gen=true
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
+// +kubebuilder:printcolumn:name="ClusterVersion",type="string",JSONPath=".spec.clusterVersionName"
+// +kubebuilder:printcolumn:name="ClusterNamespace",type="string",JSONPath=".status.clusterNamespace",priority=1
 type VirtualCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

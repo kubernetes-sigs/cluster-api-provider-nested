@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.4.1
+    controller-gen.kubebuilder.io/version: v0.5.0
   creationTimestamp: null
   name: virtualclusters.tenancy.x-k8s.io
 spec:
@@ -18,7 +18,21 @@ spec:
     singular: virtualcluster
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .spec.clusterVersionName
+      name: ClusterVersion
+      type: string
+    - jsonPath: .status.clusterNamespace
+      name: ClusterNamespace
+      priority: 1
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         properties:
