@@ -20,6 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis"
@@ -50,6 +51,7 @@ func main() {
 		versionOpt              bool
 		disableStacktrace       bool
 		enableWebhook           bool
+		provisionerTimeout      time.Duration
 	)
 	flag.StringVar(&metricsAddr, "metrics-addr", ":0", "The address the metric endpoint binds to.")
 	flag.StringVar(&healthAddr, "health-addr", ":8080", "The address of the healthz/readyz endpoint binds to.")
@@ -64,6 +66,7 @@ func main() {
 	flag.BoolVar(&versionOpt, "version", false, "Print the version information")
 	flag.BoolVar(&disableStacktrace, "disable-stacktrace", false, "If set, the automatic stacktrace is disabled")
 	flag.BoolVar(&enableWebhook, "enable-webhook", false, "If set, the virtualcluster webhook is enabled")
+	flag.DurationVar(&provisionerTimeout, "provisioner-timeout", 10*time.Minute, "The timeout for provision control-plane statefulsets")
 
 	flag.Parse()
 
@@ -133,6 +136,7 @@ func main() {
 		Log:                     log.WithName("Controllers"),
 		Client:                  mgr.GetClient(),
 		ProvisionerName:         masterProvisioner,
+		ProvisionerTimeout:      provisionerTimeout,
 		MaxConcurrentReconciles: maxConcurrentReconciles,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "unable to register controllers to the manager")
