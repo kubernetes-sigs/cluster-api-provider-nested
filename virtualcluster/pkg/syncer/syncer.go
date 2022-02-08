@@ -331,6 +331,10 @@ func (s *Syncer) removeCluster(key string) {
 		// already deleted
 		return
 	}
+	if vc == nil {
+		delete(s.clusterSet, key)
+		return
+	}
 
 	vc.Stop()
 
