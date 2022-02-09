@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -37,12 +38,12 @@ import (
 )
 
 // newReconciler returns a new reconcile.Reconciler
-func (r *ReconcileVirtualCluster) GetProvisioner(mgr ctrl.Manager, log logr.Logger) (provisioner.Provisioner, error) {
+func (r *ReconcileVirtualCluster) GetProvisioner(mgr ctrl.Manager, log logr.Logger, provisionerTimeout time.Duration) (provisioner.Provisioner, error) {
 	switch r.ProvisionerName {
 	case "aliyun":
-		return provisioner.NewProvisionerAliyun(mgr, log)
+		return provisioner.NewProvisionerAliyun(mgr, log, provisionerTimeout)
 	case "native":
-		return provisioner.NewProvisionerNative(mgr, log)
+		return provisioner.NewProvisionerNative(mgr, log, provisionerTimeout)
 	}
 	return nil, fmt.Errorf("virtualcluster provisioner missing")
 }
@@ -52,14 +53,15 @@ var _ reconcile.Reconciler = &ReconcileVirtualCluster{}
 // ReconcileVirtualCluster reconciles a VirtualCluster object
 type ReconcileVirtualCluster struct {
 	client.Client
-	Log             logr.Logger
-	ProvisionerName string
-	Provisioner     provisioner.Provisioner
+	Log                logr.Logger
+	ProvisionerName    string
+	ProvisionerTimeout time.Duration
+	Provisioner        provisioner.Provisioner
 }
 
 // SetupWithManager will configure the VirtualCluster reconciler
 func (r *ReconcileVirtualCluster) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
-	provisioner, err := r.GetProvisioner(mgr, r.Log)
+	provisioner, err := r.GetProvisioner(mgr, r.Log, r.ProvisionerTimeout)
 	if err != nil {
 		return err
 	}
