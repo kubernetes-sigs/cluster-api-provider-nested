@@ -294,14 +294,14 @@ func (c *Cluster) GetInformer(objectType client.Object) (cache.Informer, error) 
 // Start starts the Cluster's cache and blocks,
 // until context for the cache is cancelled.
 func (c *Cluster) Start() error {
+
+        ctx, cancel := context.WithCancel(c.context)
+        c.cancelContext = cancel
+
 	ca, err := c.getCache()
 	if err != nil {
 		return err
 	}
-
-	ctx, cancel := context.WithCancel(c.context)
-	c.cancelContext = cancel
-
 	return ca.Start(ctx)
 }
 
