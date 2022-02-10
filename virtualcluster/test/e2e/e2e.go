@@ -20,7 +20,7 @@ import (
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/test/e2e/framework"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/test/e2e/framework/ginkgowrapper"

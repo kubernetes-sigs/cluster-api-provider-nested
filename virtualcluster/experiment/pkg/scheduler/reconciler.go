@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/apis/cluster/v1alpha4"
 	superListers "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/client/listers/cluster/v1alpha4"

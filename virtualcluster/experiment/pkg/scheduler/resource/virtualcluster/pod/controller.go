@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/scheduler"
 	schedulerconfig "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/scheduler/apis/config"

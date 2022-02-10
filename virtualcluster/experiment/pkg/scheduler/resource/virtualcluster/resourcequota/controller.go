@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/scheduler"
 	schedulerconfig "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/scheduler/apis/config"

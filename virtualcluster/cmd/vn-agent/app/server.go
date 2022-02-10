@@ -25,12 +25,12 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"k8s.io/apiserver/pkg/server/healthz"
 	certutil "k8s.io/client-go/util/cert"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/cli/globalflag"
 	"k8s.io/component-base/term"
-	"k8s.io/klog"
-	"k8s.io/kubernetes/pkg/healthz"
+	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/cmd/vn-agent/app/options"
 	utilflag "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/flag"
