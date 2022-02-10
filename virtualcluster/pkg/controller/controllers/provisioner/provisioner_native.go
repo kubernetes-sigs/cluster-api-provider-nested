@@ -188,7 +188,8 @@ func (mpn *ProvisionerNative) deployComponent(vc *tenancyv1alpha1.VirtualCluster
 			"namespace", ssBdl.StatefulSet.GetNamespace())
 	}
 
-	if ssBdl.Service != nil {
+	// skip apiserver clusterIP service creation as it is already created in CreateVirtualCluster()
+	if ssBdl.Service != nil && !(ssBdl.Name == "apiserver" && ssBdl.Service.Spec.Type == v1.ServiceTypeClusterIP) {
 		mpn.Log.Info("deploying Service for master component", "component", ssBdl.Name)
 		err = mpn.Create(context.TODO(), ssBdl.Service)
 		if err != nil {
