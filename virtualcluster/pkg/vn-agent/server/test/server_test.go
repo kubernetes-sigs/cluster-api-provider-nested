@@ -46,12 +46,14 @@ import (
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/tools/remotecommand"
 	utiltesting "k8s.io/client-go/util/testing"
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	statsapi "k8s.io/kubelet/pkg/apis/stats/v1alpha1"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
+	kubeletconfiginternal "k8s.io/kubernetes/pkg/kubelet/apis/config"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
 	"k8s.io/kubernetes/pkg/kubelet/cri/streaming"
 	"k8s.io/kubernetes/pkg/kubelet/cri/streaming/portforward"
@@ -106,7 +108,13 @@ func newServerTest() *serverTestFramework {
 
 func newServerTestWithDebug(enableDebugging bool, streamingServer streaming.Server) *serverTestFramework {
 	fv := &serverTestFramework{}
-	fv.kubeletServer = newKubeletServerTestWithDebug(enableDebugging, streamingServer)
+	kubeCfg := &kubeletconfiginternal.KubeletConfiguration{
+		EnableDebuggingHandlers: enableDebugging,
+		EnableSystemLogHandler:  enableDebugging,
+		EnableProfilingHandler:  enableDebugging,
+		EnableDebugFlagsHandler: enableDebugging,
+	}
+	fv.kubeletServer = newKubeletServerTestWithDebug(kubeCfg, streamingServer)
 
 	// install the kubelet server certificate and start server
 	kubeletServerCert, err := tls.X509KeyPair(testcerts.KubeletServerCert, testcerts.KubeletServerKey)
@@ -381,7 +389,7 @@ type kubletServerTestFramework struct {
 	criHandler              *utiltesting.FakeHandler
 }
 
-func newKubeletServerTestWithDebug(enableDebugging bool, streamingServer streaming.Server) *kubletServerTestFramework {
+func newKubeletServerTestWithDebug(kubecfg *kubeletconfiginternal.KubeletConfiguration, streamingServer streaming.Server) *kubletServerTestFramework {
 	fw := &kubletServerTestFramework{}
 	fw.fakeKubelet = &fakeKubelet{
 		hostnameFunc: func() string {
@@ -415,12 +423,9 @@ func newKubeletServerTestWithDebug(enableDebugging bool, streamingServer streami
 	}
 	server := kubeletserver.NewServer(
 		fw.fakeKubelet,
-		stats.NewResourceAnalyzer(fw.fakeKubelet, time.Minute),
+		stats.NewResourceAnalyzer(fw.fakeKubelet, time.Minute, &record.FakeRecorder{}),
 		fw.fakeAuth,
-		true,
-		enableDebugging,
-		false,
-		true)
+		kubecfg)
 	fw.serverUnderTest = &server
 	fw.testHTTPServer = httptest.NewUnstartedServer(fw.serverUnderTest)
 	return fw

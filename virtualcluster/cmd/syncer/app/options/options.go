@@ -39,7 +39,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	cliflag "k8s.io/component-base/cli/flag"
 	componentbaseconfig "k8s.io/component-base/config"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	syncerappconfig "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/cmd/syncer/app/config"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis"

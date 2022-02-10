@@ -30,7 +30,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/apis/cluster/v1alpha4"
 	superclient "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/client/clientset/versioned"
