@@ -51,6 +51,9 @@ type ServerOption struct {
 	// Port is the vn-agent server listening on.
 	Port uint
 
+	// MetricsAddr is the address the metrics server is bound to.
+	MetricsAddr string
+
 	// Kubeconfig is the supercluster Kubeconfig to connect to
 	Kubeconfig string
 
@@ -89,6 +92,7 @@ func (o *Options) Flags() cliflag.NamedFlagSets {
 	serverFS.StringVar(&o.TLSPrivateKeyFile, "tls-private-key-file", o.TLSPrivateKeyFile, "TLSPrivateKeyFile is the file containing x509 private key matching tlsCertFile")
 	serverFS.StringVar(&o.Kubeconfig, "kubeconfig", o.Kubeconfig, "Path to kubeconfig file with authorization and master location information.")
 	serverFS.UintVar(&o.Port, "port", 10550, "Port is the server listening on")
+	serverFS.StringVar(&o.MetricsAddr, "metrics-addr", ":9100", "Bind address for the metrics server.")
 	serverFS.Var(cliflag.NewMapStringBool(&o.ServerOption.FeatureGates), "feature-gates", "A set of key=value pairs that describe featuregate gates for various features.")
 
 	kubeletFS := fss.FlagSet("kubelet")
