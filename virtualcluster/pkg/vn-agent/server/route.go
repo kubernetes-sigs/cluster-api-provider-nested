@@ -118,6 +118,7 @@ func (s *Server) proxy(req *restful.Request, resp *restful.Response) {
 	klog.V(4).Infof("request %+v", req.Request.URL)
 
 	var host string
+	var handler *proxy.UpgradeAwareHandler
 
 	// there must be a peer certificate in the tls connection
 	if req.Request.TLS == nil || len(req.Request.TLS.PeerCertificates) == 0 {
@@ -144,9 +145,11 @@ func (s *Server) proxy(req *restful.Request, resp *restful.Response) {
 			klog.Errorf("fail to translate url path for super master: %s", err)
 			resp.ResponseWriter.WriteHeader(http.StatusNotFound)
 			resp.ResponseWriter.Write([]byte(err.Error()))
-			failureCounter.WithLabelValues(
-				s.superAPIServerAddress.Host, action, tenantName, podNamespace, errorTranslatingPath).
-				Inc()
+			if s.enableMetrics {
+				failureCounter.WithLabelValues(
+					s.superAPIServerAddress.Host, action, tenantName, podNamespace, errorTranslatingPath).
+					Inc()
+			}
 			return
 		}
 		klog.V(4).Infof("request after translate %+v", req.Request.URL)
@@ -158,29 +161,40 @@ func (s *Server) proxy(req *restful.Request, resp *restful.Response) {
 	}
 
 	roundTripper := getRoundTripper(s.transport, host, tenantName, action, podNamespace)
+	httpResponder := &responder{
+		action:        action,
+		tenantName:    tenantName,
+		podNamespace:  podNamespace,
+		host:          host,
+		enableMetrics: s.enableMetrics,
+	}
 
-	handler := proxy.NewUpgradeAwareHandler(req.Request.URL, roundTripper /*transport*/, false, /*wrapTransport*/
-		httpstream.IsUpgradeRequest(req.Request) /*upgradeRequired*/, &responder{
-			action:       action,
-			tenantName:   tenantName,
-			podNamespace: podNamespace,
-			host:         host,
-		})
-	handler.UpgradeTransport = proxy.NewUpgradeRequestRoundTripper(s.transport, roundTripper)
+	if s.enableMetrics {
+		handler = proxy.NewUpgradeAwareHandler(req.Request.URL, roundTripper /*transport*/, false, /*wrapTransport*/
+			httpstream.IsUpgradeRequest(req.Request) /*upgradeRequired*/, httpResponder)
+		handler.UpgradeTransport = proxy.NewUpgradeRequestRoundTripper(s.transport, roundTripper)
+	} else {
+		handler = proxy.NewUpgradeAwareHandler(req.Request.URL, s.transport /*transport*/, false, /*wrapTransport*/
+			httpstream.IsUpgradeRequest(req.Request) /*upgradeRequired*/, httpResponder)
+	}
+
 	handler.ServeHTTP(resp.ResponseWriter, req.Request)
 }
 
 type responder struct {
-	action       string
-	tenantName   string
-	podNamespace string
-	host         string
+	action        string
+	tenantName    string
+	podNamespace  string
+	host          string
+	enableMetrics bool
 }
 
 func (r *responder) Error(w http.ResponseWriter, req *http.Request, err error) {
-	failureCounter.WithLabelValues(r.host, r.action, r.tenantName,
-		r.podNamespace, errorProxyingRequest).
-		Inc()
+	if r.enableMetrics {
+		failureCounter.WithLabelValues(r.host, r.action, r.tenantName,
+			r.podNamespace, errorProxyingRequest).
+			Inc()
+	}
 	klog.Errorf("Error while proxying request: %v", err)
 	http.Error(w, err.Error(), http.StatusInternalServerError)
 }

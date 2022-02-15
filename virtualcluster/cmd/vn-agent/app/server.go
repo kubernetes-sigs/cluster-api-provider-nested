@@ -140,18 +140,18 @@ func Run(c *config.Config, serverOption *options.ServerOption, stopCh <-chan str
 		healthz.InstallHandler(mux)
 		healthz.InstallLivezHandler(mux)
 		healthz.InstallReadyzHandler(mux)
-
 		klog.Fatal(http.ListenAndServe(":8080", mux))
 		errCh <- err
 	}()
 
-	klog.Infof("starting metrics server on %s", serverOption.MetricsAddr)
-
-	go func() {
-		// start metrics server
-		klog.Fatal(http.ListenAndServe(serverOption.MetricsAddr, server.NewMetricsServer()))
-		errCh <- err
-	}()
+	if serverOption.EnableMetrics {
+		klog.Infof("starting metrics server on %s", serverOption.MetricsAddr)
+		go func() {
+			// start metrics server
+			klog.Fatal(http.ListenAndServe(serverOption.MetricsAddr, server.NewMetricsServer()))
+			errCh <- err
+		}()
+	}
 
 	select {
 	case <-stopCh:

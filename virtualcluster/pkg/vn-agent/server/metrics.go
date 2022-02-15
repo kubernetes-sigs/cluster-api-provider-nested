@@ -19,7 +19,6 @@ package server
 import (
 	"fmt"
 	"net/http"
-	"net/http/pprof"
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -75,8 +74,7 @@ var (
 
 var registerMetrics sync.Once
 
-// Register all metrics.
-func Register() {
+func register() {
 	registerMetrics.Do(func() {
 		prometheus.MustRegister(counterForTenantsAndNamespace,
 			failureCounter,
@@ -88,14 +86,9 @@ func Register() {
 
 // NewMetricsServer initializes and configures the MetricsServer.
 func NewMetricsServer() *http.ServeMux {
-	Register()
+	register()
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
-	mux.HandleFunc("/debug/pprof/", pprof.Index)
-	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 	return mux
 }
 
