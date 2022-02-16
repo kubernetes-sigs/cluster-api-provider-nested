@@ -20,12 +20,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"k8s.io/apiserver/pkg/server/healthz"
 	"net/http"
 	"os"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"k8s.io/apiserver/pkg/server/healthz"
 	certutil "k8s.io/client-go/util/cert"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/cli/globalflag"
@@ -132,13 +132,26 @@ func Run(c *config.Config, serverOption *options.ServerOption, stopCh <-chan str
 		errCh <- err
 	}()
 
+	klog.Info("starting health api server on :8080")
+
 	go func() {
 		// start a health http server.
 		mux := http.NewServeMux()
 		healthz.InstallHandler(mux)
+		healthz.InstallLivezHandler(mux)
+		healthz.InstallReadyzHandler(mux)
 		klog.Fatal(http.ListenAndServe(":8080", mux))
 		errCh <- err
 	}()
+
+	if serverOption.EnableMetrics {
+		klog.Infof("starting metrics server on %s", serverOption.MetricsAddr)
+		go func() {
+			// start metrics server
+			klog.Fatal(http.ListenAndServe(serverOption.MetricsAddr, server.NewMetricsServer()))
+			errCh <- err
+		}()
+	}
 
 	select {
 	case <-stopCh:
