@@ -17,7 +17,7 @@ limitations under the License.
 package listener
 
 import (
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
 )

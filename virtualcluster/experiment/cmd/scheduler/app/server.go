@@ -29,7 +29,7 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/cli/globalflag"
 	"k8s.io/component-base/term"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	schedulerappconfig "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/cmd/scheduler/app/config"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/cmd/scheduler/app/options"

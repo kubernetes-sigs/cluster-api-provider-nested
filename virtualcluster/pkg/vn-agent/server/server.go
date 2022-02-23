@@ -39,6 +39,7 @@ type Server struct {
 	transport             *http.Transport
 	superAPIServerAddress *url.URL
 	restConfig            *rest.Config
+	enableMetrics         bool
 }
 
 // ServeHTTP responds to HTTP requests on the vn-agent.
@@ -55,8 +56,9 @@ func NewServer(cfg *config.Config, serverOption *options.ServerOption) (*Server,
 	cfg.KubeletServerHost = u.Host
 
 	server := &Server{
-		restfulCont: restful.NewContainer(),
-		config:      cfg,
+		restfulCont:   restful.NewContainer(),
+		config:        cfg,
+		enableMetrics: serverOption.EnableMetrics,
 	}
 
 	server.InstallHandlers()

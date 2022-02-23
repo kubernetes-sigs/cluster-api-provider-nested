@@ -29,7 +29,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	clientgocache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -294,14 +294,14 @@ func (c *Cluster) GetInformer(objectType client.Object) (cache.Informer, error) 
 // Start starts the Cluster's cache and blocks,
 // until context for the cache is cancelled.
 func (c *Cluster) Start() error {
-	ca, err := c.getCache()
-	if err != nil {
-		return err
-	}
 
 	ctx, cancel := context.WithCancel(c.context)
 	c.cancelContext = cancel
 
+	ca, err := c.getCache()
+	if err != nil {
+		return err
+	}
 	return ca.Start(ctx)
 }
 

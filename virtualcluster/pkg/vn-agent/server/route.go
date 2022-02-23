@@ -17,12 +17,14 @@ limitations under the License.
 package server
 
 import (
-	"net/http"
-
 	"github.com/emicklei/go-restful"
+
 	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/apimachinery/pkg/util/proxy"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
+
+	"net/http"
+	"strings"
 )
 
 // InstallHandlers set router and handlers.
@@ -115,48 +117,90 @@ func (s *Server) InstallHandlers() {
 func (s *Server) proxy(req *restful.Request, resp *restful.Response) {
 	klog.V(4).Infof("request %+v", req.Request.URL)
 
+	var host string
+	var handler *proxy.UpgradeAwareHandler
+
 	// there must be a peer certificate in the tls connection
 	if req.Request.TLS == nil || len(req.Request.TLS.PeerCertificates) == 0 {
 		resp.ResponseWriter.WriteHeader(http.StatusForbidden)
 		return
 	}
 
+	action, podNamespace := extractFromPath(req)
+	tenantName := req.Request.TLS.PeerCertificates[0].Subject.CommonName
+
 	if s.config.KubeletClientCert != nil {
 		klog.Info("will forward request to kubelet")
+		host = s.config.KubeletServerHost
 		// forward request to kubelet
-		req.Request.URL.Host = s.config.KubeletServerHost
+		req.Request.URL.Host = host
 		req.Request.URL.Scheme = "https"
-
-		tenantName := req.Request.TLS.PeerCertificates[0].Subject.CommonName
 		TranslatePath(req, tenantName)
-
-		klog.V(4).Infof("request after translate %+v", req.Request.URL)
 	} else {
 		klog.Info("will forward request to super apiserver")
+		host = s.superAPIServerAddress.Host
 		// forward request to super apiserver
-		tenantName := req.Request.TLS.PeerCertificates[0].Subject.CommonName
 		err := TranslatePathForSuper(req, tenantName)
 		if err != nil {
 			klog.Errorf("fail to translate url path for super master: %s", err)
 			resp.ResponseWriter.WriteHeader(http.StatusNotFound)
 			resp.ResponseWriter.Write([]byte(err.Error()))
+			if s.enableMetrics {
+				failureCounter.WithLabelValues(
+					s.superAPIServerAddress.Host, action, tenantName, podNamespace, errorTranslatingPath).
+					Inc()
+			}
 			return
 		}
 		klog.V(4).Infof("request after translate %+v", req.Request.URL)
 
 		// mutate the request, i.e., replacing the dst, add bearer token header
-		req.Request.URL.Host = s.superAPIServerAddress.Host
+		req.Request.URL.Host = host
 		req.Request.URL.Scheme = "https"
 		req.Request.Header.Add("Authorization", "Bearer "+s.restConfig.BearerToken)
 	}
 
-	handler := proxy.NewUpgradeAwareHandler(req.Request.URL, s.transport /*transport*/, false /*wrapTransport*/, httpstream.IsUpgradeRequest(req.Request) /*upgradeRequired*/, &responder{})
+	roundTripper := getRoundTripper(s.transport, host, tenantName, action, podNamespace)
+	httpResponder := &responder{
+		action:        action,
+		tenantName:    tenantName,
+		podNamespace:  podNamespace,
+		host:          host,
+		enableMetrics: s.enableMetrics,
+	}
+
+	if s.enableMetrics {
+		handler = proxy.NewUpgradeAwareHandler(req.Request.URL, roundTripper /*transport*/, false, /*wrapTransport*/
+			httpstream.IsUpgradeRequest(req.Request) /*upgradeRequired*/, httpResponder)
+		handler.UpgradeTransport = proxy.NewUpgradeRequestRoundTripper(s.transport, roundTripper)
+	} else {
+		handler = proxy.NewUpgradeAwareHandler(req.Request.URL, s.transport /*transport*/, false, /*wrapTransport*/
+			httpstream.IsUpgradeRequest(req.Request) /*upgradeRequired*/, httpResponder)
+	}
+
 	handler.ServeHTTP(resp.ResponseWriter, req.Request)
 }
 
-type responder struct{}
+type responder struct {
+	action        string
+	tenantName    string
+	podNamespace  string
+	host          string
+	enableMetrics bool
+}
 
 func (r *responder) Error(w http.ResponseWriter, req *http.Request, err error) {
+	if r.enableMetrics {
+		failureCounter.WithLabelValues(r.host, r.action, r.tenantName,
+			r.podNamespace, errorProxyingRequest).
+			Inc()
+	}
 	klog.Errorf("Error while proxying request: %v", err)
 	http.Error(w, err.Error(), http.StatusInternalServerError)
+}
+
+func extractFromPath(req *restful.Request) (string, string) {
+	action := strings.Split(req.Request.URL.Path[1:], "/")[0]
+	pathParas := req.PathParameters()
+	return action, pathParas["podNamespace"]
 }

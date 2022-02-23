@@ -18,6 +18,7 @@ package priorityclass
 
 import (
 	"fmt"
+
 	v1 "k8s.io/api/scheduling/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
@@ -26,7 +27,7 @@ import (
 	v1priorityclass "k8s.io/client-go/kubernetes/typed/scheduling/v1"
 	listersv1 "k8s.io/client-go/listers/scheduling/v1"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	vcclient "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/client/clientset/versioned"
 	vcinformers "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/client/informers/externalversions/tenancy/v1alpha1"

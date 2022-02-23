@@ -37,7 +37,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	cliflag "k8s.io/component-base/cli/flag"
 	componentbaseconfig "k8s.io/component-base/config"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis"
 
 	schedulerappconfig "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/cmd/scheduler/app/config"
