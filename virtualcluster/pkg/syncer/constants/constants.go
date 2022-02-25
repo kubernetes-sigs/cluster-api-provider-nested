@@ -64,6 +64,9 @@ const (
 	TenantDNSServerNS          = "kube-system"
 	TenantDNSServerServiceName = "kube-dns"
 
+	// TenantDisableDNSPolicyMutation is a label that allows pods to stop the syncer from mutating the dnsPolicy
+	TenantDisableDNSPolicyMutation = "tenancy.x-k8s.io/disable.dnsPolicyMutation"
+
 	// PublicObjectKey is a label key which marks the super master object that should be populated to every tenant master.
 	PublicObjectKey = "tenancy.x-k8s.io/super.public"
 
