@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion/envvars"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
 	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
 )
 
@@ -287,6 +288,16 @@ func getServiceEnvVarMap(ns, cluster string, enableServiceLinks *bool, services 
 }
 
 func mutateDNSConfig(p *podMutateCtx, vPod *v1.Pod, clusterDomain, nameServer string) {
+	// If the TenantAllowDNSPolicy feature gate is added AND if the vPod labels include
+	// tenancy.x-k8s.io/disable.dnsPolicyMutation: "true" then we should return without
+	// mutating the config. This is to allow special pods like coredns to use the
+	// dnsPolicy: ClusterFirst.
+	allowTenantDNSPolicy := featuregate.DefaultFeatureGate.Enabled(featuregate.TenantAllowDNSPolicy)
+	disableDNSPolicyMutation, ok := vPod.GetLabels()[constants.TenantDisableDNSPolicyMutation]
+	if allowTenantDNSPolicy && (ok && disableDNSPolicyMutation == "true") {
+		return
+	}
+
 	dnsPolicy := p.pPod.Spec.DNSPolicy
 
 	switch dnsPolicy {
@@ -320,7 +331,6 @@ func mutateClusterFirstDNS(p *podMutateCtx, vPod *v1.Pod, clusterDomain, nameSer
 	// itself will forward queries to other nameservers that is configured
 	// to use, in case the cluster DNS server cannot resolve the DNS query
 	// itself.
-	// FIXME(zhuangqh): tenant configure more dns server.
 	dnsConfig := &v1.PodDNSConfig{
 		Nameservers: []string{nameServer},
 		Options: []v1.PodDNSConfigOption{
@@ -341,6 +351,7 @@ func mutateClusterFirstDNS(p *podMutateCtx, vPod *v1.Pod, clusterDomain, nameSer
 	if existingDNSConfig != nil {
 		dnsConfig.Nameservers = omitDuplicates(append(dnsConfig.Nameservers, existingDNSConfig.Nameservers...))
 		dnsConfig.Searches = omitDuplicates(append(dnsConfig.Searches, existingDNSConfig.Searches...))
+		dnsConfig.Options = omitDuplicatePodDNSConfigOption(append(dnsConfig.Options, existingDNSConfig.Options...))
 	}
 
 	p.pPod.Spec.DNSPolicy = v1.DNSNone
@@ -358,6 +369,21 @@ func omitDuplicates(strs []string) []string {
 		}
 	}
 	return ret
+}
+
+func omitDuplicatePodDNSConfigOption(sample []v1.PodDNSConfigOption) []v1.PodDNSConfigOption {
+	var unique []v1.PodDNSConfigOption
+configOptionLoop:
+	for _, v := range sample {
+		for i, u := range unique {
+			if v.Name == u.Name {
+				unique[i] = v
+				continue configOptionLoop
+			}
+		}
+		unique = append(unique, v)
+	}
+	return unique
 }
 
 // for now, only Deployment Pods are mutated.
