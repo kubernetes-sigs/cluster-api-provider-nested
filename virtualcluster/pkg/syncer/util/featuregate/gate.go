@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -50,6 +50,11 @@ const (
 	// tenant pods to label themselves and use dnsPolicy's like `ClusterFirst`
 	// from the super cluster
 	TenantAllowDNSPolicy = "TenantAllowDNSPolicy"
+
+	// VNodeProviderPodIP is an experimental feature that allows the
+	// vn-agent to run as a daemonset but run without hostNetworking and
+	// accessed by the PodIP on each pod on the node
+	VNodeProviderPodIP = "VNodeProviderPodIP"
 )
 
 var defaultFeatures = FeatureList{
@@ -57,6 +62,7 @@ var defaultFeatures = FeatureList{
 	SuperClusterServiceNetwork: {Default: false},
 	VNodeProviderService:       {Default: false},
 	TenantAllowDNSPolicy:       {Default: false},
+	VNodeProviderPodIP:         {Default: false},
 }
 
 type Feature string
