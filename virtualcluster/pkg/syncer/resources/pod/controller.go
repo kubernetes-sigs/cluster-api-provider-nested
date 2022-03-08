@@ -39,6 +39,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/manager"
 	pa "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/patrol"
+	featureplugin "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/plugin"
+	validationplugin "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/resources/validationplugin"
 	uw "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/uwcontroller"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode/provider"
@@ -75,6 +77,7 @@ type controller struct {
 	vNodeGCGracePeriod time.Duration
 	// vnodeProvider manages vnode object.
 	vnodeProvider provider.VirtualNodeProvider
+	plugin        validationplugin.ValidationPluginInterface
 }
 
 type VirtulNodeDeletionPhase string
@@ -112,6 +115,15 @@ func NewPodController(config *config.SyncerConfiguration,
 		mc.WithMaxConcurrentReconciles(constants.DwsControllerWorkerHigh), mc.WithOptions(options.MCOptions))
 	if err != nil {
 		return nil, err
+	}
+
+	// check registered validation plugin
+	r := featureplugin.DefaultFeatureRegister.Get()
+	if r != nil {
+		c.plugin, err = r.Init(c.MultiClusterController, options.IsFake).Instance()
+		if err != nil {
+			klog.Errorf("initialize validation plugin with err %v", err)
+		}
 	}
 
 	c.serviceLister = c.informer.Services().Lister()

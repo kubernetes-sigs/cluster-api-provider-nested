@@ -207,6 +207,29 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 	if err != nil {
 		return fmt.Errorf("failed to mutate pod: %v", err)
 	}
+
+	// Validation plugin processing
+	if c.plugin != nil {
+		if c.plugin.EnableValidationPlugin() {
+			defer func() {
+				recordOperationDuration("validation_plugin", time.Now())
+			}()
+			// Serialize pod creation for each tenant
+			t := c.plugin.GetTenantLocker(clusterName)
+			if t == nil {
+				return errors.NewBadRequest("cannot get tenant")
+			}
+			t.Cond.Lock()
+			defer t.Cond.Unlock()
+			if !c.plugin.Validation(newObj, clusterName) {
+				// put pod aside, not to try to create it again.
+				klog.Errorf("validation failed for virtual cluster namespace %v, no pod sync", targetNamespace)
+				return nil
+				//do not requeue return errors.NewBadRequest("validation failed for virtual cluster")
+			}
+		}
+	}
+
 	pPod, err = c.client.Pods(targetNamespace).Create(context.TODO(), pPod, metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {
 		if pPod.Annotations[constants.LabelUID] == requestUID {
