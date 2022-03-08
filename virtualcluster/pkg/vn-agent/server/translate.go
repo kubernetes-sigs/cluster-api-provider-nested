@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/emicklei/go-restful"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // TranslatePath translate the naming between tenant and master cluster.

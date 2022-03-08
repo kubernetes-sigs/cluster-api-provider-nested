@@ -45,12 +45,18 @@ const (
 	// vn-agent to run as a load balanced deployment proxy to the super
 	// cluster API Server
 	VNodeProviderService = "VNodeProviderService"
+
+	// TenantAllowDNSPolicy is an experimental feature that allows the
+	// tenant pods to label themselves and use dnsPolicy's like `ClusterFirst`
+	// from the super cluster
+	TenantAllowDNSPolicy = "TenantAllowDNSPolicy"
 )
 
 var defaultFeatures = FeatureList{
 	SuperClusterPooling:        {Default: false},
 	SuperClusterServiceNetwork: {Default: false},
 	VNodeProviderService:       {Default: false},
+	TenantAllowDNSPolicy:       {Default: false},
 }
 
 type Feature string

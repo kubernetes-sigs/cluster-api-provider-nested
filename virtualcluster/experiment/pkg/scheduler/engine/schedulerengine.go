@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"sync"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/scheduler/algorithm"
 	internalcache "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/scheduler/cache"

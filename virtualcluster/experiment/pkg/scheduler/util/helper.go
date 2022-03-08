@@ -27,7 +27,7 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/apis/cluster/v1alpha4"
 	internalcache "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/scheduler/cache"

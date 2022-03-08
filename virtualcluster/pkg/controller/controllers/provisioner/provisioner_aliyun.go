@@ -43,11 +43,12 @@ import (
 
 type ProvisionerAliyun struct {
 	client.Client
-	scheme *runtime.Scheme
-	Log    logr.Logger
+	scheme             *runtime.Scheme
+	Log                logr.Logger
+	ProvisionerTimeout time.Duration
 }
 
-func NewProvisionerAliyun(mgr manager.Manager, log logr.Logger) (*ProvisionerAliyun, error) {
+func NewProvisionerAliyun(mgr manager.Manager, log logr.Logger, provisionerTimeout time.Duration) (*ProvisionerAliyun, error) {
 	// if running under aliyun mode, 'AliyunAkSrt' and 'AliyunASKConfigMap' is required
 	ns, err := kubeutil.GetPodNsFromInside()
 	if err != nil {
@@ -70,9 +71,10 @@ func NewProvisionerAliyun(mgr manager.Manager, log logr.Logger) (*ProvisionerAli
 		return nil, fmt.Errorf("configmap/%s doesnot exist", aliyunutil.AliyunASKConfigMap)
 	}
 	return &ProvisionerAliyun{
-		Client: mgr.GetClient(),
-		scheme: mgr.GetScheme(),
-		Log:    log.WithName("Aliyun"),
+		Client:             mgr.GetClient(),
+		scheme:             mgr.GetScheme(),
+		Log:                log.WithName("Aliyun"),
+		ProvisionerTimeout: provisionerTimeout,
 	}, nil
 }
 
@@ -102,7 +104,7 @@ func (mpa *ProvisionerAliyun) CreateVirtualCluster(ctx context.Context, vc *tena
 		clsState string
 		clsSlbId string
 	)
-	creationTimeout := time.After(600 * time.Second)
+	creationTimeout := time.After(mpa.ProvisionerTimeout)
 	clsID, err = aliyunutil.SendCreationRequest(cli, vc.Name, askCfg)
 	if err != nil {
 		if !aliyunutil.IsSDKErr(err) {

@@ -88,9 +88,10 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&ReconcileVirtualCluster{
-		Client:          mgr.GetClient(),
-		Log:             ctrl.Log.WithName("controllers").WithName("VirtualCluster"),
-		ProvisionerName: "native",
+		Client:             mgr.GetClient(),
+		Log:                ctrl.Log.WithName("controllers").WithName("VirtualCluster"),
+		ProvisionerName:    "native",
+		ProvisionerTimeout: 10 * time.Minute,
 	}).SetupWithManager(mgr, opts)
 	Expect(err).ToNot(HaveOccurred())
 

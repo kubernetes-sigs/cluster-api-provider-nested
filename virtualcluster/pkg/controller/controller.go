@@ -17,6 +17,8 @@ limitations under the License.
 package controller
 
 import (
+	"time"
+
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -30,6 +32,7 @@ type Controllers struct {
 	Log                     logr.Logger
 	MaxConcurrentReconciles int
 	ProvisionerName         string
+	ProvisionerTimeout      time.Duration
 }
 
 // AddToManager adds all Controllers to the Manager
@@ -61,9 +64,10 @@ func (c *Controllers) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	if err := (&controllers.ReconcileVirtualCluster{
-		Client:          mgr.GetClient(),
-		Log:             c.Log.WithName("virtualcluster"),
-		ProvisionerName: c.ProvisionerName,
+		Client:             mgr.GetClient(),
+		Log:                c.Log.WithName("virtualcluster"),
+		ProvisionerName:    c.ProvisionerName,
+		ProvisionerTimeout: c.ProvisionerTimeout,
 	}).SetupWithManager(mgr, opts); err != nil {
 		return err
 	}

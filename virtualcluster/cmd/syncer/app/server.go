@@ -31,7 +31,7 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/cli/globalflag"
 	"k8s.io/component-base/term"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	syncerconfig "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/cmd/syncer/app/config"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/cmd/syncer/app/options"
@@ -122,7 +122,7 @@ func Run(cc *syncerconfig.CompletedConfig, stopCh <-chan struct{}) error {
 	defer cancel()
 
 	// Prepare a reusable runCommand function.
-	run := startSyncer(ctx, ss, cc, stopCh)
+	run := startSyncer(ss, stopCh)
 
 	go func() {
 		select {
@@ -130,6 +130,22 @@ func Run(cc *syncerconfig.CompletedConfig, stopCh <-chan struct{}) error {
 			cancel()
 		case <-ctx.Done():
 		}
+	}()
+
+	go func() {
+		// start a pprof http server
+		klog.Fatal(http.ListenAndServe(":6060", nil))
+	}()
+
+	go func() {
+		// start a health http server.
+		mux := http.NewServeMux()
+		healthz.InstallHandler(mux)
+		klog.Fatal(http.ListenAndServe(":8080", mux))
+	}()
+
+	go func() {
+		ss.ListenAndServe(net.JoinHostPort(cc.Address, cc.Port), cc.CertFile, cc.KeyFile)
 	}()
 
 	if cc.LeaderElection != nil {
@@ -154,22 +170,9 @@ func Run(cc *syncerconfig.CompletedConfig, stopCh <-chan struct{}) error {
 	return fmt.Errorf("finished without leader elect")
 }
 
-func startSyncer(ctx context.Context, s syncer.Bootstrap, cc *syncerconfig.CompletedConfig, stopCh <-chan struct{}) func(context.Context) {
+func startSyncer(s syncer.Bootstrap, stopCh <-chan struct{}) func(context.Context) {
 	return func(ctx context.Context) {
 		s.Run(stopCh)
-		go func() {
-			s.ListenAndServe(net.JoinHostPort(cc.Address, cc.Port), cc.CertFile, cc.KeyFile)
-		}()
-		go func() {
-			// start a pprof http server
-			klog.Fatal(http.ListenAndServe(":6060", nil))
-		}()
-		go func() {
-			// start a health http server.
-			mux := http.NewServeMux()
-			healthz.InstallHandler(mux)
-			klog.Fatal(http.ListenAndServe(":8080", mux))
-		}()
 		<-ctx.Done()
 	}
 }

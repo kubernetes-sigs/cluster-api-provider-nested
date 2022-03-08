@@ -21,6 +21,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
@@ -42,21 +43,21 @@ import (
 const (
 	DefaultETCDPeerPort    = 2380
 	ComponentPollPeriodSec = 2
-	// timeout for components deployment
-	DeployTimeOutSec = 180
 )
 
 type ProvisionerNative struct {
 	client.Client
-	scheme *runtime.Scheme
-	Log    logr.Logger
+	scheme             *runtime.Scheme
+	Log                logr.Logger
+	ProvisionerTimeout time.Duration
 }
 
-func NewProvisionerNative(mgr manager.Manager, log logr.Logger) (*ProvisionerNative, error) {
+func NewProvisionerNative(mgr manager.Manager, log logr.Logger, provisionerTimeout time.Duration) (*ProvisionerNative, error) {
 	return &ProvisionerNative{
-		Client: mgr.GetClient(),
-		scheme: mgr.GetScheme(),
-		Log:    log.WithName("Native"),
+		Client:             mgr.GetClient(),
+		scheme:             mgr.GetScheme(),
+		Log:                log.WithName("Native"),
+		ProvisionerTimeout: provisionerTimeout,
 	}, nil
 }
 
@@ -187,7 +188,8 @@ func (mpn *ProvisionerNative) deployComponent(vc *tenancyv1alpha1.VirtualCluster
 			"namespace", ssBdl.StatefulSet.GetNamespace())
 	}
 
-	if ssBdl.Service != nil {
+	// skip apiserver clusterIP service creation as it is already created in CreateVirtualCluster()
+	if ssBdl.Service != nil && !(ssBdl.Name == "apiserver" && ssBdl.Service.Spec.Type == v1.ServiceTypeClusterIP) {
 		mpn.Log.Info("deploying Service for master component", "component", ssBdl.Name)
 		err = mpn.Create(context.TODO(), ssBdl.Service)
 		if err != nil {
@@ -200,7 +202,7 @@ func (mpn *ProvisionerNative) deployComponent(vc *tenancyv1alpha1.VirtualCluster
 	}
 
 	// wait for the statefuleset to be ready
-	err = kubeutil.WaitStatefulSetReady(mpn, ns, ssBdl.Name, DeployTimeOutSec, ComponentPollPeriodSec)
+	err = kubeutil.WaitStatefulSetReady(mpn, ns, ssBdl.Name, int64(mpn.ProvisionerTimeout/time.Second), ComponentPollPeriodSec)
 	if err != nil {
 		return err
 	}
