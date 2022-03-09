@@ -110,7 +110,7 @@ func (o *ResourceSyncerOptions) Flags() cliflag.NamedFlagSets {
 	fs := fss.FlagSet("server")
 	fs.StringVar(&o.SuperClusterAddress, "super-master", o.SuperClusterAddress, "The address of the super master Kubernetes API server (overrides any value in super-master-kubeconfig).")
 	fs.StringVar(&o.ComponentConfig.ClientConnection.Kubeconfig, "super-master-kubeconfig", o.ComponentConfig.ClientConnection.Kubeconfig, "Path to kubeconfig file with authorization and master location information.")
-	fs.StringVar(&o.ComponentConfig.Timeout, "super-master-timeout", o.ComponentConfig.Timeout, "Timeout of the super master Kubernetes API server (overrides any value in super-master-kubeconfig).")
+	fs.StringVar(&o.ComponentConfig.Timeout, "super-master-timeout", o.ComponentConfig.Timeout, "Timeout of the super master Kubernetes API server, Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'. (overrides any value in super-master-kubeconfig).")
 	fs.StringVar(&o.MetaClusterAddress, "meta-cluster-address", o.MetaClusterAddress, "The address of the meta cluster Kubernetes API server (overrides any value in meta-cluster-kubeconfig).")
 	fs.StringVar(&o.MetaClusterClientConnection.Kubeconfig, "meta-cluster-kubeconfig", o.MetaClusterClientConnection.Kubeconfig, "Path to kubeconfig file of the meta cluster. If it is not provided, the super cluster is used")
 	fs.BoolVar(&o.DeployOnMetaCluster, "deployment-on-meta", o.DeployOnMetaCluster, "Whether vc-syncer deploy on meta cluster")
