@@ -52,6 +52,7 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 
 func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Result, retErr error) {
 	klog.V(4).Infof("reconcile pod %s/%s for cluster %s", request.Namespace, request.Name, request.ClusterName)
+	reconcilestart := time.Now()
 	targetNamespace := conversion.ToSuperClusterNamespace(request.ClusterName, request.Namespace)
 
 	pPod, err := c.podLister.Pods(targetNamespace).Get(request.Name)
@@ -66,7 +67,7 @@ func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Resul
 
 	var operation string
 	defer func() {
-		recordOperationDuration(operation, time.Now())
+		recordOperationDuration(operation, reconcilestart)
 		recordOperationStatus(operation, retErr)
 	}()
 
@@ -209,10 +210,11 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 	}
 
 	// Validation plugin processing
+	pluginstart := time.Now()
 	if c.plugin != nil {
 		if c.plugin.EnableValidationPlugin() {
 			defer func() {
-				recordOperationDuration("validation_plugin", time.Now())
+				recordOperationDuration("validation_plugin", pluginstart)
 			}()
 			// Serialize pod creation for each tenant
 			t := c.plugin.GetTenantLocker(clusterName)
