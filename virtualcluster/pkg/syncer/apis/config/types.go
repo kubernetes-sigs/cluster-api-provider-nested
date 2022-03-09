@@ -70,6 +70,9 @@ type SyncerConfiguration struct {
 
 	// Super cluster rest config
 	RestConfig *rest.Config
+
+	// The maximum length of time to wait before giving up on a server request. A value of "" means use default.
+	Timeout string
 }
 
 // SyncerLeaderElectionConfiguration expands LeaderElectionConfiguration
