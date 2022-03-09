@@ -84,6 +84,7 @@ func NewResourceSyncerOptions() (*ResourceSyncerOptions, error) {
 				LockObjectName: "syncer-leaderelection-lock",
 			},
 			ClientConnection:           componentbaseconfig.ClientConnectionConfiguration{},
+			Timeout:                    "",
 			DisableServiceAccountToken: true,
 			DefaultOpaqueMetaDomains:   []string{"kubernetes.io", "k8s.io"},
 			ExtraSyncingResources:      []string{},
@@ -109,6 +110,7 @@ func (o *ResourceSyncerOptions) Flags() cliflag.NamedFlagSets {
 	fs := fss.FlagSet("server")
 	fs.StringVar(&o.SuperClusterAddress, "super-master", o.SuperClusterAddress, "The address of the super master Kubernetes API server (overrides any value in super-master-kubeconfig).")
 	fs.StringVar(&o.ComponentConfig.ClientConnection.Kubeconfig, "super-master-kubeconfig", o.ComponentConfig.ClientConnection.Kubeconfig, "Path to kubeconfig file with authorization and master location information.")
+	fs.StringVar(&o.ComponentConfig.Timeout, "super-master-timeout", o.ComponentConfig.Timeout, "Timeout of the super master Kubernetes API server (overrides any value in super-master-kubeconfig).")
 	fs.StringVar(&o.MetaClusterAddress, "meta-cluster-address", o.MetaClusterAddress, "The address of the meta cluster Kubernetes API server (overrides any value in meta-cluster-kubeconfig).")
 	fs.StringVar(&o.MetaClusterClientConnection.Kubeconfig, "meta-cluster-kubeconfig", o.MetaClusterClientConnection.Kubeconfig, "Path to kubeconfig file of the meta cluster. If it is not provided, the super cluster is used")
 	fs.BoolVar(&o.DeployOnMetaCluster, "deployment-on-meta", o.DeployOnMetaCluster, "Whether vc-syncer deploy on meta cluster")
@@ -169,12 +171,12 @@ func (o *ResourceSyncerOptions) Config() (*syncerappconfig.Config, error) {
 		leaderElectionRestConfig        restclient.Config
 		err                             error
 	)
-	superRestConfig, err = getClientConfig(c.ComponentConfig.ClientConnection, o.SuperClusterAddress, !o.DeployOnMetaCluster)
+	superRestConfig, err = getClientConfig(c.ComponentConfig.ClientConnection, o.SuperClusterAddress, o.ComponentConfig.Timeout, !o.DeployOnMetaCluster)
 	if err != nil {
 		return nil, err
 	}
 	if o.DeployOnMetaCluster || o.MetaClusterClientConnection.Kubeconfig != "" {
-		metaRestConfig, err = getClientConfig(o.MetaClusterClientConnection, o.MetaClusterAddress, o.DeployOnMetaCluster)
+		metaRestConfig, err = getClientConfig(o.MetaClusterClientConnection, o.MetaClusterAddress, o.ComponentConfig.Timeout, o.DeployOnMetaCluster)
 		if err != nil {
 			return nil, err
 		}
@@ -312,7 +314,7 @@ func getInClusterNamespace() (string, error) {
 }
 
 // getClientConfig creates a Kubernetes client rest config from the given config and masterOverride.
-func getClientConfig(config componentbaseconfig.ClientConnectionConfiguration, masterOverride string, inCluster bool) (*restclient.Config, error) {
+func getClientConfig(config componentbaseconfig.ClientConnectionConfiguration, masterOverride, timeout string, inCluster bool) (*restclient.Config, error) {
 	// This creates a client, first loading any specified kubeconfig
 	// file, and then overriding the Master flag, if non-empty.
 	var (
@@ -334,8 +336,18 @@ func getClientConfig(config componentbaseconfig.ClientConnectionConfiguration, m
 		return nil, err
 	}
 
-	if restConfig.Timeout == 0 {
-		restConfig.Timeout = constants.DefaultRequestTimeout
+	// Allow Syncer CLI Flag timeout override
+	if len(timeout) == 0 {
+		if restConfig.Timeout == 0 {
+			restConfig.Timeout = constants.DefaultRequestTimeout
+		}
+	} else {
+		timeoutDuration, err := time.ParseDuration(timeout)
+		if err != nil {
+			return nil, err
+		}
+
+		restConfig.Timeout = timeoutDuration
 	}
 
 	restConfig.ContentConfig.ContentType = config.AcceptContentTypes
