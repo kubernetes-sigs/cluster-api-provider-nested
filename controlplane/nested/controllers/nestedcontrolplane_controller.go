@@ -346,7 +346,7 @@ func (r *NestedControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, 
 func (r *NestedControlPlaneReconciler) reconcileControllerOwners(ctx context.Context, ncp *controlplanev1.NestedControlPlane, addOwners []client.Object) error {
 	for _, component := range addOwners {
 		if err := ctrl.SetControllerReference(ncp, component, r.Scheme); err != nil {
-			if _, ok := err.(*controllerutil.AlreadyOwnedError); !ok {
+			if _, ok := err.(*controllerutil.AlreadyOwnedError); ok {
 				continue
 			}
 			return err
