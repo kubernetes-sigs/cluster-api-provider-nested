@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,9 @@ package pod
 
 import (
 	"fmt"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode/provider"
+	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/plugin"
 	"sync"
 	"time"
 
@@ -39,13 +42,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/manager"
 	pa "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/patrol"
-	featureplugin "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/plugin"
-	validationplugin "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/resources/validationplugin"
+	validationplugin "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/resources/pod/validationplugin"
 	uw "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/uwcontroller"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode"
-	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode/provider"
-	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
-	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/plugin"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/reconciler"
 )
 
@@ -118,11 +117,16 @@ func NewPodController(config *config.SyncerConfiguration,
 	}
 
 	// check registered validation plugin
-	r := featureplugin.DefaultFeatureRegister.Get()
-	if r != nil {
-		c.plugin, err = r.Init(c.MultiClusterController, options.IsFake).Instance()
-		if err != nil {
-			klog.Errorf("initialize validation plugin with err %v", err)
+	rs := validationplugin.ValidationRegister.List()
+	for _, r := range rs {
+		if r.ID == validationplugin.QuotaValidationPluginName {
+			ppp, err := r.Init(nil).Instance()
+			if err != nil {
+				klog.Errorf("initialize validation plugin with err %v", err)
+			} else {
+				c.plugin = ppp.(validationplugin.ValidationPluginInterface)
+				c.plugin.ContextInit(c.MultiClusterController, options.IsFake)
+			}
 		}
 	}
 

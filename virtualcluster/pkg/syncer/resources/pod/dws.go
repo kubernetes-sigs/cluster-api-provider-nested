@@ -212,10 +212,7 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 	// Validation plugin processing
 	pluginstart := time.Now()
 	if c.plugin != nil {
-		if c.plugin.EnableValidationPlugin() {
-			defer func() {
-				recordOperationDuration("validation_plugin", pluginstart)
-			}()
+		if c.plugin.Enabled() {
 			// Serialize pod creation for each tenant
 			t := c.plugin.GetTenantLocker(clusterName)
 			if t == nil {
@@ -231,6 +228,7 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 			}
 		}
 	}
+	recordOperationDuration("validation_plugin", pluginstart)
 
 	pPod, err = c.client.Pods(targetNamespace).Create(context.TODO(), pPod, metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {

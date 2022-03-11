@@ -1,0 +1,33 @@
+This is an example of how quota validation plugin should be created and initialized. 
+
+```
+package ExampleQuotaValidationPlugin
+
+import validationplugin "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/resources/pod/validationplugin"
+
+func init() {
+        validationplugin.ValidationRegister.Register(&uplugin.Registration{
+                ID: validationplugin.QuotaValidationPluginName,
+                InitFn: func(ctx *uplugin.InitContext) (interface{}, error) {
+                        return NewManager(manager.ResourceSyncerOptions{})
+                },
+                Disable: true,
+        })
+}
+
+type ExampleQuotaValidationPlugin struct {
+        validationplugin.QuotaValidationPlugin
+}
+
+func NewManager(options manager.ResourceSyncerOptions) (validationplugin.ValidationPluginInterface, error) {
+        q := &ExampleQuotaValidationPlugin{QuotaValidationPlugin: *validationplugin.New(validationplugin.QuotaValidationPluginName)}
+        go q.CleanIdleTenantInValidationPlugin(q.GetIdleTenantDuration())
+        return q, nil
+}
+
+func (q *ExampleQuotaValidationPlugin) Validation(podobj client.Object, clusterName string) bool {
+        return true
+}
+```
+
+
