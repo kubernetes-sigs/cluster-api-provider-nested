@@ -118,13 +118,15 @@ func NewPodController(config *config.SyncerConfiguration,
 
 	// check registered validation plugin
 	rs := validationplugin.ValidationRegister.List()
+	c.plugin = nil
 	for _, r := range rs {
 		if r.ID == validationplugin.QuotaValidationPluginName {
-			ppp, err := r.Init(nil).Instance()
+			quotaplugin, err := r.Init(nil).Instance()
 			if err != nil {
 				klog.Errorf("initialize validation plugin with err %v", err)
+				return nil, err
 			} else {
-				c.plugin = ppp.(validationplugin.ValidationPluginInterface)
+				c.plugin = quotaplugin.(validationplugin.ValidationPluginInterface)
 				c.plugin.ContextInit(c.MultiClusterController, options.IsFake)
 			}
 		}

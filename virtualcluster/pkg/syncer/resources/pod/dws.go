@@ -210,8 +210,8 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 	}
 
 	// Validation plugin processing
-	pluginstart := time.Now()
 	if c.plugin != nil {
+		pluginstart := time.Now()
 		if c.plugin.Enabled() {
 			// Serialize pod creation for each tenant
 			t := c.plugin.GetTenantLocker(clusterName)
@@ -223,12 +223,13 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 			if !c.plugin.Validation(newObj, clusterName) {
 				// put pod aside, not to try to create it again.
 				klog.Errorf("validation failed for virtual cluster namespace %v, no pod sync", targetNamespace)
+				recordOperationDuration("validation_plugin", pluginstart)
 				return nil
 				//do not requeue return errors.NewBadRequest("validation failed for virtual cluster")
 			}
 		}
+		recordOperationDuration("validation_plugin", pluginstart)
 	}
-	recordOperationDuration("validation_plugin", pluginstart)
 
 	pPod, err = c.client.Pods(targetNamespace).Create(context.TODO(), pPod, metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {
