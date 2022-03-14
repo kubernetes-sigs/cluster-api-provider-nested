@@ -1,3 +1,5 @@
+# Example Implementations
+
 This is an example of how quota validation plugin should be created and initialized. 
 
 ```
@@ -27,9 +29,10 @@ func NewManager(options manager.ResourceSyncerOptions) (validationplugin.Validat
 func (q *ExampleQuotaValidationPlugin) Validation(podobj client.Object, clusterName string) bool {
         return true
 }
+
 ```
 
-Users can extend the interface class and have their own implementations. Following is an example of essential functions for the validation plugin to work with per tenant lock and tenant list.
+### Users can extend the validationplugin  interface class and have their own implementations. Following is an example of essential functions that implement per tenant lock and manage tenant list.
 
 ```
 type QuotaValidationPlugin struct {
