@@ -52,6 +52,7 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 
 func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Result, retErr error) {
 	klog.V(4).Infof("reconcile pod %s/%s for cluster %s", request.Namespace, request.Name, request.ClusterName)
+	reconcilestart := time.Now()
 	targetNamespace := conversion.ToSuperClusterNamespace(request.ClusterName, request.Namespace)
 
 	pPod, err := c.podLister.Pods(targetNamespace).Get(request.Name)
@@ -66,7 +67,7 @@ func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Resul
 
 	var operation string
 	defer func() {
-		recordOperationDuration(operation, time.Now())
+		recordOperationDuration(operation, reconcilestart)
 		recordOperationStatus(operation, retErr)
 	}()
 
@@ -207,6 +208,29 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 	if err != nil {
 		return fmt.Errorf("failed to mutate pod: %v", err)
 	}
+
+	// Validation plugin processing
+	if c.plugin != nil {
+		pluginstart := time.Now()
+		if c.plugin.Enabled() {
+			// Serialize pod creation for each tenant
+			t := c.plugin.GetTenantLocker(clusterName)
+			if t == nil {
+				return errors.NewBadRequest("cannot get tenant")
+			}
+			t.Cond.Lock()
+			defer t.Cond.Unlock()
+			if !c.plugin.Validation(newObj, clusterName) {
+				// put pod aside, not to try to create it again.
+				klog.Errorf("validation failed for virtual cluster namespace %v, no pod sync", targetNamespace)
+				recordOperationDuration("validation_plugin", pluginstart)
+				return nil
+				//do not requeue return errors.NewBadRequest("validation failed for virtual cluster")
+			}
+		}
+		recordOperationDuration("validation_plugin", pluginstart)
+	}
+
 	pPod, err = c.client.Pods(targetNamespace).Create(context.TODO(), pPod, metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {
 		if pPod.Annotations[constants.LabelUID] == requestUID {
