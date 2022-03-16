@@ -52,7 +52,7 @@ func (c *controller) StartPatrol(stopCh <-chan struct{}) error {
 func (c *controller) PatrollerDo() {
 	clusterNames := c.MultiClusterController.GetClusterNames()
 	if len(clusterNames) == 0 {
-		klog.Infof("super cluster has no tenant control planes, giving up periodic checker: %s", "configmap")
+		klog.V(5).Infof("super cluster has no tenant control planes, giving up periodic checker: %s", "configmap")
 		return
 	}
 
