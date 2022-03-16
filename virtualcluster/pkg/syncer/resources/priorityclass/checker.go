@@ -44,11 +44,11 @@ func (c *controller) StartPatrol(stopCh <-chan struct{}) error {
 	return nil
 }
 
-// ParollerDo check if PriorityClass keeps consistency between super master and tenant masters.
+// PatrollerDo check if PriorityClass keeps consistency between super master and tenant masters.
 func (c *controller) PatrollerDo() {
 	clusterNames := c.MultiClusterController.GetClusterNames()
 	if len(clusterNames) == 0 {
-		klog.Infof("super cluster has no tenant control planes, giving up periodic checker: %s", "priorityclass")
+		klog.V(5).Infof("super cluster has no tenant control planes, giving up periodic checker: %s", "priorityclass")
 		return
 	}
 
