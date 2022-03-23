@@ -198,7 +198,7 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 
 	var ms = []conversion.PodMutator{
 		conversion.PodMutateServiceLink(c.Config.DisablePodServiceLinks),
-		conversion.PodMutateDefault(vPod, pSecretMap, services, nameServer),
+		conversion.PodMutateDefault(vPod, pSecretMap, services, nameServer, c.Config.DnsOptions),
 		conversion.PodMutateAutoMountServiceAccountToken(c.Config.DisableServiceAccountToken),
 		// TODO: make extension configurable
 		//conversion.PodAddExtensionMeta(vPod),

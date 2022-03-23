@@ -19,6 +19,7 @@ package options
 import (
 	"fmt"
 	"io/ioutil"
+	"k8s.io/utils/pointer"
 	"os"
 	"time"
 
@@ -67,6 +68,7 @@ type ResourceSyncerOptions struct {
 	Port                string
 	CertFile            string
 	KeyFile             string
+	DnsOptions          map[string]string
 }
 
 // NewResourceSyncerOptions creates a new resource syncer with a default config.
@@ -101,6 +103,9 @@ func NewResourceSyncerOptions() (*ResourceSyncerOptions, error) {
 		Port:       "80",
 		CertFile:   "",
 		KeyFile:    "",
+		DnsOptions:    map[string]string{
+			"ndots":      "5",
+		},
 	}, nil
 }
 
@@ -122,6 +127,7 @@ func (o *ResourceSyncerOptions) Flags() cliflag.NamedFlagSets {
 	fs.Var(cliflag.NewMapStringBool(&o.ComponentConfig.FeatureGates), "feature-gates", "A set of key=value pairs that describe featuregate gates for various features.")
 	fs.Int32Var(&o.ComponentConfig.VNAgentPort, "vn-agent-port", 10550, "Port the vn-agent listens on")
 	fs.StringVar(&o.ComponentConfig.VNAgentNamespacedName, "vn-agent-namespace-name", "vc-manager/vn-agent", "Namespace/Name of the vn-agent running in cluster, used for VNodeProviderService")
+    fs.StringToStringVar(&o.DnsOptions, "dns-options", o.DnsOptions, "DnsOptions is the default DNS options attached to each pod")
 
 	serverFlags := fss.FlagSet("metricsServer")
 	serverFlags.StringVar(&o.Address, "address", o.Address, "The server address.")
@@ -236,6 +242,7 @@ func (o *ResourceSyncerOptions) Config() (*syncerappconfig.Config, error) {
 		return nil, err
 	}
 	c.ComponentConfig.RestConfig = superRestConfig
+	c.ComponentConfig.DnsOptions = DnsOptionsConvert(o.DnsOptions)
 	c.VirtualClusterClient = virtualClusterClient
 	c.VirtualClusterInformer = vcinformers.NewSharedInformerFactory(virtualClusterClient, 0).Tenancy().V1alpha1().VirtualClusters()
 	c.MetaClusterClient = metaClusterClient
@@ -361,4 +368,18 @@ func getClientConfig(config componentbaseconfig.ClientConnectionConfiguration, m
 	}
 
 	return restConfig, nil
+}
+
+func DnsOptionsConvert(dnsoptions map[string]string) (podDnsOptions []corev1.PodDNSConfigOption) {
+	i := 0
+	for k, v := range dnsoptions {
+			podDnsOptions[i].Name = k
+			if v == "" {
+				podDnsOptions[i].Value = nil
+			} else {
+				podDnsOptions[i].Value = pointer.StringPtr(v)
+			}
+			i++
+	}
+	return podDnsOptions
 }

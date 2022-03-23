@@ -19,6 +19,7 @@ package config
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
+	v1 "k8s.io/api/core/v1"
 	componentbaseconfig "k8s.io/component-base/config"
 )
 
@@ -73,6 +74,9 @@ type SyncerConfiguration struct {
 
 	// The maximum length of time to wait before giving up on a server request. A value of "" means use default.
 	Timeout string
+
+	// The DnsOptions are the DNS options in resolv.conf that is attached to pod
+	DnsOptions []v1.PodDNSConfigOption
 }
 
 // SyncerLeaderElectionConfiguration expands LeaderElectionConfiguration

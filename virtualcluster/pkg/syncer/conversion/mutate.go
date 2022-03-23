@@ -112,7 +112,7 @@ func mutateWeightedPodAffinityTerms(weightedTerms []v1.WeightedPodAffinityTerm, 
 	}
 }
 
-func PodMutateDefault(vPod *v1.Pod, saSecretMap map[string]string, services []*v1.Service, nameServer string) PodMutator {
+func PodMutateDefault(vPod *v1.Pod, saSecretMap map[string]string, services []*v1.Service, nameServer string, dnsOption []v1.PodDNSConfigOption) PodMutator {
 	return func(p *podMutateCtx) error {
 		p.pPod.Status = v1.PodStatus{}
 		p.pPod.Spec.NodeName = ""
@@ -173,7 +173,7 @@ func PodMutateDefault(vPod *v1.Pod, saSecretMap map[string]string, services []*v
 		if err != nil {
 			return err
 		}
-		mutateDNSConfig(p, vPod, vc.Spec.ClusterDomain, nameServer)
+		mutateDNSConfig(p, vPod, vc.Spec.ClusterDomain, nameServer, dnsOption)
 
 		// FIXME(zhuangqh): how to support pod subdomain.
 		if p.pPod.Spec.Subdomain != "" {
@@ -287,7 +287,7 @@ func getServiceEnvVarMap(ns, cluster string, enableServiceLinks *bool, services 
 	return apiServerService, m
 }
 
-func mutateDNSConfig(p *podMutateCtx, vPod *v1.Pod, clusterDomain, nameServer string) {
+func mutateDNSConfig(p *podMutateCtx, vPod *v1.Pod, clusterDomain, nameServer string, dnsOption []v1.PodDNSConfigOption) {
 	// If the TenantAllowDNSPolicy feature gate is added AND if the vPod labels include
 	// tenancy.x-k8s.io/disable.dnsPolicyMutation: "true" then we should return without
 	// mutating the config. This is to allow special pods like coredns to use the
@@ -304,11 +304,11 @@ func mutateDNSConfig(p *podMutateCtx, vPod *v1.Pod, clusterDomain, nameServer st
 	case v1.DNSNone:
 		return
 	case v1.DNSClusterFirstWithHostNet:
-		mutateClusterFirstDNS(p, vPod, clusterDomain, nameServer)
+		mutateClusterFirstDNS(p, vPod, clusterDomain, nameServer, dnsOption)
 		return
 	case v1.DNSClusterFirst:
 		if !p.pPod.Spec.HostNetwork {
-			mutateClusterFirstDNS(p, vPod, clusterDomain, nameServer)
+			mutateClusterFirstDNS(p, vPod, clusterDomain, nameServer, dnsOption)
 			return
 		}
 		// Fallback to DNSDefault for pod on hostnetwork.
@@ -318,7 +318,7 @@ func mutateDNSConfig(p *podMutateCtx, vPod *v1.Pod, clusterDomain, nameServer st
 	}
 }
 
-func mutateClusterFirstDNS(p *podMutateCtx, vPod *v1.Pod, clusterDomain, nameServer string) {
+func mutateClusterFirstDNS(p *podMutateCtx, vPod *v1.Pod, clusterDomain, nameServer string, dnsOption []v1.PodDNSConfigOption) {
 	if nameServer == "" {
 		klog.Infof("vc %s does not have ClusterDNS IP configured and cannot create Pod using %q policy. Falling back to %q policy.",
 			p.clusterName, v1.DNSClusterFirst, v1.DNSDefault)
@@ -333,12 +333,13 @@ func mutateClusterFirstDNS(p *podMutateCtx, vPod *v1.Pod, clusterDomain, nameSer
 	// itself.
 	dnsConfig := &v1.PodDNSConfig{
 		Nameservers: []string{nameServer},
-		Options: []v1.PodDNSConfigOption{
+		Options: dnsOption,
+	/*	Options: []v1.PodDNSConfigOption{
 			{
 				Name:  "ndots",
 				Value: pointer.StringPtr("5"),
 			},
-		},
+		},*/
 	}
 
 	if clusterDomain != "" {
@@ -495,3 +496,4 @@ func (s *saSecretMutator) Mutate(vSecret *v1.Secret, clusterName string) {
 	s.pSecret.Name = ""
 	s.pSecret.GenerateName = vSecret.GetAnnotations()[v1.ServiceAccountNameKey] + "-token-"
 }
+
