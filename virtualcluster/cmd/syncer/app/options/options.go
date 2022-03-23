@@ -370,7 +370,9 @@ func getClientConfig(config componentbaseconfig.ClientConnectionConfiguration, m
 	return restConfig, nil
 }
 
-func DnsOptionsConvert(dnsoptions map[string]string) (podDnsOptions []corev1.PodDNSConfigOption) {
+func DnsOptionsConvert(dnsoptions map[string]string) []corev1.PodDNSConfigOption {
+	var podDnsOptions []corev1.PodDNSConfigOption
+	podDnsOptions = make([]corev1.PodDNSConfigOption, len(dnsoptions))
 	i := 0
 	for k, v := range dnsoptions {
 			podDnsOptions[i].Name = k
