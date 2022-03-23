@@ -103,8 +103,8 @@ func NewResourceSyncerOptions() (*ResourceSyncerOptions, error) {
 		Port:       "80",
 		CertFile:   "",
 		KeyFile:    "",
-		DnsOptions:    map[string]string{
-			"ndots":      "5",
+		DnsOptions: map[string]string{
+			"ndots": "5",
 		},
 	}, nil
 }
@@ -127,7 +127,7 @@ func (o *ResourceSyncerOptions) Flags() cliflag.NamedFlagSets {
 	fs.Var(cliflag.NewMapStringBool(&o.ComponentConfig.FeatureGates), "feature-gates", "A set of key=value pairs that describe featuregate gates for various features.")
 	fs.Int32Var(&o.ComponentConfig.VNAgentPort, "vn-agent-port", 10550, "Port the vn-agent listens on")
 	fs.StringVar(&o.ComponentConfig.VNAgentNamespacedName, "vn-agent-namespace-name", "vc-manager/vn-agent", "Namespace/Name of the vn-agent running in cluster, used for VNodeProviderService")
-    fs.StringToStringVar(&o.DnsOptions, "dns-options", o.DnsOptions, "DnsOptions is the default DNS options attached to each pod")
+	fs.StringToStringVar(&o.DnsOptions, "dns-options", o.DnsOptions, "DnsOptions is the default DNS options attached to each pod")
 
 	serverFlags := fss.FlagSet("metricsServer")
 	serverFlags.StringVar(&o.Address, "address", o.Address, "The server address.")
@@ -375,13 +375,13 @@ func DnsOptionsConvert(dnsoptions map[string]string) []corev1.PodDNSConfigOption
 	podDnsOptions = make([]corev1.PodDNSConfigOption, len(dnsoptions))
 	i := 0
 	for k, v := range dnsoptions {
-			podDnsOptions[i].Name = k
-			if v == "" {
-				podDnsOptions[i].Value = nil
-			} else {
-				podDnsOptions[i].Value = pointer.StringPtr(v)
-			}
-			i++
+		podDnsOptions[i].Name = k
+		if v == "" {
+			podDnsOptions[i].Value = nil
+		} else {
+			podDnsOptions[i].Value = pointer.StringPtr(v)
+		}
+		i++
 	}
 	return podDnsOptions
 }

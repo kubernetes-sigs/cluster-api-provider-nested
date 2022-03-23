@@ -333,13 +333,7 @@ func mutateClusterFirstDNS(p *podMutateCtx, vPod *v1.Pod, clusterDomain, nameSer
 	// itself.
 	dnsConfig := &v1.PodDNSConfig{
 		Nameservers: []string{nameServer},
-		Options: dnsOption,
-	/*	Options: []v1.PodDNSConfigOption{
-			{
-				Name:  "ndots",
-				Value: pointer.StringPtr("5"),
-			},
-		},*/
+		Options:     dnsOption,
 	}
 
 	if clusterDomain != "" {
@@ -496,4 +490,3 @@ func (s *saSecretMutator) Mutate(vSecret *v1.Secret, clusterName string) {
 	s.pSecret.Name = ""
 	s.pSecret.GenerateName = vSecret.GetAnnotations()[v1.ServiceAccountNameKey] + "-token-"
 }
-
