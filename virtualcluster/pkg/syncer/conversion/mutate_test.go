@@ -274,6 +274,9 @@ func Test_mutateDNSConfig(t *testing.T) {
 	}
 	defaultOptions := []v1.PodDNSConfigOption{
 		v1.PodDNSConfigOption{
+			Name: "use-vc",
+		},
+		v1.PodDNSConfigOption{
 			Name:  "ndots",
 			Value: pointer.StringPtr("5"),
 		},
@@ -288,6 +291,7 @@ func Test_mutateDNSConfig(t *testing.T) {
 		vPod          *v1.Pod
 		clusterDomain string
 		nameServer    string
+		dnsoptions    []v1.PodDNSConfigOption
 	}
 	tests := []struct {
 		name              string
@@ -302,6 +306,15 @@ func Test_mutateDNSConfig(t *testing.T) {
 				p:          podMutateCtxFunc(v1.DNSNone, nil, false),
 				vPod:       newPod(),
 				nameServer: "0.0.0.0",
+				dnsoptions: []v1.PodDNSConfigOption{
+					v1.PodDNSConfigOption{
+						Name: "use-vc",
+					},
+					v1.PodDNSConfigOption{
+						Name:  "ndots",
+						Value: pointer.StringPtr("5"),
+					},
+				},
 			},
 			expectedDNSPolicy: &dnsNone,
 		},
@@ -313,6 +326,15 @@ func Test_mutateDNSConfig(t *testing.T) {
 				}, false),
 				vPod:       newPod(),
 				nameServer: "0.0.0.0",
+				dnsoptions: []v1.PodDNSConfigOption{
+					v1.PodDNSConfigOption{
+						Name: "use-vc",
+					},
+					v1.PodDNSConfigOption{
+						Name:  "ndots",
+						Value: pointer.StringPtr("5"),
+					},
+				},
 			},
 			expectedDNSPolicy: &dnsNone,
 			expectedDNSConfig: &v1.PodDNSConfig{
@@ -325,6 +347,15 @@ func Test_mutateDNSConfig(t *testing.T) {
 				p:          podMutateCtxFunc(v1.DNSClusterFirstWithHostNet, nil, false),
 				vPod:       newPod(),
 				nameServer: "0.0.0.0",
+				dnsoptions: []v1.PodDNSConfigOption{
+					v1.PodDNSConfigOption{
+						Name: "use-vc",
+					},
+					v1.PodDNSConfigOption{
+						Name:  "ndots",
+						Value: pointer.StringPtr("5"),
+					},
+				},
 			},
 			expectedDNSPolicy: &dnsNone,
 			expectedDNSConfig: &v1.PodDNSConfig{
@@ -338,6 +369,15 @@ func Test_mutateDNSConfig(t *testing.T) {
 				p:          podMutateCtxFunc(v1.DNSClusterFirst, nil, false),
 				vPod:       newPod(),
 				nameServer: "0.0.0.0",
+				dnsoptions: []v1.PodDNSConfigOption{
+					v1.PodDNSConfigOption{
+						Name: "use-vc",
+					},
+					v1.PodDNSConfigOption{
+						Name:  "ndots",
+						Value: pointer.StringPtr("5"),
+					},
+				},
 			},
 			expectedDNSPolicy: &dnsNone,
 			expectedDNSConfig: &v1.PodDNSConfig{
@@ -350,31 +390,24 @@ func Test_mutateDNSConfig(t *testing.T) {
 			args: args{
 				p: podMutateCtxFunc(v1.DNSClusterFirst, &v1.PodDNSConfig{
 					Nameservers: []string{"127.0.0.1"},
-					Options: []v1.PodDNSConfigOption{
-						v1.PodDNSConfigOption{
-							Name: "use-vc",
-						},
-						v1.PodDNSConfigOption{
-							Name:  "ndots",
-							Value: pointer.StringPtr("2"),
-						},
-					},
+					Options:     defaultOptions,
 				}, false),
 				vPod:       newPod(),
 				nameServer: "0.0.0.0",
+				dnsoptions: []v1.PodDNSConfigOption{
+					v1.PodDNSConfigOption{
+						Name: "use-vc",
+					},
+					v1.PodDNSConfigOption{
+						Name:  "ndots",
+						Value: pointer.StringPtr("5"),
+					},
+				},
 			},
 			expectedDNSPolicy: &dnsNone,
 			expectedDNSConfig: &v1.PodDNSConfig{
 				Nameservers: []string{"0.0.0.0", "127.0.0.1"},
-				Options: []v1.PodDNSConfigOption{
-					v1.PodDNSConfigOption{
-						Name:  "ndots",
-						Value: pointer.StringPtr("2"),
-					},
-					v1.PodDNSConfigOption{
-						Name: "use-vc",
-					},
-				},
+				Options:     defaultOptions,
 			},
 		},
 		{
@@ -383,6 +416,15 @@ func Test_mutateDNSConfig(t *testing.T) {
 				p:          podMutateCtxFunc(v1.DNSClusterFirst, nil, true),
 				vPod:       newPod(),
 				nameServer: "0.0.0.0",
+				dnsoptions: []v1.PodDNSConfigOption{
+					v1.PodDNSConfigOption{
+						Name: "use-vc",
+					},
+					v1.PodDNSConfigOption{
+						Name:  "ndots",
+						Value: pointer.StringPtr("5"),
+					},
+				},
 			},
 			expectedDNSPolicy: &dnsClusterFirst,
 			expectedDNSConfig: nil,
@@ -393,6 +435,15 @@ func Test_mutateDNSConfig(t *testing.T) {
 				p:          podMutateCtxFunc(v1.DNSDefault, nil, true),
 				vPod:       newPod(),
 				nameServer: "0.0.0.0",
+				dnsoptions: []v1.PodDNSConfigOption{
+					v1.PodDNSConfigOption{
+						Name: "use-vc",
+					},
+					v1.PodDNSConfigOption{
+						Name:  "ndots",
+						Value: pointer.StringPtr("5"),
+					},
+				},
 			},
 			expectedDNSPolicy: &dnsDefault,
 			expectedDNSConfig: nil,
@@ -405,6 +456,15 @@ func Test_mutateDNSConfig(t *testing.T) {
 					p.ObjectMeta.Labels[constants.TenantDisableDNSPolicyMutation] = "true"
 				}),
 				nameServer: "0.0.0.0",
+				dnsoptions: []v1.PodDNSConfigOption{
+					v1.PodDNSConfigOption{
+						Name: "use-vc",
+					},
+					v1.PodDNSConfigOption{
+						Name:  "ndots",
+						Value: pointer.StringPtr("5"),
+					},
+				},
 			},
 			expectedDNSPolicy: &dnsNone,
 			expectedDNSConfig: &v1.PodDNSConfig{
@@ -418,6 +478,15 @@ func Test_mutateDNSConfig(t *testing.T) {
 				p:          podMutateCtxFunc(v1.DNSClusterFirst, nil, false),
 				vPod:       newPod(),
 				nameServer: "0.0.0.0",
+				dnsoptions: []v1.PodDNSConfigOption{
+					v1.PodDNSConfigOption{
+						Name: "use-vc",
+					},
+					v1.PodDNSConfigOption{
+						Name:  "ndots",
+						Value: pointer.StringPtr("5"),
+					},
+				},
 			},
 			allowDNSPolicy:    true,
 			expectedDNSPolicy: &dnsNone,
@@ -430,6 +499,15 @@ func Test_mutateDNSConfig(t *testing.T) {
 					p.ObjectMeta.Labels[constants.TenantDisableDNSPolicyMutation] = "true"
 				}),
 				nameServer: "0.0.0.0",
+				dnsoptions: []v1.PodDNSConfigOption{
+					v1.PodDNSConfigOption{
+						Name: "use-vc",
+					},
+					v1.PodDNSConfigOption{
+						Name:  "ndots",
+						Value: pointer.StringPtr("5"),
+					},
+				},
 			},
 			allowDNSPolicy:    true,
 			expectedDNSPolicy: &dnsClusterFirst,
@@ -441,7 +519,7 @@ func Test_mutateDNSConfig(t *testing.T) {
 			if tt.allowDNSPolicy {
 				featuregate.DefaultFeatureGate.Set(featuregate.TenantAllowDNSPolicy, true)
 			}
-			mutateDNSConfig(tt.args.p, tt.args.vPod, tt.args.clusterDomain, tt.args.nameServer)
+			mutateDNSConfig(tt.args.p, tt.args.vPod, tt.args.clusterDomain, tt.args.nameServer, tt.args.dnsoptions)
 			if tt.expectedDNSPolicy != nil {
 				if tt.args.p.pPod.Spec.DNSPolicy != *tt.expectedDNSPolicy {
 					t.Errorf("expected DNSPolicy %+v, got %+v", *tt.expectedDNSPolicy, tt.args.p.pPod.Spec.DNSPolicy)
