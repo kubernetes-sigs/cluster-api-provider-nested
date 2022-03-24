@@ -119,7 +119,7 @@ func (o *ResourceSyncerOptions) Flags() cliflag.NamedFlagSets {
 	fs.BoolVar(&o.ComponentConfig.DisablePodServiceLinks, "disable-service-links", o.ComponentConfig.DisablePodServiceLinks, "DisablePodServiceLinks indicates whether to disable the `EnableServiceLinks` field in pPod spec.")
 	fs.StringSliceVar(&o.ComponentConfig.DefaultOpaqueMetaDomains, "default-opaque-meta-domains", o.ComponentConfig.DefaultOpaqueMetaDomains, "DefaultOpaqueMetaDomains is the default opaque meta configuration for each Virtual Cluster.")
 	fs.StringSliceVar(&o.ComponentConfig.ExtraSyncingResources, "extra-syncing-resources", o.ComponentConfig.ExtraSyncingResources, "ExtraSyncingResources defines additional resources that need to be synced for each Virtual Cluster. (priorityclass, ingress, crd)")
-	fs.Var(cliflag.NewMapStringBool(&o.ComponentConfig.FeatureGates), "feature-gates", "A set of key=value pairs that describe featuregate gates for various features.")
+	fs.Var(cliflag.NewMapStringBool(&o.ComponentConfig.FeatureGates), "feature-gates", "test test !!!A set of key=value pairs that describe featuregate gates for various features.")
 	fs.Int32Var(&o.ComponentConfig.VNAgentPort, "vn-agent-port", 10550, "Port the vn-agent listens on")
 	fs.StringVar(&o.ComponentConfig.VNAgentNamespacedName, "vn-agent-namespace-name", "vc-manager/vn-agent", "Namespace/Name of the vn-agent running in cluster, used for VNodeProviderService")
 
