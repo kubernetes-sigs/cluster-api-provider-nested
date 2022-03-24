@@ -127,7 +127,6 @@ func (o *ResourceSyncerOptions) Flags() cliflag.NamedFlagSets {
 	fs.Var(cliflag.NewMapStringBool(&o.ComponentConfig.FeatureGates), "feature-gates", "A set of key=value pairs that describe featuregate gates for various features.")
 	fs.Int32Var(&o.ComponentConfig.VNAgentPort, "vn-agent-port", 10550, "Port the vn-agent listens on")
 	fs.StringVar(&o.ComponentConfig.VNAgentNamespacedName, "vn-agent-namespace-name", "vc-manager/vn-agent", "Namespace/Name of the vn-agent running in cluster, used for VNodeProviderService")
-//	fs.StringToStringVar(&o.DnsOptions, "dns-options", o.DnsOptions, "DnsOptions is the default DNS options attached to each pod")
 	fs.Var(cliflag.NewMapStringString(&o.DnsOptions), "dns-options", "DnsOptions is the default DNS options attached to each pod")
 
 	serverFlags := fss.FlagSet("metricsServer")
