@@ -76,7 +76,7 @@ type SyncerConfiguration struct {
 	Timeout string
 
 	// The DnsOptions are the DNS options in resolv.conf that is attached to pod
-	DnsOptions []v1.PodDNSConfigOption
+	DNSOptions []v1.PodDNSConfigOption
 }
 
 // SyncerLeaderElectionConfiguration expands LeaderElectionConfiguration
