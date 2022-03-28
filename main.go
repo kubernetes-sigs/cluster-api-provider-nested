@@ -27,7 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/klog/v2"
+        "k8s.io/component-base/logs"
+        "k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/feature"
@@ -59,8 +60,6 @@ var (
 )
 
 func init() {
-	klog.InitFlags(nil)
-
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
 	utilruntime.Must(controlplanev1.AddToScheme(scheme))
@@ -104,6 +103,9 @@ func InitFlags(fs *pflag.FlagSet) {
 }
 
 func main() {
+        logs.InitLogs()
+        defer logs.FlushLogs()
+
 	rand.Seed(time.Now().UnixNano())
 
 	InitFlags(pflag.CommandLine)
