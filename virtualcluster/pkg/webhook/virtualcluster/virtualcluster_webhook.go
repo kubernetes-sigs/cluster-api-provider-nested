@@ -30,7 +30,7 @@ import (
 	"path/filepath"
 	"time"
 
-	admv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	admv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -131,19 +131,21 @@ func createValidatingWebhookConfiguration(client client.Client, caPEM []byte) er
 	validatePath := "/validate-tenancy-x-k8s-io-v1alpha1-virtualcluster"
 	svcPort := int32(constants.VirtualClusterWebhookPort)
 	// reject request if the webhook doesn't work
-	failPolicy := admv1beta1.Fail
-	vwhCfg := admv1beta1.ValidatingWebhookConfiguration{
+	failPolicy := admv1.Fail
+	sideEffortsNone := admv1.SideEffectClassNone
+
+	vwhCfg := admv1.ValidatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: VCWebhookCfgName,
 			Labels: map[string]string{
 				"virtualcluster-webhook": "true",
 			},
 		},
-		Webhooks: []admv1beta1.ValidatingWebhook{
+		Webhooks: []admv1.ValidatingWebhook{
 			{
 				Name: "virtualcluster.validating.webhook",
-				ClientConfig: admv1beta1.WebhookClientConfig{
-					Service: &admv1beta1.ServiceReference{
+				ClientConfig: admv1.WebhookClientConfig{
+					Service: &admv1.ServiceReference{
 						Name:      VCWebhookServiceName,
 						Namespace: VCWebhookServiceNs,
 						Path:      &validatePath,
@@ -151,13 +153,16 @@ func createValidatingWebhookConfiguration(client client.Client, caPEM []byte) er
 					},
 					CABundle: caPEM,
 				},
-				FailurePolicy: &failPolicy,
-				Rules: []admv1beta1.RuleWithOperations{
+				FailurePolicy:           &failPolicy,
+				SideEffects:             &sideEffortsNone,
+				AdmissionReviewVersions: []string{"v1", "v1beta1"},
+
+				Rules: []admv1.RuleWithOperations{
 					{
-						Operations: []admv1beta1.OperationType{
-							admv1beta1.OperationAll,
+						Operations: []admv1.OperationType{
+							admv1.OperationAll,
 						},
-						Rule: admv1beta1.Rule{
+						Rule: admv1.Rule{
 							APIGroups:   []string{"tenancy.x-k8s.io"},
 							APIVersions: []string{"v1alpha1"},
 							Resources:   []string{"virtualclusters"},
