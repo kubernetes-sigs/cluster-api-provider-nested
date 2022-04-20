@@ -1,0 +1,20 @@
+name: golangci-lint
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        working-directory:
+          - ""
+          - virtualcluster
+    steps:
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.44.0
+          working-directory: ${{matrix.working-directory}}
