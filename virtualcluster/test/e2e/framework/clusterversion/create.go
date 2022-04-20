@@ -163,13 +163,11 @@ var defaultClusterVersion = &v1alpha1.ClusterVersionSpec{
 		Service: &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "etcd",
-				Annotations: map[string]string{
-					"service.alpha.kubernetes.io/tolerate-unready-endpoints": "true",
-				},
 			},
 			Spec: corev1.ServiceSpec{
-				Type:      corev1.ServiceTypeClusterIP,
-				ClusterIP: corev1.ClusterIPNone,
+				PublishNotReadyAddresses: true,
+				Type:                     corev1.ServiceTypeClusterIP,
+				ClusterIP:                corev1.ClusterIPNone,
 				Selector: map[string]string{
 					"component-name": "etcd",
 				},

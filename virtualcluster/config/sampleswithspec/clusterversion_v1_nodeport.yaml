@@ -103,9 +103,8 @@ spec:
       kind: Service
       metadata:
         name: etcd
-        annotations:
-          service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
       spec:
+        publishNotReadyAddresses: true
         type: ClusterIP
         clusterIP: None
         selector:
