@@ -334,7 +334,7 @@ func createManifestsConfigMap(cli ctrlcli.Client, manifests map[string]corev1.Po
 // completeTemplates completes the pod templates of nested control plane
 // components.
 func completeTemplates(templates map[string]string, clusterName string) (map[string]corev1.Pod, error) {
-	var ret map[string]corev1.Pod = make(map[string]corev1.Pod)
+	var ret = make(map[string]corev1.Pod)
 	for name, podTemplate := range templates {
 		pod := corev1.Pod{}
 		if err := yamlToObject([]byte(podTemplate), &pod); err != nil {
