@@ -27,8 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	klog "k8s.io/klog/v2"
-        "k8s.io/component-base/logs"
 	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/feature"
@@ -99,9 +97,6 @@ func InitFlags(fs *pflag.FlagSet) {
 }
 
 func main() {
-        logs.InitLogs()
-        defer logs.FlushLogs()
-
 	rand.Seed(time.Now().UnixNano())
 
 	InitFlags(pflag.CommandLine)
@@ -111,9 +106,9 @@ func main() {
 	ctrl.SetLogger(klogr.New())
 
 	if profilerAddress != "" {
-		klog.Infof("Profiler listening for requests at %s", profilerAddress)
+		setupLog.Info("Profiler listening for requests at", "address", profilerAddress)
 		go func() {
-			klog.Info(http.ListenAndServe(profilerAddress, nil))
+			setupLog.Error(http.ListenAndServe(profilerAddress, nil), "profiler server failed")
 		}()
 	}
 
