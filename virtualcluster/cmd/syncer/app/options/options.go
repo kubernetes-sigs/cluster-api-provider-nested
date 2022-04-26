@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,9 +19,10 @@ package options
 import (
 	"fmt"
 	"io/ioutil"
-	"k8s.io/utils/pointer"
 	"os"
 	"time"
+
+	"k8s.io/utils/pointer"
 
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
@@ -92,6 +93,7 @@ func NewResourceSyncerOptions() (*ResourceSyncerOptions, error) {
 			ExtraSyncingResources:      []string{},
 			VNAgentPort:                int32(10550),
 			VNAgentNamespacedName:      "vc-manager/vn-agent",
+			VNAgentLabelSelector:       "app=vn-agent",
 			FeatureGates: map[string]bool{
 				featuregate.SuperClusterPooling:        false,
 				featuregate.SuperClusterServiceNetwork: false,
@@ -128,6 +130,7 @@ func (o *ResourceSyncerOptions) Flags() cliflag.NamedFlagSets {
 	fs.Int32Var(&o.ComponentConfig.VNAgentPort, "vn-agent-port", 10550, "Port the vn-agent listens on")
 	fs.StringVar(&o.ComponentConfig.VNAgentNamespacedName, "vn-agent-namespace-name", "vc-manager/vn-agent", "Namespace/Name of the vn-agent running in cluster, used for VNodeProviderService")
 	fs.Var(cliflag.NewMapStringString(&o.DnsOptions), "dns-options", "DnsOptions is the default DNS options attached to each pod")
+	fs.StringVar(&o.ComponentConfig.VNAgentLabelSelector, "vn-agent-label-selector", "app=vn-agent", "Label key=value of the vn-agent running in cluster, used for VNodeProviderPodIP")
 
 	serverFlags := fss.FlagSet("metricsServer")
 	serverFlags.StringVar(&o.Address, "address", o.Address, "The server address.")

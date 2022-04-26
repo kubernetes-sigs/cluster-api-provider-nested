@@ -1,0 +1,87 @@
+/*
+Copyright 2022 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+// Package pod allows you to configure the syncer with vnodes backed by a vn-agent running without hostNetworking
+//
+// WARNING: For anyone implementing this you should have a node level check for example node-exporter or an
+// initContainer on the vn-agent which updates a condition on the Node or other part of the node object. By doing
+// this the syncer will update all your VirtualClusters VNodes anytime the vn-agent is rescheduled, this can be
+// done without rebinding.
+package pod
+
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clientset "k8s.io/client-go/kubernetes"
+	vnodeprovider "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode/provider"
+)
+
+type provider struct {
+	vnAgentPort          int32
+	vnAgentNamespaceName string
+	vnAgentLabelSelector string
+	client               clientset.Interface
+}
+
+var _ vnodeprovider.VirtualNodeProvider = &provider{}
+
+func NewPodVirtualNodeProvider(vnAgentPort int32, vnAgentNamespaceName, vnAgentLabelSelector string, client clientset.Interface) vnodeprovider.VirtualNodeProvider {
+	return &provider{
+		vnAgentPort:          vnAgentPort,
+		vnAgentNamespaceName: vnAgentNamespaceName,
+		vnAgentLabelSelector: vnAgentLabelSelector,
+		client:               client,
+	}
+}
+
+func (p *provider) GetNodeDaemonEndpoints(node *v1.Node) (v1.NodeDaemonEndpoints, error) {
+	return v1.NodeDaemonEndpoints{
+		KubeletEndpoint: v1.DaemonEndpoint{
+			Port: p.vnAgentPort,
+		},
+	}, nil
+}
+
+func (p *provider) GetNodeAddress(node *v1.Node) ([]v1.NodeAddress, error) {
+	var addresses []v1.NodeAddress
+	namespaceName := strings.Split(p.vnAgentNamespaceName, "/")
+	// TODO(christopherhein) Use NodeName informer index to make this more efficient.
+	pods, err := p.client.CoreV1().Pods(namespaceName[0]).List(context.TODO(), metav1.ListOptions{LabelSelector: p.vnAgentLabelSelector})
+	if err != nil || len(pods.Items) == 0 {
+		return addresses, fmt.Errorf("vn-agent pods could not be found %s", err)
+	}
+
+	var pod *v1.Pod
+	for _, po := range pods.Items {
+		if po.Spec.NodeName == node.Name {
+			pod = &po
+		}
+	}
+	if pod == nil {
+		return addresses, fmt.Errorf("vn-agent pods could not be found, %s", p.vnAgentLabelSelector)
+	}
+
+	addresses = append(addresses, v1.NodeAddress{
+		Type:    v1.NodeInternalIP,
+		Address: pod.Status.PodIP,
+	})
+
+	return addresses, nil
+}

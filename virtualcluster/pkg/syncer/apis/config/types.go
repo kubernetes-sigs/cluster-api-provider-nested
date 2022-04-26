@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -65,6 +65,10 @@ type SyncerConfiguration struct {
 	// VNAgentNamespacedName defines the namespace/name of the VN Agent Kubernetes
 	// service, this is used for feature VNodeProviderService.
 	VNAgentNamespacedName string
+
+	// VNAgentLabelSelector defines the label of the VN Agent Kubernetes pods, this
+	// is used for the feature VNodeProviderPodIP
+	VNAgentLabelSelector string
 
 	// FeatureGates enabled by the user.
 	FeatureGates map[string]bool
