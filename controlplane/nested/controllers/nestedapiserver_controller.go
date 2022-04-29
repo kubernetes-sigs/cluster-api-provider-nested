@@ -220,7 +220,7 @@ func (r *NestedAPIServerReconciler) createAPIServerClientCrts(ctx context.Contex
 		return err
 	}
 
-	kubeletKeyPair, err := certificate.NewAPIServerKubeletClientCertAndKey(&certificate.KeyPair{Cert: cacrt, Key: cakey})
+	kubeletKeyPair, err := certificate.NewAPIServerKubeletClientCertAndKey(&certificate.KeyPair{Cert: cacrt, Key: cakey}, cluster.Namespace)
 	if err != nil {
 		return err
 	}
