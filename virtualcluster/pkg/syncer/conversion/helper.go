@@ -208,6 +208,17 @@ func (c *objectConversion) BuildSuperClusterNamespace(cluster string, obj client
 		return nil, errors.Wrapf(err, "get cluster owner info")
 	}
 
+	if featuregate.DefaultFeatureGate.Enabled(featuregate.SuperClusterLabelling) {
+		labels := m.GetLabels()
+		if labels == nil {
+			labels = make(map[string]string)
+		}
+
+		labels[constants.LabelControlled] = "true"
+
+		m.SetLabels(labels)
+	}
+
 	anno := m.GetAnnotations()
 	if anno == nil {
 		anno = make(map[string]string)

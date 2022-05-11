@@ -23,6 +23,8 @@ import (
 )
 
 const (
+	// LabelControlled records the object is controlled by virtualcluster controllers.
+	LabelControlled = "tenancy.x-k8s.io/controlled"
 	// LabelCluster records which cluster this resource belongs to.
 	LabelCluster = "tenancy.x-k8s.io/cluster"
 	// LabelUID is the uid in the tenant namespace.

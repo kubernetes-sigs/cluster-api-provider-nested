@@ -76,7 +76,7 @@ func NewAPIServerCrtAndKey(ca *KeyPair, clusterName, clusterDomainArg, apiserver
 // NewAPIServerKubeletClientCertAndKey creates certificate for the apiservers to connect to the
 // kubelets securely, signed by the ca.
 // A hack to use namespace as CN because vn-agent is using this CN to figure out the namespace in
-// super cluster for kubectl exec/log/port forward
+// super cluster for kubectl exec/log/port forward.
 func NewAPIServerKubeletClientCertAndKey(ca *KeyPair, namespace string) (*KeyPair, error) {
 	config := &util.CertConfig{
 		Config: cert.Config{
