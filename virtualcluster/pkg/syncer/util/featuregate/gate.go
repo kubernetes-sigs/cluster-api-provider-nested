@@ -41,6 +41,10 @@ const (
 	// pool multiple super clusters for use with the experimental scheduler
 	SuperClusterPooling = "SuperClusterPooling"
 
+	// SuperClusterLabelling is an experimental feature that allows the syncer to
+	// label managed resources in super cluster for easier filtering.
+	SuperClusterLabelling = "SuperClusterLabelling"
+
 	// VNodeProviderService is an experimental feature that allows the
 	// vn-agent to run as a load balanced deployment proxy to the super
 	// cluster API Server
@@ -60,6 +64,7 @@ const (
 var defaultFeatures = FeatureList{
 	SuperClusterPooling:        {Default: false},
 	SuperClusterServiceNetwork: {Default: false},
+	SuperClusterLabelling:      {Default: false},
 	VNodeProviderService:       {Default: false},
 	TenantAllowDNSPolicy:       {Default: false},
 	VNodeProviderPodIP:         {Default: false},

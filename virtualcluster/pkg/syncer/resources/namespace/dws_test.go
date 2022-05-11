@@ -105,6 +105,7 @@ func TestDWNamespaceCreation(t *testing.T) {
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
 		ExistingObjectInTenant *v1.Namespace
+		IsLabellingEnabled     bool
 
 		ExpectedCreatedNamespace []string
 		ExpectedError            string
@@ -113,6 +114,12 @@ func TestDWNamespaceCreation(t *testing.T) {
 			ExistingObjectInSuper:    []runtime.Object{},
 			ExistingObjectInTenant:   tenantNamespace(defaultNSName, "12345"),
 			ExpectedCreatedNamespace: []string{defaultSuperNSName},
+		},
+		"new namespace with labels": {
+			ExistingObjectInSuper:    []runtime.Object{},
+			ExistingObjectInTenant:   tenantNamespace(defaultNSName, "12345"),
+			ExpectedCreatedNamespace: []string{defaultSuperNSName},
+			IsLabellingEnabled:       true,
 		},
 		"new namespace but already exists": {
 			ExistingObjectInSuper: []runtime.Object{
@@ -134,6 +141,9 @@ func TestDWNamespaceCreation(t *testing.T) {
 
 	for k, tc := range testcases {
 		t.Run(k, func(t *testing.T) {
+			gates := map[string]bool{featuregate.SuperClusterLabelling: tc.IsLabellingEnabled}
+			featuregate.DefaultFeatureGate, _ = featuregate.NewFeatureGate(gates)
+
 			actions, reconcileErr, err := util.RunDownwardSync(NewNamespaceController,
 				testTenant,
 				tc.ExistingObjectInSuper,
@@ -169,6 +179,12 @@ func TestDWNamespaceCreation(t *testing.T) {
 				createdNS := action.(core.CreateAction).GetObject().(*v1.Namespace)
 				if createdNS.Name != expectedName {
 					t.Errorf("%s: Expected %s to be created, got %s", k, expectedName, createdNS.Name)
+				}
+
+				if tc.IsLabellingEnabled {
+					if createdNS.GetLabels() == nil {
+						t.Errorf("%s: Expected %s to be labelled, got nil", k, expectedName)
+					}
 				}
 			}
 		})
