@@ -82,6 +82,7 @@ func TestNamespacePatrol(t *testing.T) {
 		WaitDWS                       bool // Make sure to set this flag if the test involves DWS.
 		WaitUWS                       bool // Make sure to set this flag if the test involves UWS.
 		EnableSuperClusterPoolingOnly bool
+		EnableSuperClusterLabelFilter bool
 	}{
 		"pNS not created by vc": {
 			ExistingObjectInSuper: []runtime.Object{
@@ -207,12 +208,38 @@ func TestNamespacePatrol(t *testing.T) {
 			},
 			EnableSuperClusterPoolingOnly: true,
 		},
+		"pNS deleted with filter": {
+			ExistingObjectInSuper: []runtime.Object{
+				labelledSuperNamespace(superDefaultNSName, "12345", defaultClusterKey),
+			},
+			ExistingObjectInVCClient: []runtime.Object{
+				testTenant,
+			},
+			ExpectedDeletedPObject: []string{
+				superDefaultNSName,
+			},
+			EnableSuperClusterLabelFilter: true,
+		},
+		"pNS without label not found with filtering for delete": {
+			ExistingObjectInSuper: []runtime.Object{
+				superNamespace(superDefaultNSName, "12345", defaultClusterKey),
+			},
+			ExistingObjectInVCClient: []runtime.Object{
+				testTenant,
+			},
+			ExpectedNoOperation:           true,
+			EnableSuperClusterLabelFilter: true,
+		},
 	}
 
 	for k, tc := range testcases {
 		t.Run(k, func(t *testing.T) {
 			if tc.EnableSuperClusterPoolingOnly {
 				defer util.SetFeatureGateDuringTest(t, featuregate.DefaultFeatureGate, featuregate.SuperClusterPooling, true)()
+			}
+			if tc.EnableSuperClusterLabelFilter {
+				defer util.SetFeatureGateDuringTest(t, featuregate.DefaultFeatureGate, featuregate.SuperClusterLabelling, true)()
+				defer util.SetFeatureGateDuringTest(t, featuregate.DefaultFeatureGate, featuregate.SuperClusterLabelFilter, true)()
 			}
 			tenantActions, superActions, err := util.RunPatrol(NewNamespaceController, testTenant, tc.ExistingObjectInSuper, tc.ExistingObjectInTenant, tc.ExistingObjectInVCClient, tc.WaitDWS, tc.WaitUWS, nil)
 			if err != nil {

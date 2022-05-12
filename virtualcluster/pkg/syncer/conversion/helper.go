@@ -197,6 +197,15 @@ func (c *objectConversion) CleanOpaqueKeys(vc *v1alpha1.VirtualCluster, keyMap m
 	}
 }
 
+func WithSuperClusterLabels(labels map[string]string) map[string]string {
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+
+	labels[constants.LabelControlled] = "true"
+	return labels
+}
+
 func (c *objectConversion) BuildSuperClusterNamespace(cluster string, obj client.Object) (client.Object, error) {
 	m, err := c.buildCleanSuperClusterObject(cluster, obj)
 	if err != nil {
@@ -209,14 +218,7 @@ func (c *objectConversion) BuildSuperClusterNamespace(cluster string, obj client
 	}
 
 	if featuregate.DefaultFeatureGate.Enabled(featuregate.SuperClusterLabelling) {
-		labels := m.GetLabels()
-		if labels == nil {
-			labels = make(map[string]string)
-		}
-
-		labels[constants.LabelControlled] = "true"
-
-		m.SetLabels(labels)
+		m.SetLabels(WithSuperClusterLabels(m.GetLabels()))
 	}
 
 	anno := m.GetAnnotations()

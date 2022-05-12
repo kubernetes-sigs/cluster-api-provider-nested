@@ -76,6 +76,12 @@ func superNamespace(name, uid, clusterKey string) *v1.Namespace {
 	}
 }
 
+func labelledSuperNamespace(name, uid, clusterKey string) *v1.Namespace {
+	ns := superNamespace(name, uid, clusterKey)
+	ns.SetLabels(conversion.WithSuperClusterLabels(ns.GetLabels()))
+	return ns
+}
+
 func unknownNamespace(name, uid string) *v1.Namespace {
 	return &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -141,8 +147,9 @@ func TestDWNamespaceCreation(t *testing.T) {
 
 	for k, tc := range testcases {
 		t.Run(k, func(t *testing.T) {
-			gates := map[string]bool{featuregate.SuperClusterLabelling: tc.IsLabellingEnabled}
-			featuregate.DefaultFeatureGate, _ = featuregate.NewFeatureGate(gates)
+			if tc.IsLabellingEnabled {
+				defer util.SetFeatureGateDuringTest(t, featuregate.DefaultFeatureGate, featuregate.SuperClusterLabelling, true)()
+			}
 
 			actions, reconcileErr, err := util.RunDownwardSync(NewNamespaceController,
 				testTenant,
