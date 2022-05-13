@@ -45,6 +45,11 @@ const (
 	// label managed resources in super cluster for easier filtering.
 	SuperClusterLabelling = "SuperClusterLabelling"
 
+	// SuperClusterLabelFilter is an experimental feature that allows the syncer to
+	// use labels to filter managed resources in super cluster.
+	// The feature requires SuperClusterLabelling=true.
+	SuperClusterLabelFilter = "SuperClusterLabelFilter"
+
 	// VNodeProviderService is an experimental feature that allows the
 	// vn-agent to run as a load balanced deployment proxy to the super
 	// cluster API Server
@@ -65,6 +70,7 @@ var defaultFeatures = FeatureList{
 	SuperClusterPooling:        {Default: false},
 	SuperClusterServiceNetwork: {Default: false},
 	SuperClusterLabelling:      {Default: false},
+	SuperClusterLabelFilter:    {Default: false},
 	VNodeProviderService:       {Default: false},
 	TenantAllowDNSPolicy:       {Default: false},
 	VNodeProviderPodIP:         {Default: false},

@@ -87,7 +87,16 @@ func (c *controller) PatrollerDo() {
 		klog.V(4).Infof("super cluster has no tenant control planes, still check %s for gc purpose", "namespace")
 	}
 
-	pList, err := c.nsLister.List(labels.Everything())
+	var nsFilter labels.Selector
+	// Use SuperClusterLabelFilter feature gate only if SuperClusterLabelling enabled,
+	// otherwise filter will do return nothing.
+	if featuregate.DefaultFeatureGate.Enabled(featuregate.SuperClusterLabelFilter) && featuregate.DefaultFeatureGate.Enabled(featuregate.SuperClusterLabelling) {
+		nsFilter = labels.Set{constants.LabelControlled: "true"}.AsSelector()
+	} else {
+		nsFilter = labels.Everything()
+	}
+
+	pList, err := c.nsLister.List(nsFilter)
 	if err != nil {
 		klog.Errorf("error listing namespaces from super master informer cache: %v", err)
 		return
