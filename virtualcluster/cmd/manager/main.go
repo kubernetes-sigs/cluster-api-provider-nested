@@ -33,8 +33,10 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	cliflag "k8s.io/component-base/cli/flag"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/constants"
 	logrutil "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/util/logr"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/version"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/version/verflag"
 )
@@ -52,6 +54,8 @@ func main() {
 		disableStacktrace       bool
 		enableWebhook           bool
 		provisionerTimeout      time.Duration
+
+		featureGates map[string]bool
 	)
 	flag.StringVar(&metricsAddr, "metrics-addr", ":0", "The address the metric endpoint binds to.")
 	flag.StringVar(&healthAddr, "health-addr", ":8080", "The address of the healthz/readyz endpoint binds to.")
@@ -68,6 +72,8 @@ func main() {
 	flag.BoolVar(&enableWebhook, "enable-webhook", false, "If set, the virtualcluster webhook is enabled")
 	flag.DurationVar(&provisionerTimeout, "provisioner-timeout", 10*time.Minute, "The timeout for provision control-plane statefulsets")
 
+	flag.Var(cliflag.NewMapStringBool(&featureGates), "feature-gates", "A set of key=value pairs that describe featuregate gates for various features.")
+
 	flag.Parse()
 
 	// print version information
@@ -82,6 +88,12 @@ func main() {
 	}
 	logf.SetLogger(loggr)
 	log := logf.Log.WithName("entrypoint")
+
+	featuregate.DefaultFeatureGate, err = featuregate.NewFeatureGate(featureGates)
+	if err != nil {
+		log.Error(err, "unable to set up feature gates")
+		os.Exit(1)
+	}
 
 	// Get a config to talk to the apiserver
 	log.Info("setting up client for manager")

@@ -36,6 +36,7 @@ import (
 	tenancyv1alpha1 "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
 )
 
 // the namespace of the pod can be found in this file
@@ -96,7 +97,7 @@ func WaitStatefulSetReady(cli client.Client, namespace, name string, timeOutSec,
 // CreateRootNS creates the root namespace for the vc
 func CreateRootNS(cli client.Client, vc *tenancyv1alpha1.VirtualCluster) (string, error) {
 	nsName := conversion.ToClusterKey(vc)
-	err := cli.Create(context.TODO(), &v1.Namespace{
+	namespace := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: nsName,
 			Annotations: map[string]string{
@@ -106,7 +107,12 @@ func CreateRootNS(cli client.Client, vc *tenancyv1alpha1.VirtualCluster) (string
 				constants.LabelVCRootNS:    "true",
 			},
 		},
-	})
+	}
+
+	if featuregate.DefaultFeatureGate.Enabled(featuregate.SuperClusterLabelling) {
+		namespace.SetLabels(conversion.WithSuperClusterLabels(namespace.GetLabels()))
+	}
+	err := cli.Create(context.TODO(), namespace)
 	if apierrors.IsAlreadyExists(err) {
 		return nsName, nil
 	}
