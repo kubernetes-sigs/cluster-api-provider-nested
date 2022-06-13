@@ -176,6 +176,10 @@ func (c *objectConversion) BuildSuperClusterObject(cluster string, obj client.Ob
 	}
 	m.SetLabels(labels)
 
+	if featuregate.DefaultFeatureGate.Enabled(featuregate.SuperClusterLabelling) {
+		m.SetLabels(WithSuperClusterLabels(m.GetLabels()))
+	}
+
 	m.SetNamespace(ToSuperClusterNamespace(cluster, obj.GetNamespace()))
 
 	return m, nil
