@@ -23,7 +23,6 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
@@ -56,7 +55,7 @@ func (c *controller) PatrollerDo() {
 
 	numMissMatchedPVCs = 0
 
-	pList, err := c.pvcLister.List(labels.Everything())
+	pList, err := c.pvcLister.List(util.GetSuperClusterListerLabelsSelector())
 	if err != nil {
 		klog.Errorf("error listing pvc from super master informer cache: %v", err)
 		return

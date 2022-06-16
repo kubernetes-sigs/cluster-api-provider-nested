@@ -25,7 +25,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
@@ -144,7 +143,7 @@ func (c *controller) PatrollerDo() {
 	numSpecMissMatchedPods = 0
 	numUWMetaMissMatchedPods = 0
 
-	pList, err := c.podLister.List(labels.Everything())
+	pList, err := c.podLister.List(util.GetSuperClusterListerLabelsSelector())
 	if err != nil {
 		klog.Errorf("error listing pod from super master informer cache: %v", err)
 		return

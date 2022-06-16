@@ -20,7 +20,6 @@ import (
 	"sync/atomic"
 
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
@@ -29,6 +28,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/metrics"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/patrol/differ"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util"
 )
 
 var numMissingEndPoints uint64
@@ -57,7 +57,7 @@ func (c *controller) PatrollerDo() {
 	numMissingEndPoints = 0
 	numMissMatchedEndPoints = 0
 
-	pList, err := c.endpointsLister.List(labels.Everything())
+	pList, err := c.endpointsLister.List(util.GetSuperClusterListerLabelsSelector())
 	if err != nil {
 		klog.Errorf("error listing endpoints from super master informer cache: %v", err)
 		return

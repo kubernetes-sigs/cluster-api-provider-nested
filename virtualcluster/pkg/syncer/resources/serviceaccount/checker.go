@@ -21,7 +21,6 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
@@ -30,6 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/metrics"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/patrol/differ"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util"
 )
 
 func (c *controller) StartPatrol(stopCh <-chan struct{}) error {
@@ -51,9 +51,9 @@ func (c *controller) PatrollerDo() {
 		return
 	}
 
-	pList, err := c.saLister.List(labels.Everything())
+	pList, err := c.saLister.List(util.GetSuperClusterListerLabelsSelector())
 	if err != nil {
-		klog.Errorf("error listing pvc from super master informer cache: %v", err)
+		klog.Errorf("error listing service accounts from super master informer cache: %v", err)
 		return
 	}
 	pSet := differ.NewDiffSet()
@@ -66,7 +66,7 @@ func (c *controller) PatrollerDo() {
 	for _, cluster := range clusterNames {
 		vList := &v1.ServiceAccountList{}
 		if err := c.MultiClusterController.List(cluster, vList); err != nil {
-			klog.Errorf("error listing serviceaccount from cluster %s informer cache: %v", cluster, err)
+			klog.Errorf("error listing service accounts from cluster %s informer cache: %v", cluster, err)
 			knownClusterSet.Delete(cluster)
 			continue
 		}

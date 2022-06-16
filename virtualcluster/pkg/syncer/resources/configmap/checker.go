@@ -22,7 +22,6 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
@@ -56,7 +55,7 @@ func (c *controller) PatrollerDo() {
 		return
 	}
 
-	pConfigMaps, err := c.configMapLister.List(labels.Everything())
+	pConfigMaps, err := c.configMapLister.List(util.GetSuperClusterListerLabelsSelector())
 	if err != nil {
 		klog.Errorf("error listing configmaps from super master informer cache: %v", err)
 		return

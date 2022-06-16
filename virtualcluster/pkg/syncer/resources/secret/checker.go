@@ -67,7 +67,7 @@ func (c *controller) PatrollerDo() {
 	}
 	wg.Wait()
 
-	secretList, err := c.secretLister.List(labels.Everything())
+	secretList, err := c.secretLister.List(util.GetSuperClusterListerLabelsSelector())
 	if err != nil {
 		klog.Errorf("error listing secret from super master informer cache: %v", err)
 		return

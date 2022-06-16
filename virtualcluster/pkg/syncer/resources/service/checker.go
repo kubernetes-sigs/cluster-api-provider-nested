@@ -24,7 +24,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
@@ -61,7 +60,7 @@ func (c *controller) PatrollerDo() {
 	numStatusMissMatchedServices = 0
 	numUWMetaMissMatchedServices = 0
 
-	pList, err := c.serviceLister.List(labels.Everything())
+	pList, err := c.serviceLister.List(util.GetSuperClusterListerLabelsSelector())
 	if err != nil {
 		klog.Errorf("error listing service from super master informer cache: %v", err)
 		return
