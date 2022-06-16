@@ -22,7 +22,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
@@ -87,16 +86,7 @@ func (c *controller) PatrollerDo() {
 		klog.V(4).Infof("super cluster has no tenant control planes, still check %s for gc purpose", "namespace")
 	}
 
-	var nsFilter labels.Selector
-	// Use SuperClusterLabelFilter feature gate only if SuperClusterLabelling enabled,
-	// otherwise filter will do return nothing.
-	if featuregate.DefaultFeatureGate.Enabled(featuregate.SuperClusterLabelFilter) && featuregate.DefaultFeatureGate.Enabled(featuregate.SuperClusterLabelling) {
-		nsFilter = labels.Set{constants.LabelControlled: "true"}.AsSelector()
-	} else {
-		nsFilter = labels.Everything()
-	}
-
-	pList, err := c.nsLister.List(nsFilter)
+	pList, err := c.nsLister.List(util.GetSuperClusterListerLabelsSelector())
 	if err != nil {
 		klog.Errorf("error listing namespaces from super master informer cache: %v", err)
 		return

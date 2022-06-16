@@ -19,7 +19,11 @@ package util
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/labels"
+
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
 	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
 )
 
@@ -35,4 +39,14 @@ func GetVirtualClusterObject(mc mc.MultiClusterInterface, clustername string) (*
 	}
 
 	return vc, nil
+}
+
+// GetSuperClusterListerLabelsSelector returns labels.Selector for super cluster objects using feature gate.
+func GetSuperClusterListerLabelsSelector() labels.Selector {
+	// Use SuperClusterLabelFilter feature gate only if SuperClusterLabelling enabled,
+	// otherwise filter will do return nothing.
+	if featuregate.DefaultFeatureGate.Enabled(featuregate.SuperClusterLabelFilter) && featuregate.DefaultFeatureGate.Enabled(featuregate.SuperClusterLabelling) {
+		return labels.Set{constants.LabelControlled: "true"}.AsSelector()
+	}
+	return labels.Everything()
 }
