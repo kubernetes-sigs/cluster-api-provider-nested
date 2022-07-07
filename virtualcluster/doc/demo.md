@@ -52,14 +52,14 @@ And then you can manage VirtualCluster by `kubectl vc` command tool.
 To install VirtualCluster CRDs:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/crd/tenancy.x-k8s.io_clusterversions.yaml
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/crd/tenancy.x-k8s.io_virtualclusters.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/main/virtualcluster/config/crd/tenancy.x-k8s.io_clusterversions.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/main/virtualcluster/config/crd/tenancy.x-k8s.io_virtualclusters.yaml
 ```
 
 To create all VirtualCluster components:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/setup/all_in_one.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/main/virtualcluster/config/setup/all_in_one.yaml
 ```
 
 Let's check out what we've installed:
@@ -98,8 +98,8 @@ replicaset.apps/vc-syncer-55c5bc5898    1         1         1       92s
 
 ## (Optional) Create `kubelet` client secrete and update `vn-agent`
 
-By default, `vn-agent` works in a suboptimal mode by forwarding all `kubelet` API requests to super master.
-A more efficient method is to communicate with `kubelet` directly using the client cert/key used by the super master.
+By default, `vn-agent` works in a suboptimal mode by forwarding all `kubelet` API requests to super control-plane.
+A more efficient method is to communicate with `kubelet` directly using the client cert/key used by the super control-plane.
 
 The location of the client PKI files may vary based on the local setup.
 Please note that we need to make sure the client cert/key files are imported as `client.crt` and `client.key` so that they can be referenced to.
@@ -143,34 +143,34 @@ The `vn-agent` Pod(s) will be recreated in every node to talk with `kubelet` dir
 
 ## Create ClusterVersion
 
-A `ClusterVersion` CR specifies how the tenant master(s) will be configured, as a template for tenant masters' components.
+A `ClusterVersion` CR specifies how the tenant control-plane(s) will be configured, as a template for tenant control-planes' components.
 
-The following cmd will create a `ClusterVersion` named `cv-sample-np`, which specifies the tenant master components as:
+The following cmd will create a `ClusterVersion` named `cv-sample-np`, which specifies the tenant control-plane components as:
 - `etcd`: a StatefulSet with `virtualcluster/etcd-v3.4.0` image, 1 replica;
 - `apiServer`: a StatefulSet with `virtualcluster/apiserver-v1.16.2` image, 1 replica;
 - `controllerManager`: a StatefulSet with `virtualcluster/controller-manager-v1.16.2` image, 1 replica.
 
 ```bash
-$ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/sampleswithspec/clusterversion_v1_nodeport.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/main/virtualcluster/config/sampleswithspec/clusterversion_v1_nodeport.yaml
 ```
 
-> Note that tenant master does not have scheduler installed. The Pods are still scheduled as usual in super master.
+> Note that tenant control plane does not have scheduler installed. The Pods are still scheduled as usual in super control plane.
 
 ## Create VirtualCluster
 
 We can now create a `VirtualCluster` CR, which refers to the `ClusterVersion` that we just created.
 
-The `vc-manager` will create a tenant master, where its tenant apiserver can be exposed through nodeport, or load balancer.
+The `vc-manager` will create a tenant control plane, where its tenant apiserver can be exposed through nodeport, or load balancer.
 
 ```bash
-$ kubectl vc create -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/sampleswithspec/virtualcluster_1_nodeport.yaml -o vc-1.kubeconfig
+$ kubectl vc create -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/main/virtualcluster/config/sampleswithspec/virtualcluster_1_nodeport.yaml -o vc-1.kubeconfig
 2020/11/15 11:13:26 etcd is ready
 2020/11/15 11:13:46 apiserver is ready
 2020/11/15 11:14:12 controller-manager is ready
 2020/11/15 11:14:12 VirtualCluster default/vc-sample-1 setup successfully
 ```
 
-The command will create a tenant master named `vc-sample-1`, exposed by NodePort.
+The command will create a tenant control plane named `vc-sample-1`, exposed by NodePort.
 
 Once it's created, a kubeconfig file specified by `-o`, namely `vc-1.kubeconfig`, will be created in the current directory.
 
@@ -214,8 +214,8 @@ Now let's take a look how Virtual Cluster looks like:
 ```bash
 # A dedicated API Server, of course the <IP>:<PORT> may vary
 $ kubectl cluster-info --kubeconfig vc-1.kubeconfig
-Kubernetes master is running at https://192.168.99.106:31501  # in minikube cluster
-Kubernetes master is running at https://127.0.0.1:30998       # or in kind cluster
+Kubernetes control plane is running at https://192.168.99.106:31501  # in minikube cluster
+Kubernetes control plane is running at https://127.0.0.1:30998       # or in kind cluster
 
 # Looks exactly like a vanilla Kubernetes
 $ kubectl get namespace --kubeconfig vc-1.kubeconfig
@@ -226,7 +226,7 @@ kube-public       Active   9m13s
 kube-system       Active   9m13s
 ```
 
-But from the super master angle, we can see something different:
+But from the super control plane angle, we can see something different:
 
 ```bash
 $ kubectl get namespace
@@ -278,7 +278,7 @@ EOF
 
 Upon successful creation, there are newly Pods created.
 
-We can view it from the tenant master:
+We can view it from the tenant control plane:
 
 ```bash
 $ kubectl get pod --kubeconfig vc-1.kubeconfig
@@ -286,7 +286,7 @@ NAME                         READY   STATUS    RESTARTS   AGE
 test-deploy-5f4bcd8c-9thn7   1/1     Running   0          4m44s
 ```
 
-Or from the super master:
+Or from the super control plane:
 
 ```
 $ VC_NAMESPACE="$(kubectl get VirtualCluster vc-sample-1 -o json | jq -r '.status.clusterNamespace')"
@@ -295,7 +295,7 @@ NAME                         READY   STATUS    RESTARTS   AGE
 test-deploy-5f4bcd8c-9thn7   1/1     Running   0          4m56s
 ```
 
-Also, a new virtual node is created in the tenant master but the tenant cannot schedule Pods on it.
+Also, a new virtual node is created in the tenant control plane but the tenant cannot schedule Pods on it.
 
 ```bash
 $ kubectl get node --kubeconfig vc-1.kubeconfig
@@ -304,7 +304,7 @@ minikube   Ready,SchedulingDisabled   <none>   16m   v1.19.4                    
 virtual-cluster-worker   NotReady,SchedulingDisabled   <none>   5m8s   v1.19.1  # and this in kind cluster
 ```
 
-The `kubectl exec` and `kubectl logs` should work in the tenant master, as usual.
+The `kubectl exec` and `kubectl logs` should work in the tenant control plane, as usual.
 
 Let's try out `kubectl exec`:
 
@@ -360,7 +360,7 @@ exit
 
 ## Clean Up
 
-By deleting the VirtualCluster CR, all the tenant resources created in the super master will be deleted.
+By deleting the VirtualCluster CR, all the tenant resources created in the super control plane will be deleted.
 
 ```bash
 # The VirtualCluster
@@ -371,15 +371,15 @@ Of course, you can delete all others VirtualCluster objects too to clean up ever
 
 ```bash
 # The ClusterVersion
-kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/sampleswithspec/clusterversion_v1_nodeport.yaml
+kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/main/virtualcluster/config/sampleswithspec/clusterversion_v1_nodeport.yaml
 
 # The Virtual Cluster components
-kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/setup/all_in_one.yaml
+kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/main/virtualcluster/config/setup/all_in_one.yaml
 
 # The ValidatingWebhookConfiguration which generated runtime and is cluster-scoped resource
 kubectl delete ValidatingWebhookConfiguration virtualcluster-validating-webhook-configuration
 
 # The CRDs
-kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/crd/tenancy.x-k8s.io_virtualclusters.yaml
-kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/sampleswithspec/tenancy.x-k8s.io_clusterversions.yaml
+kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/main/virtualcluster/config/crd/tenancy.x-k8s.io_virtualclusters.yaml
+kubectl delete -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/main/virtualcluster/config/sampleswithspec/tenancy.x-k8s.io_clusterversions.yaml
 ```

@@ -61,7 +61,7 @@ func (c *controller) BackPopulate(key string) error {
 	if err := c.MultiClusterController.Get(clusterName, "", scName, vStorageClass); err != nil {
 		if errors.IsNotFound(err) {
 			if op == reconciler.AddEvent {
-				// Available in super, hence create a new in tenant master
+				// Available in super, hence create a new in tenant control plane
 				vStorageClass := conversion.BuildVirtualStorageClass(clusterName, pStorageClass)
 				_, err := tenantClient.StorageV1().StorageClasses().Create(context.TODO(), vStorageClass, metav1.CreateOptions{})
 				if err != nil {

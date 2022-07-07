@@ -27,8 +27,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
-	v1alpha1 "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	v1alpha1 "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 )
 
 func createClusterVersion(fns ...func(*v1alpha1.ClusterVersion)) *v1alpha1.ClusterVersion {
@@ -287,7 +288,6 @@ var defaultClusterVersion = &v1alpha1.ClusterVersionSpec{
 									"--runtime-config=api/all",
 									"--enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota",
 									"--apiserver-count=1",
-									"--endpoint-reconciler-type=master-count",
 									"--enable-aggregator-routing=true",
 									"--requestheader-client-ca-file=/etc/kubernetes/pki/root/tls.crt",
 									"--requestheader-allowed-names=front-proxy-client",

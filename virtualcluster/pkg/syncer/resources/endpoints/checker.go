@@ -44,7 +44,7 @@ func (c *controller) StartPatrol(stopCh <-chan struct{}) error {
 	return nil
 }
 
-// PatrollerDo checks to see if Endpoints in super master informer cache and tenant master
+// PatrollerDo checks to see if Endpoints in super control plane informer cache and tenant control plane
 // keep consistency.
 // Note that eps are managed by tenant/super ep controller separately. The checker will not do GC but only report diff.
 func (c *controller) PatrollerDo() {
@@ -59,7 +59,7 @@ func (c *controller) PatrollerDo() {
 
 	pList, err := c.endpointsLister.List(util.GetSuperClusterListerLabelsSelector())
 	if err != nil {
-		klog.Errorf("error listing endpoints from super master informer cache: %v", err)
+		klog.Errorf("error listing endpoints from super control plane informer cache: %v", err)
 		return
 	}
 	pSet := differ.NewDiffSet()

@@ -43,7 +43,7 @@ The exceptions are persistence volume, storage class and priority class resource
 The syncer updates the synced object's status in each tenant control plane, 
 acting like a regular resource controller. This abstraction model means the following assumptions:
 - The synced object spec _SHOULD_ not be altered by any arbitrary controller in the super cluster.
-- Tenant master owns the lifecycle management for the synced object. The synced objects _SHOULD NOT_ be
+- Tenant control plane owns the lifecycle management for the synced object. The synced objects _SHOULD NOT_ be
   managed by any controllers (e.g., StatefulSet) in the super cluster.
 
 If any of the above assumptions is violated, VirtualCluster may not work as expected. Note that this 

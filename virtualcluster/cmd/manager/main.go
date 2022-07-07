@@ -23,9 +23,6 @@ import (
 	"time"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis"
-	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller"
-	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/webhook"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -33,7 +30,12 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/webhook"
+
 	cliflag "k8s.io/component-base/cli/flag"
+
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/constants"
 	logrutil "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/util/logr"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
@@ -43,24 +45,27 @@ import (
 
 func main() {
 	var (
-		logFile                 string
-		metricsAddr             string
-		healthAddr              string
-		masterProvisioner       string
-		leaderElection          bool
-		leaderElectionCmName    string
-		maxConcurrentReconciles int
-		versionOpt              bool
-		disableStacktrace       bool
-		enableWebhook           bool
-		provisionerTimeout      time.Duration
+		logFile                           string
+		metricsAddr                       string
+		healthAddr                        string
+		controlPlaneProvisioner           string
+		controlPlaneProvisionerDeprecated string
+		leaderElection                    bool
+		leaderElectionCmName              string
+		maxConcurrentReconciles           int
+		versionOpt                        bool
+		disableStacktrace                 bool
+		enableWebhook                     bool
+		provisionerTimeout                time.Duration
 
 		featureGates map[string]bool
 	)
 	flag.StringVar(&metricsAddr, "metrics-addr", ":0", "The address the metric endpoint binds to.")
 	flag.StringVar(&healthAddr, "health-addr", ":8080", "The address of the healthz/readyz endpoint binds to.")
-	flag.StringVar(&masterProvisioner, "master-prov", "native",
-		"The underlying platform that will provision master for virtualcluster.")
+	flag.StringVar(&controlPlaneProvisionerDeprecated, "master-prov", "",
+		"DEPRECATED. Use --provisioner flag instead.")
+	flag.StringVar(&controlPlaneProvisioner, "provisioner", "native",
+		"The underlying platform that will provision control plane for virtualcluster.")
 	flag.BoolVar(&leaderElection, "leader-election", true, "If enable leaderelection for vc-manager")
 	flag.StringVar(&leaderElectionCmName, "le-cm-name", "vc-manager-leaderelection-lock",
 		"The name of the configmap that will be used as the resourcelook for leaderelection")
@@ -142,12 +147,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	if controlPlaneProvisionerDeprecated != "" {
+		log.Info("The --master-prov flag is deprecated. Use --provisioner instead")
+		controlPlaneProvisioner = controlPlaneProvisionerDeprecated
+	}
+
 	// Setup all Controllers
 	log.Info("Setting up controller")
 	if err := (&controller.Controllers{
 		Log:                     log.WithName("Controllers"),
 		Client:                  mgr.GetClient(),
-		ProvisionerName:         masterProvisioner,
+		ProvisionerName:         controlPlaneProvisioner,
 		ProvisionerTimeout:      provisionerTimeout,
 		MaxConcurrentReconciles: maxConcurrentReconciles,
 	}).SetupWithManager(mgr); err != nil {

@@ -40,6 +40,8 @@ import (
 	"k8s.io/klog/v2"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	vcclient "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/client/clientset/versioned"
 	vcinformers "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/client/informers/externalversions/tenancy/v1alpha1"
@@ -55,7 +57,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/listener"
 	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/plugin"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -411,7 +412,7 @@ func (s *Syncer) runCluster(cluster *cluster.Cluster, vc *v1alpha1.VirtualCluste
 }
 
 func (s *Syncer) healthPatrol() {
-	defer metrics.RecordCheckerScanDuration("TenantMaster", time.Now())
+	defer metrics.RecordCheckerScanDuration("TenantControlPlane", time.Now())
 	var clusters []mc.ClusterInterface
 	s.mu.Lock()
 	for _, c := range s.clusterSet {

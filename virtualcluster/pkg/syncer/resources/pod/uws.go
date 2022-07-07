@@ -86,7 +86,7 @@ func (c *controller) BackPopulate(key string) error {
 	if vPod.Spec.NodeName == "" {
 		n, err := c.client.Nodes().Get(context.TODO(), pPod.Spec.NodeName, metav1.GetOptions{})
 		if err != nil {
-			return fmt.Errorf("failed to get node %s from super master: %v", pPod.Spec.NodeName, err)
+			return fmt.Errorf("failed to get node %s from super control plane: %v", pPod.Spec.NodeName, err)
 		}
 		// We need to handle the race with vNodeGC thread here.
 		if err = func() error {
@@ -135,7 +135,7 @@ func (c *controller) BackPopulate(key string) error {
 			return fmt.Errorf("failed to retrieve vPod %s/%s from cluster %s: %v", vNamespace, pName, clusterName, err)
 		}
 	} else {
-		// Check if the vNode exists in Tenant master.
+		// Check if the vNode exists in Tenant control plane.
 		if err := c.MultiClusterController.Get(clusterName, "", vPod.Spec.NodeName, &v1.Node{}); err != nil {
 			if errors.IsNotFound(err) {
 				// We have consistency issue here, do not fix for now. TODO: add to metrics

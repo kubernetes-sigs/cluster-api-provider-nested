@@ -33,6 +33,8 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/metrics"
@@ -40,7 +42,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
 	utilconstants "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/reconciler"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func (c *controller) StartDWS(stopCh <-chan struct{}) error {
@@ -158,7 +159,7 @@ func getParentRefFromPod(vPod *v1.Pod) *v1.ObjectReference {
 }
 
 func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID string, vPod *v1.Pod) error {
-	// load deleting pod, don't create any pod on super master.
+	// load deleting pod, don't create any pod on super control plane.
 	if vPod.DeletionTimestamp != nil {
 		return nil
 	}
@@ -234,10 +235,10 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 	pPod, err = c.client.Pods(targetNamespace).Create(context.TODO(), pPod, metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {
 		if pPod.Annotations[constants.LabelUID] == requestUID {
-			klog.Infof("pod %s/%s of cluster %s already exist in super master", targetNamespace, pPod.Name, clusterName)
+			klog.Infof("pod %s/%s of cluster %s already exist in super control plane", targetNamespace, pPod.Name, clusterName)
 			return nil
 		} else {
-			return fmt.Errorf("pPod %s/%s exists but the UID is different from tenant master.", targetNamespace, pPod.Name)
+			return fmt.Errorf("pPod %s/%s exists but the UID is different from tenant control plane.", targetNamespace, pPod.Name)
 		}
 	}
 
@@ -270,7 +271,7 @@ func (c *controller) findPodServiceAccountSecret(clusterName string, pPod, vPod 
 			constants.LabelSecretUID: string(vSecret.UID),
 		}))
 		if err != nil || len(secretList) == 0 {
-			return nil, fmt.Errorf("failed to find sa secret from super master %s/%s: %v", pPod.Namespace, vSecret.UID, err)
+			return nil, fmt.Errorf("failed to find sa secret from super control plane %s/%s: %v", pPod.Namespace, vSecret.UID, err)
 		}
 
 		mutateNameMap[secretName] = secretList[0].Name
@@ -386,7 +387,7 @@ func (c *controller) reconcilePodRemove(clusterName, targetNamespace, requestUID
 	}
 	err := c.client.Pods(targetNamespace).Delete(context.TODO(), name, *opts)
 	if errors.IsNotFound(err) {
-		klog.Warningf("To be deleted pod %s/%s of cluster (%s) is not found in super master", targetNamespace, name, clusterName)
+		klog.Warningf("To be deleted pod %s/%s of cluster (%s) is not found in super control plane", targetNamespace, name, clusterName)
 		return nil
 	}
 	return err

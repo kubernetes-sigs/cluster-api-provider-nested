@@ -233,7 +233,6 @@ var defaultClusterVersion = &v1alpha1.ClusterVersionSpec{
 									"--runtime-config=api/all",
 									"--enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota",
 									"--apiserver-count=1",
-									"--endpoint-reconciler-type=master-count",
 									"--v=2",
 								},
 								Ports: []corev1.ContainerPort{

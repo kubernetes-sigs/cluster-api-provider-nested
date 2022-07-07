@@ -46,7 +46,7 @@ import (
 	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
 )
 
-// ToClusterKey makes a unique key which is used to create the root namespace in super master for a virtual cluster.
+// ToClusterKey makes a unique key which is used to create the root namespace in super control plane for a virtual cluster.
 // To avoid name conflict, the key uses the format <namespace>-<hash>-<name>
 func ToClusterKey(vc *v1alpha1.VirtualCluster) string {
 	// If the ClusterNamespace is set then this will automatically return that prefix allowing us to override
@@ -67,7 +67,7 @@ func ToSuperClusterNamespace(cluster, ns string) string {
 	return targetNamespace
 }
 
-// GetVirtualNamespace is used to find the corresponding namespace in tenant master for objects created in super master originally, e.g., events.
+// GetVirtualNamespace is used to find the corresponding namespace in tenant control plane for objects created in super control plane originally, e.g., events.
 func GetVirtualNamespace(nsLister listersv1.NamespaceLister, pNamespace string) (cluster, namespace string, err error) {
 	vcInfo, err := nsLister.Get(pNamespace)
 	if err != nil {
@@ -233,7 +233,7 @@ func (c *objectConversion) BuildSuperClusterNamespace(cluster string, obj client
 	anno[constants.LabelUID] = string(obj.GetUID())
 	anno[constants.LabelNamespace] = obj.GetName()
 	// We put owner information in annotation instead of  metav1.OwnerReference because vc is a namespace scope resource
-	// and metav1.OwnerReference does not provide namespace field. The owner information is needed for super master ns gc.
+	// and metav1.OwnerReference does not provide namespace field. The owner information is needed for super control plane ns gc.
 	anno[constants.LabelVCName] = vcName
 	anno[constants.LabelVCNamespace] = vcNamespace
 	anno[constants.LabelVCUID] = vcUID

@@ -44,9 +44,9 @@ func init() {
 
 type controller struct {
 	manager.BaseResourceSyncer
-	// super master configMap client
+	// super control plane configMap client
 	configMapClient v1core.ConfigMapsGetter
-	// super master configMap informer lister/synced function
+	// super control plane configMap informer lister/synced function
 	configMapLister listersv1.ConfigMapLister
 	configMapSynced cache.InformerSynced
 }

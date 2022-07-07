@@ -45,7 +45,7 @@ func (c *controller) StartPatrol(stopCh <-chan struct{}) error {
 	return nil
 }
 
-// PatrollerDo checks to see if annotated CRD is in super master informer cache and then synced to tenant cluster
+// PatrollerDo checks to see if annotated CRD is in super control plane informer cache and then synced to tenant cluster
 func (c *controller) PatrollerDo() {
 	clusterNames := c.MultiClusterController.GetClusterNames()
 	if len(clusterNames) == 0 {
@@ -67,7 +67,7 @@ func (c *controller) PatrollerDo() {
 	pCRDList := &v1beta1.CustomResourceDefinitionList{}
 	err := c.superClient.List(context.Background(), pCRDList)
 	if err != nil {
-		klog.Errorf("error listing crd from super master informer cache: %v", err)
+		klog.Errorf("error listing crd from super control plane informer cache: %v", err)
 		return
 	}
 	for _, pCRD := range pCRDList.Items {
@@ -78,7 +78,7 @@ func (c *controller) PatrollerDo() {
 
 			if err := c.MultiClusterController.Get(clusterName, "", pCRD.Name, &v1beta1.CustomResourceDefinition{}); err != nil {
 				if errors.IsNotFound(err) {
-					metrics.CheckerRemedyStats.WithLabelValues("RequeuedSuperMasterCRD").Inc()
+					metrics.CheckerRemedyStats.WithLabelValues("RequeuedSuperControlPlaneCRD").Inc()
 					klog.Infof("patroller create crd %v in virtual cluster", clusterName+"/"+pCRD.Name)
 					c.UpwardController.AddToQueue(clusterName + "/" + pCRD.Name)
 				}
@@ -132,7 +132,7 @@ func (c *controller) checkCRDOfTenantCluster(clusterName string) {
 		}
 
 		if err != nil {
-			klog.Errorf("failed to get CRD  %s from super master cache: %v", vCRD.Name, err)
+			klog.Errorf("failed to get CRD  %s from super control plane cache: %v", vCRD.Name, err)
 			continue
 		}
 		updatedCRD := conversion.Equality(nil, nil).CheckCRDEquality(pCRD, &crdList.Items[i])

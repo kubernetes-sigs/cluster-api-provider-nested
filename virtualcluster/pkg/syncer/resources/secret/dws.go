@@ -41,7 +41,7 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 	return c.MultiClusterController.Start(stopCh)
 }
 
-// The reconcile logic for tenant master secret informer
+// The reconcile logic for tenant control plane secret informer
 func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, error) {
 	klog.V(4).Infof("reconcile secret %s/%s for cluster %s", request.Namespace, request.Name, request.ClusterName)
 	targetNamespace := conversion.ToSuperClusterNamespace(request.ClusterName, request.Namespace)
@@ -127,7 +127,7 @@ func (c *controller) reconcileServiceAccountSecretCreate(clusterName, targetName
 
 	_, err = c.secretClient.Secrets(targetNamespace).Create(context.TODO(), pSecret, metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {
-		klog.Infof("secret %s/%s of cluster %s already exist in super master", targetNamespace, pSecret.Name, clusterName)
+		klog.Infof("secret %s/%s of cluster %s already exist in super control plane", targetNamespace, pSecret.Name, clusterName)
 		return nil
 	}
 
@@ -159,7 +159,7 @@ func (c *controller) reconcileNormalSecretCreate(clusterName, targetNamespace, r
 	pSecret, err := c.secretClient.Secrets(targetNamespace).Create(context.TODO(), newObj.(*v1.Secret), metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {
 		if pSecret.Annotations[constants.LabelUID] == requestUID {
-			klog.Infof("secret %s/%s of cluster %s already exist in super master", targetNamespace, secret.Name, clusterName)
+			klog.Infof("secret %s/%s of cluster %s already exist in super control plane", targetNamespace, secret.Name, clusterName)
 			return nil
 		} else {
 			return fmt.Errorf("pSecret %s/%s exists but its delegated object UID is different.", targetNamespace, pSecret.Name)
@@ -213,7 +213,7 @@ func (c *controller) reconcileNormalSecretRemove(clusterName, targetNamespace, r
 	}
 	err := c.secretClient.Secrets(targetNamespace).Delete(context.TODO(), name, *opts)
 	if errors.IsNotFound(err) {
-		klog.Warningf("secret %s/%s of cluster is not found in super master", targetNamespace, name)
+		klog.Warningf("secret %s/%s of cluster is not found in super control plane", targetNamespace, name)
 		return nil
 	}
 	return err
@@ -229,7 +229,7 @@ func (c *controller) reconcileServiceAccountTokenSecretRemove(clusterName, targe
 		}).String(),
 	})
 	if errors.IsNotFound(err) {
-		klog.Warningf("secret %s/%s of cluster is not found in super master", targetNamespace, name)
+		klog.Warningf("secret %s/%s of cluster is not found in super control plane", targetNamespace, name)
 		return nil
 	}
 	return err

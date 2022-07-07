@@ -48,7 +48,7 @@ func (c *controller) StartPatrol(stopCh <-chan struct{}) error {
 }
 
 // PatrollerDo check if services keep consistency between super
-// master and tenant masters.
+// control plane and tenant control planes.
 func (c *controller) PatrollerDo() {
 	clusterNames := c.MultiClusterController.GetClusterNames()
 	if len(clusterNames) == 0 {
@@ -62,7 +62,7 @@ func (c *controller) PatrollerDo() {
 
 	pList, err := c.serviceLister.List(util.GetSuperClusterListerLabelsSelector())
 	if err != nil {
-		klog.Errorf("error listing service from super master informer cache: %v", err)
+		klog.Errorf("error listing service from super control plane informer cache: %v", err)
 		return
 	}
 	pSet := differ.NewDiffSet()
@@ -115,7 +115,7 @@ func (c *controller) PatrollerDo() {
 		updatedService := conversion.Equality(c.Config, vc).CheckServiceEquality(p, v)
 		if updatedService != nil {
 			atomic.AddUint64(&numSpecMissMatchedServices, 1)
-			klog.Warningf("spec of service %s diff in super&tenant master", pObj.Key)
+			klog.Warningf("spec of service %s diff in super&tenant control plane", pObj.Key)
 			d.OnAdd(vObj)
 			return
 		}
@@ -126,12 +126,12 @@ func (c *controller) PatrollerDo() {
 			if updatedMeta != nil {
 				atomic.AddUint64(&numUWMetaMissMatchedServices, 1)
 				enqueue = true
-				klog.Warningf("UWObjectMeta of service %s diff in super&tenant master", pObj.Key)
+				klog.Warningf("UWObjectMeta of service %s diff in super&tenant control plane", pObj.Key)
 			}
 			if !equality.Semantic.DeepEqual(p.Status, v.Status) {
 				enqueue = true
 				atomic.AddUint64(&numStatusMissMatchedServices, 1)
-				klog.Warningf("Status of service %s diff in super&tenant master", pObj)
+				klog.Warningf("Status of service %s diff in super&tenant control plane", pObj)
 			}
 			if enqueue {
 				c.enqueueService(p)
@@ -141,9 +141,9 @@ func (c *controller) PatrollerDo() {
 	d.DeleteFunc = func(pObj differ.ClusterObject) {
 		deleteOptions := metav1.NewPreconditionDeleteOptions(string(pObj.GetUID()))
 		if err = c.serviceClient.Services(pObj.GetNamespace()).Delete(context.TODO(), pObj.GetName(), *deleteOptions); err != nil {
-			klog.Errorf("error deleting pService %s in super master: %v", pObj.Key, err)
+			klog.Errorf("error deleting pService %s in super control plane: %v", pObj.Key, err)
 		} else {
-			metrics.CheckerRemedyStats.WithLabelValues("DeletedOrphanSuperMasterServices").Inc()
+			metrics.CheckerRemedyStats.WithLabelValues("DeletedOrphanSuperControlPlaneServices").Inc()
 		}
 	}
 

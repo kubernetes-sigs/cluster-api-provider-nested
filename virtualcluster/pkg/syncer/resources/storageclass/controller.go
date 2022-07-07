@@ -51,9 +51,9 @@ func init() {
 
 type controller struct {
 	manager.BaseResourceSyncer
-	// super master storageclasses client
+	// super control plane storageclasses client
 	client v1storage.StorageClassesGetter
-	// super master storageclasses informer/lister/synced functions
+	// super control plane storageclasses informer/lister/synced functions
 	informer           storageinformers.Interface
 	storageclassLister listersv1.StorageClassLister
 	storageclassSynced cache.InformerSynced
@@ -109,7 +109,7 @@ func NewStorageClassController(config *config.SyncerConfiguration,
 					utilruntime.HandleError(fmt.Errorf("unable to convert object %v to *v1.StorageClass", obj))
 					return false
 				default:
-					utilruntime.HandleError(fmt.Errorf("unable to handle object in super master storageclass controller: %v", obj))
+					utilruntime.HandleError(fmt.Errorf("unable to handle object in super control plane storageclass controller: %v", obj))
 					return false
 				}
 			},
@@ -129,7 +129,7 @@ func NewStorageClassController(config *config.SyncerConfiguration,
 }
 
 func publicStorageClass(e *v1.StorageClass) bool {
-	// We only backpopulate specific storageclass to tenant masters
+	// We only backpopulate specific storageclass to tenant control planes
 	return e.Labels[constants.PublicObjectKey] == "true"
 }
 
@@ -142,7 +142,7 @@ func (c *controller) enqueueStorageClass(obj interface{}) {
 
 	clusterNames := c.MultiClusterController.GetClusterNames()
 	if len(clusterNames) == 0 {
-		klog.Infof("No tenant masters, stop backpopulate storageclass %v", key)
+		klog.Infof("No tenant control planes, stop backpopulate storageclass %v", key)
 		return
 	}
 

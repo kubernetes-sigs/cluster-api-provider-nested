@@ -115,9 +115,9 @@ func (o *ResourceSyncerOptions) Flags() cliflag.NamedFlagSets {
 	fss := cliflag.NamedFlagSets{}
 
 	fs := fss.FlagSet("server")
-	fs.StringVar(&o.SuperClusterAddress, "super-master", o.SuperClusterAddress, "The address of the super master Kubernetes API server (overrides any value in super-master-kubeconfig).")
-	fs.StringVar(&o.ComponentConfig.ClientConnection.Kubeconfig, "super-master-kubeconfig", o.ComponentConfig.ClientConnection.Kubeconfig, "Path to kubeconfig file with authorization and master location information.")
-	fs.StringVar(&o.ComponentConfig.Timeout, "super-master-timeout", o.ComponentConfig.Timeout, "Timeout of the super master Kubernetes API server, Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'. (overrides any value in super-master-kubeconfig).")
+	fs.StringVar(&o.SuperClusterAddress, "super-master", o.SuperClusterAddress, "The address of the super cluster Kubernetes API server (overrides any value in super-master-kubeconfig).")
+	fs.StringVar(&o.ComponentConfig.ClientConnection.Kubeconfig, "super-master-kubeconfig", o.ComponentConfig.ClientConnection.Kubeconfig, "Path to kubeconfig file with authorization and control plane location information.")
+	fs.StringVar(&o.ComponentConfig.Timeout, "super-master-timeout", o.ComponentConfig.Timeout, "Timeout of the super cluster Kubernetes API server, Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'. (overrides any value in super-master-kubeconfig).")
 	fs.StringVar(&o.MetaClusterAddress, "meta-cluster-address", o.MetaClusterAddress, "The address of the meta cluster Kubernetes API server (overrides any value in meta-cluster-kubeconfig).")
 	fs.StringVar(&o.MetaClusterClientConnection.Kubeconfig, "meta-cluster-kubeconfig", o.MetaClusterClientConnection.Kubeconfig, "Path to kubeconfig file of the meta cluster. If it is not provided, the super cluster is used")
 	fs.BoolVar(&o.DeployOnMetaCluster, "deployment-on-meta", o.DeployOnMetaCluster, "Whether vc-syncer deploy on meta cluster")
@@ -156,7 +156,7 @@ func BindFlags(l *syncerconfig.SyncerLeaderElectionConfiguration, fs *pflag.Flag
 		"before it is replaced by another candidate. This is only applicable if leader "+
 		"election is enabled.")
 	fs.DurationVar(&l.RenewDeadline.Duration, "leader-elect-renew-deadline", l.RenewDeadline.Duration, ""+
-		"The interval between attempts by the acting master to renew a leadership slot "+
+		"The interval between attempts by the acting leader to renew a leadership slot "+
 		"before it stops leading. This must be less than or equal to the lease duration. "+
 		"This is only applicable if leader election is enabled.")
 	fs.DurationVar(&l.RetryPeriod.Duration, "leader-elect-retry-period", l.RetryPeriod.Duration, ""+
@@ -323,23 +323,23 @@ func getInClusterNamespace() (string, error) {
 	return string(namespace), nil
 }
 
-// getClientConfig creates a Kubernetes client rest config from the given config and masterOverride.
-func getClientConfig(config componentbaseconfig.ClientConnectionConfiguration, masterOverride, timeout string, inCluster bool) (*restclient.Config, error) {
+// getClientConfig creates a Kubernetes client rest config from the given config and serverAddrOverride.
+func getClientConfig(config componentbaseconfig.ClientConnectionConfiguration, serverAddrOverride, timeout string, inCluster bool) (*restclient.Config, error) {
 	// This creates a client, first loading any specified kubeconfig
-	// file, and then overriding the Master flag, if non-empty.
+	// file, and then overriding the serverAddr flag, if non-empty.
 	var (
 		restConfig *restclient.Config
 		err        error
 	)
-	if len(config.Kubeconfig) == 0 && len(masterOverride) == 0 && inCluster {
-		klog.Info("Neither kubeconfig file nor master URL was specified. Falling back to in-cluster config.")
+	if len(config.Kubeconfig) == 0 && len(serverAddrOverride) == 0 && inCluster {
+		klog.Info("Neither kubeconfig file nor control plane URL was specified. Falling back to in-cluster config.")
 		restConfig, err = rest.InClusterConfig()
 	} else {
 		// This creates a client, first loading any specified kubeconfig
-		// file, and then overriding the Master flag, if non-empty.
+		// file, and then overriding the serverAddr flag, if non-empty.
 		restConfig, err = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 			&clientcmd.ClientConfigLoadingRules{ExplicitPath: config.Kubeconfig},
-			&clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: masterOverride}}).ClientConfig()
+			&clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: serverAddrOverride}}).ClientConfig()
 	}
 
 	if err != nil {

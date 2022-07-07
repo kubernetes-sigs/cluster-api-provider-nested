@@ -45,7 +45,7 @@ func (c *controller) StartPatrol(stopCh <-chan struct{}) error {
 }
 
 // PatrollerDo check if persistent volume claims keep consistency between super
-// master and tenant masters.
+// control plane and tenant control planes.
 func (c *controller) PatrollerDo() {
 	clusterNames := c.MultiClusterController.GetClusterNames()
 	if len(clusterNames) == 0 {
@@ -57,7 +57,7 @@ func (c *controller) PatrollerDo() {
 
 	pList, err := c.pvcLister.List(util.GetSuperClusterListerLabelsSelector())
 	if err != nil {
-		klog.Errorf("error listing pvc from super master informer cache: %v", err)
+		klog.Errorf("error listing pvc from super control plane informer cache: %v", err)
 		return
 	}
 	pSet := differ.NewDiffSet()
@@ -109,16 +109,16 @@ func (c *controller) PatrollerDo() {
 		updatedPVC := conversion.Equality(c.Config, vc).CheckPVCEquality(p, v)
 		if updatedPVC != nil {
 			atomic.AddUint64(&numMissMatchedPVCs, 1)
-			klog.Warningf("spec of pvc %s diff in super&tenant master", pObj.Key)
+			klog.Warningf("spec of pvc %s diff in super&tenant control plane", pObj.Key)
 		}
 	}
 	d.DeleteFunc = func(pObj differ.ClusterObject) {
 		deleteOptions := &metav1.DeleteOptions{}
 		deleteOptions.Preconditions = metav1.NewUIDPreconditions(string(pObj.GetUID()))
 		if err = c.pvcClient.PersistentVolumeClaims(pObj.GetNamespace()).Delete(context.TODO(), pObj.GetName(), *deleteOptions); err != nil {
-			klog.Errorf("error deleting pPVC %s in super master: %v", pObj.Key, err)
+			klog.Errorf("error deleting pPVC %s in super control plane: %v", pObj.Key, err)
 		} else {
-			metrics.CheckerRemedyStats.WithLabelValues("DeletedOrphanSuperMasterPVCs").Inc()
+			metrics.CheckerRemedyStats.WithLabelValues("DeletedOrphanSuperControlPlanePVCs").Inc()
 		}
 	}
 

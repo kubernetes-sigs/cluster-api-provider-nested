@@ -78,7 +78,7 @@ func (c *controller) BackPopulate(key string) error {
 	if err := c.MultiClusterController.Get(clusterName, "", crdName, vCRD); err != nil {
 		if errors.IsNotFound(err) {
 			if op == reconciler.AddEvent {
-				// Available in super, hence create a new in tenant master
+				// Available in super, hence create a new in tenant control plane
 				vCRD := conversion.BuildVirtualCRD(clusterName, pCRD)
 				_, err = vcapiextensionsClient.CustomResourceDefinitions().Create(context.TODO(), vCRD, metav1.CreateOptions{})
 				if err != nil {

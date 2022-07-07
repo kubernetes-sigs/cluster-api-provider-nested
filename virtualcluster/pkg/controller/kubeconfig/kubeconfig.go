@@ -43,7 +43,7 @@ clusters:
 - name: {{ .cluster }}
   cluster:
     certificate-authority-data: {{ .ca }}
-    server: {{ .master }}
+    server: {{ .controlPlane }}
 contexts:
 - context:
     cluster: {{ .cluster }}
@@ -95,12 +95,12 @@ func generateKubeconfigUseCertAndKey(clusterName string, ips []string, apiserver
 		}
 	}
 	ctx := map[string]string{
-		"ca":       base64.StdEncoding.EncodeToString(encodeCertPEM(apiserverCA)),
-		"key":      base64.StdEncoding.EncodeToString(encodePrivateKeyPEM(caPair.Key)),
-		"cert":     base64.StdEncoding.EncodeToString(encodeCertPEM(caPair.Crt)),
-		"username": username,
-		"master":   strings.Join(urls, ","),
-		"cluster":  clusterName,
+		"ca":           base64.StdEncoding.EncodeToString(encodeCertPEM(apiserverCA)),
+		"key":          base64.StdEncoding.EncodeToString(encodePrivateKeyPEM(caPair.Key)),
+		"cert":         base64.StdEncoding.EncodeToString(encodeCertPEM(caPair.Crt)),
+		"username":     username,
+		"controlPlane": strings.Join(urls, ","),
+		"cluster":      clusterName,
 	}
 
 	return getTemplateContent(kubeconfigTemplate, ctx)

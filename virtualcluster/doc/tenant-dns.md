@@ -1,22 +1,22 @@
 # Tenant DNS Support
 
-Commonly used dns servers are not tenant-aware. Tenant Pods cannot leverage the super master
-dns service because it only recognizes the super master namespaces, not the namespaces (created in tenant masters)
+Commonly used dns servers are not tenant-aware. Tenant Pods cannot leverage the super control plane
+dns service because it only recognizes the super control plane namespaces, not the namespaces (created in tenant control planes)
 used by tenant Pods for DNS query. Hence, dedicated dns server has to be installed in every
-tenant master that needs DNS service. Let us take `coredns` for an example in this document.
+tenant control plane that needs DNS service. Let us take `coredns` for an example in this document.
 
 ## Problem
 
-The `coredns` installed in tenant master normally works for Pod and headless service endpoint
+The `coredns` installed in tenant control plane normally works for Pod and headless service endpoint
 FQDN (Fully Qualified Domain Name) translation.
 However, it cannot provide the correct cluster IP for service FQDN issued by tenant Pods. 
-This is because `coredns` only watches the tenant master and stores the tenant cluster IP in its
-dns records. However, tenant Pods that run in super master would expect to access the cluster IP of the
-synced super master service since it is the actual cluster IP managed by the Kube-proxy in
+This is because `coredns` only watches the tenant control plane and stores the tenant cluster IP in its
+dns records. However, tenant Pods that run in super control plane would expect to access the cluster IP of the
+synced super control plane service since it is the actual cluster IP managed by the Kube-proxy in
 physical nodes. The `coredns` would only work for service FQDN query had the cluster IPs of the tenant 
-master service and the synced super master service been the same. Unfortunately, this is difficult
-to achieve even if both the tenant master and the super master use the same service CIDR because:
-- The cluster IPs have to be allocated individually in different masters in order to avoid cluster IP conflict.
+control plane service and the synced super control plane service been the same. Unfortunately, this is difficult
+to achieve even if both the tenant control plane and the super control plane use the same service CIDR because:
+- The cluster IPs have to be allocated individually in different control planes in order to avoid cluster IP conflict.
 - The service cluster IP is immutable once the service object is created.
 
 As a consequence, `coredns` will always points to the tenant cluster IP for service FQDN query 
@@ -24,13 +24,13 @@ which is a bogus address for tenant Pod to access.
 
 ## Solution
 
-The syncer might recreate the tenant master service after super master service is created using
-the cluster IP allocated in the super master. This, however, would significantly complicate the syncer 
+The syncer might recreate the tenant control plane service after super control plane service is created using
+the cluster IP allocated in the super control plane. This, however, would significantly complicate the syncer 
 implementation and be error prone. By closely investigating all possible solutions, we found the
 simplest workaround is to introduce a trivial change to the `coredns` Kubernetes plugin. The idea
-is that the syncer can back populate the cluster IP used in the super master to tenant service
+is that the syncer can back populate the cluster IP used in the super control plane to tenant service
 annotation instead of recreating a new service object and let `coredns` record the
-super master cluster IP in its internal structures. The modification to `coredns` is literally one
+super control plane cluster IP in its internal structures. The modification to `coredns` is literally one
 line change:
 ``` bash
 diff --git a/plugin/kubernetes/object/service.go b/plugin/kubernetes/object/service.go
@@ -57,7 +57,7 @@ git checkout tags/v1.6.8
 ```
 
 2. In the source code root directory, use the following cmd to change the code. Note that
-the syncer has populated the super master cluster IP in the tenant master service annotation using
+the syncer has populated the super control plane cluster IP in the tenant control plane service annotation using
 the key `transparency.tenancy.x-k8s.io/clusterIP`.
 ```
 sed -i'' -e 's/svc.Spec.ClusterIP/func(sCIP string) string { if sCIP == "" { return svc.Spec.ClusterIP } else { return sCIP } } (svc.Annotations["transparency.tenancy.x-k8s.io\/clusterIP"])/g' plugin/kubernetes/object/service.go
@@ -119,5 +119,5 @@ Commercial support is available at
 
 ```
 
-You can observe that the `my_nginx` service has different cluster IPs in tenant master and super master respectively
-and the tenant coredns uses the super master cluster ip for service FQDN translation.
+You can observe that the `my_nginx` service has different cluster IPs in tenant control plane and super control plane respectively
+and the tenant coredns uses the super control plane cluster ip for service FQDN translation.

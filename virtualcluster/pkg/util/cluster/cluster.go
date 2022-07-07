@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
 )
 
-// Each Cluster object represents a tenant master in Virtual Cluster architecture.
+// Each Cluster object represents a tenant control plane in Virtual Cluster architecture.
 //
 // Cluster implements the ClusterInterface used by MultiClusterController in
 // sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller/mccontroller.go.
@@ -67,11 +67,11 @@ type Cluster struct {
 
 	mapper meta.RESTMapper
 
-	// informer cache and delegating client for watched tenant master objects
+	// informer cache and delegating client for watched tenant control plane objects
 	cache            cache.Cache
 	delegatingClient client.Client
 
-	// a clientset client for unwatched tenant master objects (rw directly to tenant apiserver)
+	// a clientset client for unwatched tenant control plane objects (rw directly to tenant apiserver)
 	client *clientset.Clientset
 
 	options Options

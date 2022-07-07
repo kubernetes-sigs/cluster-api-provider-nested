@@ -93,7 +93,7 @@ func (o *Options) Flags() cliflag.NamedFlagSets {
 	serverFS.StringVar(&o.CertDirectory, "cert-dir", o.CertDirectory, "CertDirectory is the directory where the TLS certs are located")
 	serverFS.StringVar(&o.TLSCertFile, "tls-cert-file", o.TLSCertFile, "TLSCertFile is the file containing x509 Certificate for HTTPS")
 	serverFS.StringVar(&o.TLSPrivateKeyFile, "tls-private-key-file", o.TLSPrivateKeyFile, "TLSPrivateKeyFile is the file containing x509 private key matching tlsCertFile")
-	serverFS.StringVar(&o.Kubeconfig, "kubeconfig", o.Kubeconfig, "Path to kubeconfig file with authorization and master location information.")
+	serverFS.StringVar(&o.Kubeconfig, "kubeconfig", o.Kubeconfig, "Path to kubeconfig file with authorization and control plane location information.")
 	serverFS.UintVar(&o.Port, "port", 10550, "Port is the server listening on")
 	serverFS.StringVar(&o.MetricsAddr, "metrics-addr", ":9100", "Bind address for the metrics server.")
 	serverFS.BoolVar(&o.EnableMetrics, "enable-metrics", true, "Enable metrics server.")

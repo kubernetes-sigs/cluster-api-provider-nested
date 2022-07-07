@@ -88,7 +88,7 @@ func (c *controller) PatrollerDo() {
 
 	pList, err := c.nsLister.List(util.GetSuperClusterListerLabelsSelector())
 	if err != nil {
-		klog.Errorf("error listing namespaces from super master informer cache: %v", err)
+		klog.Errorf("error listing namespaces from super control plane informer cache: %v", err)
 		return
 	}
 	pSet := differ.NewDiffSet()
@@ -200,8 +200,8 @@ func (c *controller) deleteNamespace(ns *v1.Namespace) {
 	deleteOptions := &metav1.DeleteOptions{}
 	deleteOptions.Preconditions = metav1.NewUIDPreconditions(string(ns.GetUID()))
 	if err := c.namespaceClient.Namespaces().Delete(context.TODO(), ns.GetName(), *deleteOptions); err != nil {
-		klog.Errorf("error deleting pNamespace %s in super master: %v", ns.GetName(), err)
+		klog.Errorf("error deleting pNamespace %s in super control plane: %v", ns.GetName(), err)
 	} else {
-		metrics.CheckerRemedyStats.WithLabelValues("DeletedOrphanSuperMasterNamespaces").Inc()
+		metrics.CheckerRemedyStats.WithLabelValues("DeletedOrphanSuperControlPlaneNamespaces").Inc()
 	}
 }

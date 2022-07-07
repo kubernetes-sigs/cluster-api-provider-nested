@@ -46,7 +46,7 @@ func (c *controller) StartPatrol(stopCh <-chan struct{}) error {
 	return nil
 }
 
-// PatrollerDo check if normal secrets and service account secrets keep consistency between super master and tenant masters.
+// PatrollerDo check if normal secrets and service account secrets keep consistency between super control plane and tenant control planes.
 func (c *controller) PatrollerDo() {
 	clusterNames := c.MultiClusterController.GetClusterNames()
 	if len(clusterNames) == 0 {
@@ -69,7 +69,7 @@ func (c *controller) PatrollerDo() {
 
 	secretList, err := c.secretLister.List(util.GetSuperClusterListerLabelsSelector())
 	if err != nil {
-		klog.Errorf("error listing secret from super master informer cache: %v", err)
+		klog.Errorf("error listing secret from super control plane informer cache: %v", err)
 		return
 	}
 
@@ -109,9 +109,9 @@ func (c *controller) PatrollerDo() {
 		if shouldDelete {
 			deleteOptions := metav1.NewPreconditionDeleteOptions(string(pSecret.UID))
 			if err := c.secretClient.Secrets(pSecret.Namespace).Delete(context.TODO(), pSecret.Name, *deleteOptions); err != nil {
-				klog.Errorf("error deleting pSecret %s/%s in super master: %v", pSecret.Namespace, pSecret.Name, err)
+				klog.Errorf("error deleting pSecret %s/%s in super control plane: %v", pSecret.Namespace, pSecret.Name, err)
 			} else {
-				metrics.CheckerRemedyStats.WithLabelValues("DeletedOrphanSuperMasterSecrets").Inc()
+				metrics.CheckerRemedyStats.WithLabelValues("DeletedOrphanSuperControlPlaneSecrets").Inc()
 			}
 		}
 	}
@@ -148,7 +148,7 @@ func (c *controller) checkSecretOfTenantCluster(clusterName string) {
 		}
 
 		if err != nil {
-			klog.Errorf("failed to get pSecret %s/%s from super master cache: %v", targetNamespace, vSecret.Name, err)
+			klog.Errorf("failed to get pSecret %s/%s from super control plane cache: %v", targetNamespace, vSecret.Name, err)
 			continue
 		}
 
@@ -165,7 +165,7 @@ func (c *controller) checkSecretOfTenantCluster(clusterName string) {
 		updatedSecret := conversion.Equality(c.Config, vc).CheckSecretEquality(pSecret, &secretList.Items[i])
 		if updatedSecret != nil {
 			atomic.AddUint64(&numMissMatchedOpaqueSecrets, 1)
-			klog.Warningf("spec of secret %v/%v diff in super&tenant master", vSecret.Namespace, vSecret.Name)
+			klog.Warningf("spec of secret %v/%v diff in super&tenant control plane", vSecret.Namespace, vSecret.Name)
 		}
 	}
 }
@@ -184,7 +184,7 @@ func (c *controller) checkServiceAccountTokenTypeSecretOfTenantCluster(clusterNa
 	}
 
 	if err != nil {
-		klog.Errorf("failed to get service account token type pSecret %s/%s from super master cache: %v", targetNamespace, vSecret.Name, err)
+		klog.Errorf("failed to get service account token type pSecret %s/%s from super control plane cache: %v", targetNamespace, vSecret.Name, err)
 		return
 	}
 
@@ -205,6 +205,6 @@ func (c *controller) checkServiceAccountTokenTypeSecretOfTenantCluster(clusterNa
 	updatedSecret := conversion.Equality(c.Config, vc).CheckSecretEquality(secretList[0], vSecret)
 	if updatedSecret != nil {
 		atomic.AddUint64(&numMissMatchedSASecrets, 1)
-		klog.Warningf("spec of service account token type secret %v/%v diff in super&tenant master", vSecret.Namespace, vSecret.Name)
+		klog.Warningf("spec of service account token type secret %v/%v diff in super&tenant control plane", vSecret.Namespace, vSecret.Name)
 	}
 }

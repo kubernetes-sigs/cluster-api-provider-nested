@@ -54,7 +54,7 @@ type UWReconciler interface {
 	BackPopulate(string) error
 }
 
-// PatrolReconciler is the interface used by a peroidic checker to ensure the object consistency between tenant and super master.
+// PatrolReconciler is the interface used by a peroidic checker to ensure the object consistency between tenant and super control plane.
 type PatrolReconciler interface {
 	PatrollerDo()
 }

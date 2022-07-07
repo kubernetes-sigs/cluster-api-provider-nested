@@ -52,9 +52,9 @@ func init() {
 
 type controller struct {
 	manager.BaseResourceSyncer
-	// super master priorityclasses client
+	// super control plane priorityclasses client
 	client v1priorityclass.PriorityClassesGetter
-	// super master priorityclasses informer/lister/synced functions
+	// super control plane priorityclasses informer/lister/synced functions
 	informer            priorityclassinformers.Interface
 	priorityclassLister listersv1.PriorityClassLister
 	priorityclassSynced cache.InformerSynced
@@ -110,7 +110,7 @@ func NewPriorityClassController(config *config.SyncerConfiguration,
 					utilruntime.HandleError(fmt.Errorf("unable to convert object %v to *v1.PriorityClass", obj))
 					return false
 				default:
-					utilruntime.HandleError(fmt.Errorf("unable to handle object in super master priorityclass controller: %v", obj))
+					utilruntime.HandleError(fmt.Errorf("unable to handle object in super control plane priorityclass controller: %v", obj))
 					return false
 				}
 			},
@@ -130,7 +130,7 @@ func NewPriorityClassController(config *config.SyncerConfiguration,
 }
 
 func publicPriorityClass(e *v1.PriorityClass) bool {
-	// We only backpopulate specific priorityclass to tenant masters
+	// We only backpopulate specific priorityclass to tenant control planes
 	return e.Labels[constants.PublicObjectKey] == "true"
 }
 
@@ -143,7 +143,7 @@ func (c *controller) enqueuePriorityClass(obj interface{}) {
 
 	clusterNames := c.MultiClusterController.GetClusterNames()
 	if len(clusterNames) == 0 {
-		klog.Infof("No tenant masters, stop backpopulate priorityclass %v", key)
+		klog.Infof("No tenant control planes, stop backpopulate priorityclass %v", key)
 		return
 	}
 

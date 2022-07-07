@@ -38,7 +38,7 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 	return c.MultiClusterController.Start(stopCh)
 }
 
-// The reconcile logic for tenant master service account informer
+// The reconcile logic for tenant control plane service account informer
 func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, error) {
 	klog.V(4).Infof("reconcile service account %s/%s for cluster %s", request.Namespace, request.Name, request.ClusterName)
 	targetNamespace := conversion.ToSuperClusterNamespace(request.ClusterName, request.Namespace)
@@ -96,7 +96,7 @@ func (c *controller) reconcileServiceAccountCreate(clusterName, targetNamespace,
 	pServiceAccount, err = c.saClient.ServiceAccounts(targetNamespace).Create(context.TODO(), pServiceAccount, metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {
 		if pServiceAccount.Annotations[constants.LabelUID] == requestUID {
-			klog.Infof("service account %s/%s of cluster %s already exist in super master", targetNamespace, pServiceAccount.Name, clusterName)
+			klog.Infof("service account %s/%s of cluster %s already exist in super control plane", targetNamespace, pServiceAccount.Name, clusterName)
 			return nil
 		} else {
 			return fmt.Errorf("pServiceAccount %s/%s exists but its delegated UID is different", targetNamespace, pServiceAccount.Name)
@@ -106,7 +106,7 @@ func (c *controller) reconcileServiceAccountCreate(clusterName, targetNamespace,
 }
 
 func (c *controller) reconcileServiceAccountUpdate(clusterName, targetNamespace, requestUID string, pSa, vSa *v1.ServiceAccount) error {
-	// Just mark the default service account of super master namespace, created by super master service account controller, as a tenant related resource.
+	// Just mark the default service account of super control plane namespace, created by super control plane service account controller, as a tenant related resource.
 	if vSa.Name == "default" {
 		if len(pSa.Annotations) == 0 {
 			pSa.Annotations = make(map[string]string)
@@ -138,7 +138,7 @@ func (c *controller) reconcileServiceAccountRemove(clusterName, targetNamespace,
 	}
 	err := c.saClient.ServiceAccounts(targetNamespace).Delete(context.TODO(), name, *opts)
 	if errors.IsNotFound(err) {
-		klog.Warningf("service account %s/%s of cluster %s not found in super master", targetNamespace, name, clusterName)
+		klog.Warningf("service account %s/%s of cluster %s not found in super control plane", targetNamespace, name, clusterName)
 		return nil
 	}
 	return err

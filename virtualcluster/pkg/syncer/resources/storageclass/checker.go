@@ -44,7 +44,7 @@ func (c *controller) StartPatrol(stopCh <-chan struct{}) error {
 	return nil
 }
 
-// PatrollerDo check if StorageClass keeps consistency between super master and tenant masters.
+// PatrollerDo check if StorageClass keeps consistency between super control plane and tenant control planes.
 func (c *controller) PatrollerDo() {
 	clusterNames := c.MultiClusterController.GetClusterNames()
 	if len(clusterNames) == 0 {
@@ -66,7 +66,7 @@ func (c *controller) PatrollerDo() {
 
 	pStorageClassList, err := c.storageclassLister.List(labels.Everything())
 	if err != nil {
-		klog.Errorf("error listing storageclass from super master informer cache: %v", err)
+		klog.Errorf("error listing storageclass from super control plane informer cache: %v", err)
 		return
 	}
 
@@ -78,7 +78,7 @@ func (c *controller) PatrollerDo() {
 
 			if err := c.MultiClusterController.Get(clusterName, "", pStorageClass.Name, &v1.StorageClass{}); err != nil {
 				if errors.IsNotFound(err) {
-					metrics.CheckerRemedyStats.WithLabelValues("RequeuedSuperMasterStorageClasses").Inc()
+					metrics.CheckerRemedyStats.WithLabelValues("RequeuedSuperControlPlaneStorageClasses").Inc()
 					c.UpwardController.AddToQueue(clusterName + "/" + pStorageClass.Name)
 				}
 				klog.Errorf("fail to get storageclass from cluster %s: %v", clusterName, err)
@@ -100,7 +100,7 @@ func (c *controller) checkStorageClassOfTenantCluster(clusterName string) {
 	for i, vStorageClass := range scList.Items {
 		pStorageClass, err := c.storageclassLister.Get(vStorageClass.Name)
 		if errors.IsNotFound(err) {
-			// super master is the source of the truth for sc object, delete tenant master obj
+			// super control plane is the source of the truth for sc object, delete tenant control plane obj
 			tenantClient, err := c.MultiClusterController.GetClusterClient(clusterName)
 			if err != nil {
 				klog.Errorf("error getting cluster %s clientset: %v", clusterName, err)
@@ -118,14 +118,14 @@ func (c *controller) checkStorageClassOfTenantCluster(clusterName string) {
 		}
 
 		if err != nil {
-			klog.Errorf("failed to get pStorageClass %s from super master cache: %v", vStorageClass.Name, err)
+			klog.Errorf("failed to get pStorageClass %s from super control plane cache: %v", vStorageClass.Name, err)
 			continue
 		}
 
 		updatedStorageClass := conversion.Equality(nil, nil).CheckStorageClassEquality(pStorageClass, &scList.Items[i])
 		if updatedStorageClass != nil {
 			atomic.AddUint64(&numMissMatchedStorageClasses, 1)
-			klog.Warningf("spec of storageClass %v diff in super&tenant master", vStorageClass.Name)
+			klog.Warningf("spec of storageClass %v diff in super&tenant control plane", vStorageClass.Name)
 			if publicStorageClass(pStorageClass) {
 				c.UpwardController.AddToQueue(clusterName + "/" + pStorageClass.Name)
 			}

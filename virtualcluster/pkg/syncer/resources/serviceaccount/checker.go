@@ -42,7 +42,7 @@ func (c *controller) StartPatrol(stopCh <-chan struct{}) error {
 	return nil
 }
 
-// PatrollerDo checks to see if serviceaccounts in super master informer cache and tenant master
+// PatrollerDo checks to see if serviceaccounts in super control plane informer cache and tenant control plane
 // keep consistency.
 func (c *controller) PatrollerDo() {
 	clusterNames := c.MultiClusterController.GetClusterNames()
@@ -53,7 +53,7 @@ func (c *controller) PatrollerDo() {
 
 	pList, err := c.saLister.List(util.GetSuperClusterListerLabelsSelector())
 	if err != nil {
-		klog.Errorf("error listing service accounts from super master informer cache: %v", err)
+		klog.Errorf("error listing service accounts from super control plane informer cache: %v", err)
 		return
 	}
 	pSet := differ.NewDiffSet()
@@ -102,9 +102,9 @@ func (c *controller) PatrollerDo() {
 		deleteOptions := &metav1.DeleteOptions{}
 		deleteOptions.Preconditions = metav1.NewUIDPreconditions(string(pObj.GetUID()))
 		if err = c.saClient.ServiceAccounts(pObj.GetNamespace()).Delete(context.TODO(), pObj.GetName(), *deleteOptions); err != nil {
-			klog.Errorf("error deleting pServiceAccount %s in super master: %v", pObj.Key, err)
+			klog.Errorf("error deleting pServiceAccount %s in super control plane: %v", pObj.Key, err)
 		} else {
-			metrics.CheckerRemedyStats.WithLabelValues("DeletedOrphanSuperMasterServiceAccounts").Inc()
+			metrics.CheckerRemedyStats.WithLabelValues("DeletedOrphanSuperControlPlaneServiceAccounts").Inc()
 		}
 	}
 

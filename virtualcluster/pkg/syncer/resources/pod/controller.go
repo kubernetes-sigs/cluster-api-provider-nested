@@ -18,11 +18,12 @@ package pod
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode/provider"
 	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/plugin"
-	"sync"
-	"time"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,9 +60,9 @@ func init() {
 
 type controller struct {
 	manager.BaseResourceSyncer
-	// super master pod client
+	// super control plane pod client
 	client v1core.CoreV1Interface
-	// super master informer/listers/synced functions
+	// super control plane informer/listers/synced functions
 	informer      coreinformers.Interface
 	podLister     listersv1.PodLister
 	podSynced     cache.InformerSynced

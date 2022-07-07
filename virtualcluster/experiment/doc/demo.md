@@ -15,7 +15,7 @@ A few notes:
 - Most of the CRDs, components such as the namespace scheduler, the per super cluster syncer controller, are installed in the meta cluster. 
 `vn-agent` needs to be installed in each super cluster using DaemonSet (skipped in this demo).
 - In this demo, the tenant cluster is created by vc-manager using the VirutalCluster CRD. The super clusters are created using existing tools, e.g., `minikube`. 
-However, we leverage the CAPI [`Cluster`](https://github.com/kubernetes-sigs/cluster-api/tree/master/api/v1alpha4/cluster_types.go)
+However, we leverage the CAPI [`Cluster`](https://github.com/kubernetes-sigs/cluster-api/tree/main/api/v1alpha4/cluster_types.go)
 CRD to represent the super clusters so that the namespace scheduler can find the super cluster access credential.
 
 
@@ -31,15 +31,15 @@ minikube start -p meta
 Besides the VirtualCluster and ClusterVersion CRDs, the Cluster CRD needs be installed as well:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/crd/tenancy.x-k8s.io_clusterversions.yaml
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/crd/tenancy.x-k8s.io_virtualclusters.yaml
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/experiment/config/crd/cluster.x-k8s.io_clusters.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/main/virtualcluster/config/crd/tenancy.x-k8s.io_clusterversions.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/main/virtualcluster/config/crd/tenancy.x-k8s.io_virtualclusters.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/main/virtualcluster/experiment/config/crd/cluster.x-k8s.io_clusters.yaml
 ```
 
 Install vc-manager and vc-scheduler in the vc-manager namespacing using the following command:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/experiment/config/setup/all_in_one.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/main/virtualcluster/experiment/config/setup/all_in_one.yaml
 ```
 
 Although the per super cluster syncer will be installed in the meta cluster, its configuration relies on the super cluster deployment. We will describe
@@ -49,10 +49,10 @@ its installation in Step 3.
 
 ### Step 2: Create a VirtualCluster
 
-Follow the exact same steps in the VirtualCluster [demo](https://github.com/kubernetes-sigs/cluster-api-provider-nested/blob/master/virtualcluster/doc/demo.md#create-clusterversion) to create a VirtualCluster. For example, using the following command to create a VirtualCluster named `vc-sample-1`.
+Follow the exact same steps in the VirtualCluster [demo](https://github.com/kubernetes-sigs/cluster-api-provider-nested/blob/main/virtualcluster/doc/demo.md#create-clusterversion) to create a VirtualCluster. For example, using the following command to create a VirtualCluster named `vc-sample-1`.
 
 ```bash
-$ kubectl vc create -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/master/virtualcluster/config/sampleswithspec/virtualcluster_1_nodeport.yaml -o vc-1.kubeconfig
+$ kubectl vc create -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/main/virtualcluster/config/sampleswithspec/virtualcluster_1_nodeport.yaml -o vc-1.kubeconfig
 ```
 
 Once it is created, a kubeconfig file, namely `vc-1.kubeconfig`, will be created in the current directory.

@@ -305,7 +305,7 @@ func TestDWPodCreation(t *testing.T) {
 				tenantSecret(testTenantServiceAccountTokenSecretName, "default", "s12345"),
 				tenantServiceAccount("default", "default", "12345"),
 			},
-			ExpectedError: "failed to find sa secret from super master",
+			ExpectedError: "failed to find sa secret from super control plane",
 		},
 		"multi tenant service account token secret": {
 			ExistingObjectInSuper: []runtime.Object{

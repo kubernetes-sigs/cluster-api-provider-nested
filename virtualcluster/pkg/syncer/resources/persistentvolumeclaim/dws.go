@@ -39,7 +39,7 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 	return c.MultiClusterController.Start(stopCh)
 }
 
-// The reconcile logic for tenant master pvc informer
+// The reconcile logic for tenant control plane pvc informer
 func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, error) {
 	klog.V(4).Infof("reconcile pvc %s/%s event for cluster %s", request.Namespace, request.Name, request.ClusterName)
 
@@ -97,7 +97,7 @@ func (c *controller) reconcilePVCCreate(clusterName, targetNamespace, requestUID
 	pPVC, err = c.pvcClient.PersistentVolumeClaims(targetNamespace).Create(context.TODO(), pPVC, metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {
 		if pPVC.Annotations[constants.LabelUID] == requestUID {
-			klog.Infof("pvc %s/%s of cluster %s already exist in super master", targetNamespace, pPVC.Name, clusterName)
+			klog.Infof("pvc %s/%s of cluster %s already exist in super control plane", targetNamespace, pPVC.Name, clusterName)
 			return nil
 		} else {
 			return fmt.Errorf("pPVC %s/%s exists but its delegated object UID is different.", targetNamespace, pPVC.Name)
@@ -133,7 +133,7 @@ func (c *controller) reconcilePVCRemove(clusterName, targetNamespace, requestUID
 	}
 	err := c.pvcClient.PersistentVolumeClaims(targetNamespace).Delete(context.TODO(), name, *opts)
 	if errors.IsNotFound(err) {
-		klog.Warningf("pvc %s/%s of cluster %s not found in super master", targetNamespace, name, clusterName)
+		klog.Warningf("pvc %s/%s of cluster %s not found in super control plane", targetNamespace, name, clusterName)
 		return nil
 	}
 	return err

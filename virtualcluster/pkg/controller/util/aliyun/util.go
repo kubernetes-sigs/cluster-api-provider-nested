@@ -50,11 +50,11 @@ const (
 	AliyunASKCfgMpVSID       = "askVswitchID"
 	AliyunASKCfgMpPrivateCfg = "askPrivateKbCfg"
 
-	// AnnotationClusterID is the cluster id of the remote virtualcluster master on the cloud
+	// AnnotationClusterID is the cluster id of the remote virtualcluster control plane on the cloud
 	AnnotationClusterID = "tenancy.x-k8s.io/ask.clusterID"
-	// AnnotationSlbID is the loadbalancer id of the remote virtualcluster master on the cloud
+	// AnnotationSlbID is the loadbalancer id of the remote virtualcluster control plane on the cloud
 	AnnotationSlbID = "tenancy.x-k8s.io/ask.slbID"
-	// AnnotationKubeconfig is the admin-kubeconfig to access the remote virtualcluster master on the cloud
+	// AnnotationKubeconfig is the admin-kubeconfig to access the remote virtualcluster control plane on the cloud
 	AnnotationKubeconfig = "tenancy.x-k8s.io/admin-kubeconfig"
 )
 

@@ -37,7 +37,7 @@ const (
 	LabelClusterIP = "tenancy.x-k8s.io/clusterIP"
 	// LabelSecretName is the service account token secret name in tenant namespace.
 	LabelSecretName = "tenancy.x-k8s.io/secret.name"
-	// LabelAdminKubeConfig is the kubeconfig in base64 format for tenant master.
+	// LabelAdminKubeConfig is the kubeconfig in base64 format for tenant control plane.
 	LabelAdminKubeConfig = "tenancy.x-k8s.io/admin-kubeconfig"
 	// LabelSecretAdminKubeConfig is the kubeconfig secret name for the tenant control plane.
 	LabelSecretAdminKubeConfig = "tenancy.x-k8s.io/secret.admin-kubeconfig"
@@ -72,20 +72,20 @@ const (
 	// TenantDisableDNSPolicyMutation is a label that allows pods to stop the syncer from mutating the dnsPolicy
 	TenantDisableDNSPolicyMutation = "tenancy.x-k8s.io/disable.dnsPolicyMutation"
 
-	// PublicObjectKey is a label key which marks the super master object that should be populated to every tenant master.
+	// PublicObjectKey is a label key which marks the super control plane object that should be populated to every tenant control plane.
 	PublicObjectKey = "tenancy.x-k8s.io/super.public"
 
 	LabelVirtualNode = "tenancy.x-k8s.io/virtualnode"
 	// LabelSuperClusterID is a label key added to the vNode object in tenant when SuperClusterPooling feature is enabled.
 	LabelSuperClusterID = "tenancy.x-k8s.io/superclusterid"
 
-	// DefaultvNodeGCGracePeriod is the grace period of time before deleting an orphan vNode in tenant master.
+	// DefaultvNodeGCGracePeriod is the grace period of time before deleting an orphan vNode in tenant control plane.
 	DefaultvNodeGCGracePeriod = time.Second * 120
 
 	DefaultOpaqueMetaPrefix      = "tenancy.x-k8s.io"
 	DefaultTransparentMetaPrefix = "transparency.tenancy.x-k8s.io"
 
-	// LabelSuperClusterIP is used to inform the tenant service about the cluster IP used in super master.
+	// LabelSuperClusterIP is used to inform the tenant service about the cluster IP used in super control plane.
 	LabelSuperClusterIP = "transparency.tenancy.x-k8s.io/clusterIP"
 
 	KubeconfigAdminSecretName = "admin-kubeconfig"

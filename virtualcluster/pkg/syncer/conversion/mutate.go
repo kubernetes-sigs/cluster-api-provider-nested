@@ -72,8 +72,8 @@ type podMutateCtx struct {
 	pPod        *v1.Pod
 }
 
-// MutatePod convert the meta data of containers to super master namespace.
-// replace the service account token volume mounts to super master side one.
+// MutatePod convert the meta data of containers to super control plane namespace.
+// replace the service account token volume mounts to super control plane side one.
 func (p *podMutateCtx) Mutate(ms ...PodMutator) error {
 	for _, mutator := range ms {
 		if err := mutator(p); err != nil {
@@ -247,7 +247,7 @@ func getServiceEnvVarMap(ns, cluster string, enableServiceLinks *bool, services 
 		apiServerService string
 	)
 
-	// project the services in namespace ns onto the master services
+	// project the services in namespace ns onto the control plane services
 	for i := range services {
 		service := services[i]
 		// ignore services where ClusterIP is "None" or empty
@@ -256,8 +256,8 @@ func getServiceEnvVarMap(ns, cluster string, enableServiceLinks *bool, services 
 		}
 		serviceName := service.Name
 
-		// We always want to add environment variables for master services
-		// from the corresponding master service namespace of the virtualcluster,
+		// We always want to add environment variables for control plane services
+		// from the corresponding control plane service namespace of the virtualcluster,
 		// even if enableServiceLinks is false.
 		// We also add environment variables for other services in the same
 		// namespace, if enableServiceLinks is true.

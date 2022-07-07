@@ -61,7 +61,7 @@ func (c *controller) BackPopulate(key string) error {
 	if err := c.MultiClusterController.Get(clusterName, "", scName, vPriorityClass); err != nil {
 		if errors.IsNotFound(err) {
 			if op == reconciler.AddEvent {
-				// Available in super, hence create a new in tenant master
+				// Available in super, hence create a new in tenant control plane
 				vPriorityClass := conversion.BuildVirtualPriorityClass(clusterName, pPriorityClass)
 				_, err := tenantClient.SchedulingV1().PriorityClasses().Create(context.TODO(), vPriorityClass, metav1.CreateOptions{})
 				if err != nil {
