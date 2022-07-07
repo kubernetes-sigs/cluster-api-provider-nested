@@ -22,11 +22,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+// EventType is an enum for type of Event
 type EventType string
 
 const (
-	AddEvent    EventType = "Add"
+	// AddEvent EventType for Add
+	AddEvent EventType = "Add"
+	// UpdateEvent EventType for Update
 	UpdateEvent EventType = "Update"
+	// DeleteEvent EventType for Delete
 	DeleteEvent EventType = "Delete"
 )
 
@@ -38,6 +42,7 @@ type Request struct {
 	UID string
 }
 
+// GroupName get ClusterName of request
 func (r Request) GroupName() string {
 	return r.ClusterName
 }
@@ -55,7 +60,7 @@ type UWReconciler interface {
 	BackPopulate(string) error
 }
 
-// PatrolReconciler is the interface used by a peroidic checker to ensure the object consistency between tenant and super control plane.
+// PatrolReconciler is the interface used by a periodic checker to ensure the object consistency between tenant and super control plane.
 type PatrolReconciler interface {
 	PatrollerDo()
 }

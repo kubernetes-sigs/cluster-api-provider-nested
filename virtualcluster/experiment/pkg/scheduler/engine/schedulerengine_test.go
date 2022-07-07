@@ -32,11 +32,12 @@ func classifySlicesInfoArray(in algorithm.SliceInfoArray) (map[string]int, map[s
 	hint := make(map[string]int)
 	regular := 0
 	for _, each := range in {
-		if each.Mandatory != "" {
-			mandatory[each.Mandatory] = mandatory[each.Mandatory] + 1
-		} else if each.Hint != "" {
-			hint[each.Hint] = hint[each.Hint] + 1
-		} else {
+		switch {
+		case each.Mandatory != "":
+			mandatory[each.Mandatory]++
+		case each.Hint != "":
+			hint[each.Hint]++
+		default:
 			regular++
 		}
 	}

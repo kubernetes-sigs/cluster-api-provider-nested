@@ -22,8 +22,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	v1 "k8s.io/api/storage/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	storagev1 "k8s.io/api/storage/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -76,8 +76,8 @@ func (c *controller) PatrollerDo() {
 		}
 		for _, clusterName := range clusterNames {
 
-			if err := c.MultiClusterController.Get(clusterName, "", pStorageClass.Name, &v1.StorageClass{}); err != nil {
-				if errors.IsNotFound(err) {
+			if err := c.MultiClusterController.Get(clusterName, "", pStorageClass.Name, &storagev1.StorageClass{}); err != nil {
+				if apierrors.IsNotFound(err) {
 					metrics.CheckerRemedyStats.WithLabelValues("RequeuedSuperControlPlaneStorageClasses").Inc()
 					c.UpwardController.AddToQueue(clusterName + "/" + pStorageClass.Name)
 				}
@@ -90,7 +90,7 @@ func (c *controller) PatrollerDo() {
 }
 
 func (c *controller) checkStorageClassOfTenantCluster(clusterName string) {
-	scList := &v1.StorageClassList{}
+	scList := &storagev1.StorageClassList{}
 	if err := c.MultiClusterController.List(clusterName, scList); err != nil {
 		klog.Errorf("error listing storageclass from cluster %s informer cache: %v", clusterName, err)
 		return
@@ -99,7 +99,7 @@ func (c *controller) checkStorageClassOfTenantCluster(clusterName string) {
 
 	for i, vStorageClass := range scList.Items {
 		pStorageClass, err := c.storageclassLister.Get(vStorageClass.Name)
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// super control plane is the source of the truth for sc object, delete tenant control plane obj
 			tenantClient, err := c.MultiClusterController.GetClusterClient(clusterName)
 			if err != nil {

@@ -126,8 +126,9 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 			corev1.ResourceCPU:    resource.MustParse("0"),
 			corev1.ResourceMemory: resource.MustParse("0"),
 		}
+	} else {
+		quota = util.GetMaxQuota(quotaList)
 	}
-	quota = util.GetMaxQuota(quotaList)
 
 	placements, quotaSlice, err := util.GetSchedulingInfo(namespace)
 	if err != nil {

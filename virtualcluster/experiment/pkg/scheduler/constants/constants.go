@@ -21,35 +21,49 @@ import (
 	"math"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/version"
 )
+
+// SchedulerContextKey is a type for context key
+type SchedulerContextKey string
 
 const (
 
 	// Override the client-go default 5 qps and 10 burst
-	DefaultSchedulerClientQPS   = 100
+
+	// DefaultSchedulerClientQPS allows 100 qps
+	DefaultSchedulerClientQPS = 100
+	// DefaultSchedulerClientBurst allows burst of 500 qps
 	DefaultSchedulerClientBurst = 500
 
 	// DefaultRequestTimeout is set for all client-go request. This is the absolute
 	// timeout of the HTTP request, including reading the response body.
 	DefaultRequestTimeout = 30 * time.Second
 
+	// VirtualClusterWorker set amount of workers
 	VirtualClusterWorker = 3
-	SuperClusterWorker   = 3
+	// SuperClusterWorker set amount of workers
+	SuperClusterWorker = 3
 
+	// KubeconfigAdminSecretName name of secret with kubeconfig for admin
 	KubeconfigAdminSecretName = "admin-kubeconfig"
 
-	InternalSchedulerCache   = "tenancy.x-k8s.io/schedulercache"
-	InternalSchedulerEngine  = "tenancy.x-k8s.io/schedulerengine"
-	InternalSchedulerManager = "tenancy.x-k8s.io/schedulermanager"
+	// InternalSchedulerCache name of the context key with cache settings
+	InternalSchedulerCache SchedulerContextKey = "tenancy.x-k8s.io/schedulercache"
+	// InternalSchedulerEngine name of the context key with engine
+	InternalSchedulerEngine SchedulerContextKey = "tenancy.x-k8s.io/schedulerengine"
+	// InternalSchedulerManager name of the context key with manager
+	InternalSchedulerManager SchedulerContextKey = "tenancy.x-k8s.io/schedulermanager"
 )
 
+// SchedulerUserAgent is a useragent for scheduler
 var SchedulerUserAgent = "scheduler" + version.BriefVersion()
 
-// shadowcluster has a fake "unlimited" capacity
-var ShadowClusterCapacity = v1.ResourceList{
-	v1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%d", math.MaxInt32)),
-	v1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dGi", math.MaxInt32)),
+// ShadowClusterCapacity has a fake "unlimited" capacity
+var ShadowClusterCapacity = corev1.ResourceList{
+	corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%d", math.MaxInt32)),
+	corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dGi", math.MaxInt32)),
 }

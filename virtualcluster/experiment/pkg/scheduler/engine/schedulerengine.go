@@ -69,7 +69,7 @@ func GetSlicesToSchedule(namespace *internalcache.Namespace, oldPlacements map[s
 			oldPlacements[cluster] = val - used
 		}
 		slicesToSchedule.Repeat(mandatory, key, size, cluster, "")
-		remainingToSchedule = remainingToSchedule - mandatory
+		remainingToSchedule -= mandatory
 	}
 
 	// use old placements as hints
@@ -80,7 +80,7 @@ func GetSlicesToSchedule(namespace *internalcache.Namespace, oldPlacements map[s
 		}
 		hinted := util.Min(num, remainingToSchedule)
 		slicesToSchedule.Repeat(hinted, key, size, "", cluster)
-		remainingToSchedule = remainingToSchedule - hinted
+		remainingToSchedule -= hinted
 	}
 	slicesToSchedule.Repeat(remainingToSchedule, key, size, "", "")
 	return slicesToSchedule
@@ -93,7 +93,7 @@ func GetNewPlacement(slices algorithm.SliceInfoArray) (map[string]int, error) {
 		if each.Err != nil {
 			return nil, each.Err
 		}
-		newPlacement[each.Result] = newPlacement[each.Result] + 1
+		newPlacement[each.Result]++
 	}
 	return newPlacement, nil
 }
@@ -147,7 +147,7 @@ func (e *schedulerEngine) DeScheduleNamespace(key string) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if ns := e.cache.GetNamespace(key); ns != nil {
-		e.cache.RemoveNamespace(ns)
+		return e.cache.RemoveNamespace(ns)
 	} else {
 		klog.V(4).Infof("the namespace %s has been removed, deschedule is not needed", key)
 	}
@@ -199,7 +199,7 @@ func (e *schedulerEngine) DeSchedulePod(key string) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if pod := e.cache.GetPod(key); pod != nil {
-		e.cache.RemovePod(pod)
+		return e.cache.RemovePod(pod)
 	} else {
 		klog.V(4).Infof("the pod %s has been removed, deschedule is not needed", key)
 	}
