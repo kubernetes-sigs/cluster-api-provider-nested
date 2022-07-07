@@ -4,9 +4,9 @@ linters:
   - asciicheck
   - bodyclose
   - deadcode
-#  - depguard
-#  - dogsled
-#  - exportloopref
+  - depguard
+  - dogsled
+  - exportloopref
 #  - errcheck
 #  - goconst
 #  - gocritic

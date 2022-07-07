@@ -30,6 +30,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
+
 	vnodeprovider "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode/provider"
 )
 
@@ -69,9 +70,9 @@ func (p *provider) GetNodeAddress(node *v1.Node) ([]v1.NodeAddress, error) {
 	}
 
 	var pod *v1.Pod
-	for _, po := range pods.Items {
-		if po.Spec.NodeName == node.Name {
-			pod = &po
+	for podIndex := range pods.Items {
+		if pods.Items[podIndex].Spec.NodeName == node.Name {
+			pod = &pods.Items[podIndex]
 		}
 	}
 	if pod == nil {
