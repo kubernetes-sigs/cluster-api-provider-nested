@@ -20,8 +20,8 @@ import (
 	"context"
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
@@ -45,15 +45,15 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	pService, err := c.serviceLister.Services(targetNamespace).Get(request.Name)
 	pExists := true
 	if err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return reconciler.Result{Requeue: true}, err
 		}
 		pExists = false
 	}
 	vExists := true
-	vService := &v1.Service{}
+	vService := &corev1.Service{}
 	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vService); err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return reconciler.Result{Requeue: true}, err
 		}
 		vExists = false
@@ -83,17 +83,17 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	return reconciler.Result{}, nil
 }
 
-func (c *controller) reconcileServiceCreate(clusterName, targetNamespace, requestUID string, service *v1.Service) error {
+func (c *controller) reconcileServiceCreate(clusterName, targetNamespace, requestUID string, service *corev1.Service) error {
 	newObj, err := c.Conversion().BuildSuperClusterObject(clusterName, service)
 	if err != nil {
 		return err
 	}
 
-	pService := newObj.(*v1.Service)
+	pService := newObj.(*corev1.Service)
 	conversion.VC(nil, "").Service(pService).Mutate(service)
 
 	pService, err = c.serviceClient.Services(targetNamespace).Create(context.TODO(), pService, metav1.CreateOptions{})
-	if errors.IsAlreadyExists(err) {
+	if apierrors.IsAlreadyExists(err) {
 		if pService.Annotations[constants.LabelUID] == requestUID {
 			klog.Infof("service %s/%s of cluster %s already exist in super control plane", targetNamespace, pService.Name, clusterName)
 			return nil
@@ -104,7 +104,7 @@ func (c *controller) reconcileServiceCreate(clusterName, targetNamespace, reques
 	return err
 }
 
-func (c *controller) reconcileServiceUpdate(clusterName, targetNamespace, requestUID string, pService, vService *v1.Service) error {
+func (c *controller) reconcileServiceUpdate(clusterName, targetNamespace, requestUID string, pService, vService *corev1.Service) error {
 	if pService.Annotations[constants.LabelUID] != requestUID {
 		return fmt.Errorf("pService %s/%s delegated UID is different from updated object.", targetNamespace, pService.Name)
 	}
@@ -123,7 +123,7 @@ func (c *controller) reconcileServiceUpdate(clusterName, targetNamespace, reques
 	return nil
 }
 
-func (c *controller) reconcileServiceRemove(clusterName, targetNamespace, requestUID, name string, pService *v1.Service) error {
+func (c *controller) reconcileServiceRemove(clusterName, targetNamespace, requestUID, name string, pService *corev1.Service) error {
 	if pService.Annotations[constants.LabelUID] != requestUID {
 		return fmt.Errorf("To be deleted pService %s/%s delegated UID is different from deleted object.", targetNamespace, name)
 	}
@@ -133,7 +133,7 @@ func (c *controller) reconcileServiceRemove(clusterName, targetNamespace, reques
 		Preconditions:     metav1.NewUIDPreconditions(string(pService.UID)),
 	}
 	err := c.serviceClient.Services(targetNamespace).Delete(context.TODO(), name, *opts)
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		klog.Warningf("To be deleted service %s/%s not found in super control plane", targetNamespace, name)
 		return nil
 	}

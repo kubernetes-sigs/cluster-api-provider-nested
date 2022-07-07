@@ -19,7 +19,7 @@ package clusterversion
 import (
 	"fmt"
 
-	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	vcclient "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/client/clientset/versioned"
@@ -37,7 +37,7 @@ func DeleteCVByName(client vcclient.Interface, name string) error {
 	framework.Logf("Deleting cv %q", name)
 	err := client.TenancyV1alpha1().ClusterVersions().Delete(name, nil)
 	if err != nil {
-		if apierrs.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil
 		}
 		return fmt.Errorf("clusterVersion delete API error: %v", err)

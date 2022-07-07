@@ -19,11 +19,11 @@ package util
 import (
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-func Equals(a v1.ResourceList, b v1.ResourceList) bool {
+func Equals(a corev1.ResourceList, b corev1.ResourceList) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -41,67 +41,67 @@ func Equals(a v1.ResourceList, b v1.ResourceList) bool {
 
 func TestGetTotalNodeCapacity(t *testing.T) {
 	testcases := map[string]struct {
-		nodelist *v1.NodeList
-		expect   v1.ResourceList
+		nodelist *corev1.NodeList
+		expect   corev1.ResourceList
 	}{
 		"one node": {
-			nodelist: &v1.NodeList{
-				Items: []v1.Node{
+			nodelist: &corev1.NodeList{
+				Items: []corev1.Node{
 					{
-						Status: v1.NodeStatus{
-							Capacity: v1.ResourceList{
+						Status: corev1.NodeStatus{
+							Capacity: corev1.ResourceList{
 								"cpu":    resource.MustParse("0.5"),
 								"memory": resource.MustParse("10485760Ki"),
 							},
-							Conditions: []v1.NodeCondition{
+							Conditions: []corev1.NodeCondition{
 								{
-									Status: v1.ConditionTrue,
-									Type:   v1.NodeReady,
+									Status: corev1.ConditionTrue,
+									Type:   corev1.NodeReady,
 								},
 							},
 						},
 					},
 				},
 			},
-			expect: v1.ResourceList{
+			expect: corev1.ResourceList{
 				"cpu":    resource.MustParse("0.5"),
 				"memory": resource.MustParse("10Gi"),
 			},
 		},
 		"two nodes": {
-			nodelist: &v1.NodeList{
-				Items: []v1.Node{
+			nodelist: &corev1.NodeList{
+				Items: []corev1.Node{
 					{
-						Status: v1.NodeStatus{
-							Capacity: v1.ResourceList{
+						Status: corev1.NodeStatus{
+							Capacity: corev1.ResourceList{
 								"cpu":    resource.MustParse("1.8"),
 								"memory": resource.MustParse("2048Mi"),
 							},
-							Conditions: []v1.NodeCondition{
+							Conditions: []corev1.NodeCondition{
 								{
-									Status: v1.ConditionTrue,
-									Type:   v1.NodeReady,
+									Status: corev1.ConditionTrue,
+									Type:   corev1.NodeReady,
 								},
 							},
 						},
 					},
 					{
-						Status: v1.NodeStatus{
-							Capacity: v1.ResourceList{
+						Status: corev1.NodeStatus{
+							Capacity: corev1.ResourceList{
 								"cpu":    resource.MustParse("0.5"),
 								"memory": resource.MustParse("10485760Ki"),
 							},
-							Conditions: []v1.NodeCondition{
+							Conditions: []corev1.NodeCondition{
 								{
-									Status: v1.ConditionTrue,
-									Type:   v1.NodeReady,
+									Status: corev1.ConditionTrue,
+									Type:   corev1.NodeReady,
 								},
 							},
 						},
 					},
 				},
 			},
-			expect: v1.ResourceList{
+			expect: corev1.ResourceList{
 				"cpu":    resource.MustParse("2.3"),
 				"memory": resource.MustParse("12Gi"),
 			},
@@ -122,15 +122,15 @@ func TestGetTotalNodeCapacity(t *testing.T) {
 
 func TestGetMaxQuota(t *testing.T) {
 	testcases := map[string]struct {
-		quotalist *v1.ResourceQuotaList
-		expect    v1.ResourceList
+		quotalist *corev1.ResourceQuotaList
+		expect    corev1.ResourceList
 	}{
 		"case 1": {
-			quotalist: &v1.ResourceQuotaList{
-				Items: []v1.ResourceQuota{
+			quotalist: &corev1.ResourceQuotaList{
+				Items: []corev1.ResourceQuota{
 					{
-						Spec: v1.ResourceQuotaSpec{
-							Hard: v1.ResourceList{
+						Spec: corev1.ResourceQuotaSpec{
+							Hard: corev1.ResourceList{
 								"cpu":    resource.MustParse("0.5"),
 								"memory": resource.MustParse("10485760Ki"),
 							},
@@ -138,17 +138,17 @@ func TestGetMaxQuota(t *testing.T) {
 					},
 				},
 			},
-			expect: v1.ResourceList{
+			expect: corev1.ResourceList{
 				"cpu":    resource.MustParse("0.5"),
 				"memory": resource.MustParse("10Gi"),
 			},
 		},
 		"case 2": {
-			quotalist: &v1.ResourceQuotaList{
-				Items: []v1.ResourceQuota{
+			quotalist: &corev1.ResourceQuotaList{
+				Items: []corev1.ResourceQuota{
 					{
-						Spec: v1.ResourceQuotaSpec{
-							Hard: v1.ResourceList{
+						Spec: corev1.ResourceQuotaSpec{
+							Hard: corev1.ResourceList{
 								"cpu":    resource.MustParse("0.5"),
 								"memory": resource.MustParse("10485760Ki"),
 							},
@@ -156,8 +156,8 @@ func TestGetMaxQuota(t *testing.T) {
 					},
 
 					{
-						Spec: v1.ResourceQuotaSpec{
-							Hard: v1.ResourceList{
+						Spec: corev1.ResourceQuotaSpec{
+							Hard: corev1.ResourceList{
 								"cpu":    resource.MustParse("0.7"),
 								"memory": resource.MustParse("3Gi"),
 							},
@@ -165,17 +165,17 @@ func TestGetMaxQuota(t *testing.T) {
 					},
 				},
 			},
-			expect: v1.ResourceList{
+			expect: corev1.ResourceList{
 				"cpu":    resource.MustParse("0.7"),
 				"memory": resource.MustParse("10Gi"),
 			},
 		},
 		"case 3": {
-			quotalist: &v1.ResourceQuotaList{
-				Items: []v1.ResourceQuota{
+			quotalist: &corev1.ResourceQuotaList{
+				Items: []corev1.ResourceQuota{
 					{
-						Spec: v1.ResourceQuotaSpec{
-							Hard: v1.ResourceList{
+						Spec: corev1.ResourceQuotaSpec{
+							Hard: corev1.ResourceList{
 								"cpu":    resource.MustParse("0.5"),
 								"memory": resource.MustParse("10485760Ki"),
 							},
@@ -183,34 +183,34 @@ func TestGetMaxQuota(t *testing.T) {
 					},
 
 					{
-						Spec: v1.ResourceQuotaSpec{
-							Hard: v1.ResourceList{},
+						Spec: corev1.ResourceQuotaSpec{
+							Hard: corev1.ResourceList{},
 						},
 					},
 				},
 			},
-			expect: v1.ResourceList{
+			expect: corev1.ResourceList{
 				"cpu":    resource.MustParse("0.5"),
 				"memory": resource.MustParse("10Gi"),
 			},
 		},
 		"case 4": {
-			quotalist: &v1.ResourceQuotaList{
-				Items: []v1.ResourceQuota{
+			quotalist: &corev1.ResourceQuotaList{
+				Items: []corev1.ResourceQuota{
 					{
-						Spec: v1.ResourceQuotaSpec{
-							Hard: v1.ResourceList{},
+						Spec: corev1.ResourceQuotaSpec{
+							Hard: corev1.ResourceList{},
 						},
 					},
 
 					{
-						Spec: v1.ResourceQuotaSpec{
-							Hard: v1.ResourceList{},
+						Spec: corev1.ResourceQuotaSpec{
+							Hard: corev1.ResourceList{},
 						},
 					},
 				},
 			},
-			expect: v1.ResourceList{
+			expect: corev1.ResourceList{
 				"cpu":    resource.MustParse("0"),
 				"memory": resource.MustParse("0"),
 			},
@@ -229,16 +229,16 @@ func TestGetMaxQuota(t *testing.T) {
 
 func TestGetPodRequirements(t *testing.T) {
 	testcases := map[string]struct {
-		pod    *v1.Pod
-		expect v1.ResourceList
+		pod    *corev1.Pod
+		expect corev1.ResourceList
 	}{
 		"case 1": {
-			pod: &v1.Pod{
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
+			pod: &corev1.Pod{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
 						{
-							Resources: v1.ResourceRequirements{
-								Requests: v1.ResourceList{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
 									"cpu":    resource.MustParse("0.5"),
 									"memory": resource.MustParse("10485760Ki"),
 								},
@@ -247,26 +247,26 @@ func TestGetPodRequirements(t *testing.T) {
 					},
 				},
 			},
-			expect: v1.ResourceList{
+			expect: corev1.ResourceList{
 				"cpu":    resource.MustParse("0.5"),
 				"memory": resource.MustParse("10Gi"),
 			},
 		},
 		"case 2": {
-			pod: &v1.Pod{
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
+			pod: &corev1.Pod{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
 						{
-							Resources: v1.ResourceRequirements{
-								Requests: v1.ResourceList{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
 									"cpu":    resource.MustParse("0.5"),
 									"memory": resource.MustParse("10485760Ki"),
 								},
 							},
 						},
 						{
-							Resources: v1.ResourceRequirements{
-								Requests: v1.ResourceList{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
 									"cpu":    resource.MustParse("2.5"),
 									"memory": resource.MustParse("6Gi"),
 								},
@@ -275,18 +275,18 @@ func TestGetPodRequirements(t *testing.T) {
 					},
 				},
 			},
-			expect: v1.ResourceList{
+			expect: corev1.ResourceList{
 				"cpu":    resource.MustParse("3"),
 				"memory": resource.MustParse("16Gi"),
 			},
 		},
 		"case 3": {
-			pod: &v1.Pod{
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
+			pod: &corev1.Pod{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
 						{
-							Resources: v1.ResourceRequirements{
-								Requests: v1.ResourceList{
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
 									"cpu":    resource.MustParse("0.5"),
 									"memory": resource.MustParse("10485760Ki"),
 								},
@@ -298,17 +298,17 @@ func TestGetPodRequirements(t *testing.T) {
 					},
 				},
 			},
-			expect: v1.ResourceList{
+			expect: corev1.ResourceList{
 				"cpu":    resource.MustParse("0.5"),
 				"memory": resource.MustParse("10Gi"),
 			},
 		},
 		"case 4": {
-			pod: &v1.Pod{
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
+			pod: &corev1.Pod{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
 						{
-							Resources: v1.ResourceRequirements{},
+							Resources: corev1.ResourceRequirements{},
 						},
 						{
 							Name: "empty",
@@ -316,7 +316,7 @@ func TestGetPodRequirements(t *testing.T) {
 					},
 				},
 			},
-			expect: v1.ResourceList{
+			expect: corev1.ResourceList{
 				"cpu":    resource.MustParse("0"),
 				"memory": resource.MustParse("0"),
 			},

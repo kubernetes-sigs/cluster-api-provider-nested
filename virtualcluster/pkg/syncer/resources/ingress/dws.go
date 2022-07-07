@@ -20,8 +20,8 @@ import (
 	"context"
 	"fmt"
 
-	v1beta1 "k8s.io/api/extensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/api/extensions/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
@@ -45,7 +45,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	pIngress, err := c.ingressLister.Ingresses(targetNamespace).Get(request.Name)
 	pExists := true
 	if err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return reconciler.Result{Requeue: true}, err
 		}
 		pExists = false
@@ -53,7 +53,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	vExists := true
 	vIngress := &v1beta1.Ingress{}
 	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vIngress); err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return reconciler.Result{Requeue: true}, err
 		}
 		vExists = false
@@ -93,7 +93,7 @@ func (c *controller) reconcileIngressCreate(clusterName, targetNamespace, reques
 	pIngress := newObj.(*v1beta1.Ingress)
 
 	pIngress, err = c.ingressClient.Ingresses(targetNamespace).Create(context.TODO(), pIngress, metav1.CreateOptions{})
-	if errors.IsAlreadyExists(err) {
+	if apierrors.IsAlreadyExists(err) {
 		if pIngress.Annotations[constants.LabelUID] == requestUID {
 			klog.Infof("ingress %s/%s of cluster %s already exist in super control plane", targetNamespace, pIngress.Name, clusterName)
 			return nil
@@ -133,7 +133,7 @@ func (c *controller) reconcileIngressRemove(clusterName, targetNamespace, reques
 		Preconditions:     metav1.NewUIDPreconditions(string(pIngress.UID)),
 	}
 	err := c.ingressClient.Ingresses(targetNamespace).Delete(context.TODO(), name, *opts)
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		klog.Warningf("To be deleted ingress %s/%s not found in super control plane", targetNamespace, name)
 		return nil
 	}

@@ -27,7 +27,7 @@ import (
 	"fmt"
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 
@@ -52,16 +52,16 @@ func NewPodVirtualNodeProvider(vnAgentPort int32, vnAgentNamespaceName, vnAgentL
 	}
 }
 
-func (p *provider) GetNodeDaemonEndpoints(node *v1.Node) (v1.NodeDaemonEndpoints, error) {
-	return v1.NodeDaemonEndpoints{
-		KubeletEndpoint: v1.DaemonEndpoint{
+func (p *provider) GetNodeDaemonEndpoints(node *corev1.Node) (corev1.NodeDaemonEndpoints, error) {
+	return corev1.NodeDaemonEndpoints{
+		KubeletEndpoint: corev1.DaemonEndpoint{
 			Port: p.vnAgentPort,
 		},
 	}, nil
 }
 
-func (p *provider) GetNodeAddress(node *v1.Node) ([]v1.NodeAddress, error) {
-	var addresses []v1.NodeAddress
+func (p *provider) GetNodeAddress(node *corev1.Node) ([]corev1.NodeAddress, error) {
+	var addresses []corev1.NodeAddress
 	namespaceName := strings.Split(p.vnAgentNamespaceName, "/")
 	// TODO(christopherhein) Use NodeName informer index to make this more efficient.
 	pods, err := p.client.CoreV1().Pods(namespaceName[0]).List(context.TODO(), metav1.ListOptions{LabelSelector: p.vnAgentLabelSelector})
@@ -69,7 +69,7 @@ func (p *provider) GetNodeAddress(node *v1.Node) ([]v1.NodeAddress, error) {
 		return addresses, fmt.Errorf("vn-agent pods could not be found %s", err)
 	}
 
-	var pod *v1.Pod
+	var pod *corev1.Pod
 	for podIndex := range pods.Items {
 		if pods.Items[podIndex].Spec.NodeName == node.Name {
 			pod = &pods.Items[podIndex]
@@ -79,8 +79,8 @@ func (p *provider) GetNodeAddress(node *v1.Node) ([]v1.NodeAddress, error) {
 		return addresses, fmt.Errorf("vn-agent pods could not be found, %s", p.vnAgentLabelSelector)
 	}
 
-	addresses = append(addresses, v1.NodeAddress{
-		Type:    v1.NodeInternalIP,
+	addresses = append(addresses, corev1.NodeAddress{
+		Type:    corev1.NodeInternalIP,
 		Address: pod.Status.PodIP,
 	})
 

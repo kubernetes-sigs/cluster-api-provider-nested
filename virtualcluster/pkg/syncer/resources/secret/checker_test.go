@@ -19,19 +19,19 @@ package secret
 import (
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/client-go/testing"
-	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
+	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
 
-func applyGeneratedNameToSecret(secret *v1.Secret, name string) *v1.Secret {
+func applyGeneratedNameToSecret(secret *corev1.Secret, name string) *corev1.Secret {
 	secret.Name = name
 	return secret
 }
@@ -65,19 +65,19 @@ func TestSecretPatrol(t *testing.T) {
 	}{
 		"pSecret not created by vc": {
 			ExistingObjectInSuper: []runtime.Object{
-				tenantSecret("secret", superDefaultNSName, "12345", v1.SecretTypeOpaque),
+				tenantSecret("secret", superDefaultNSName, "12345", corev1.SecretTypeOpaque),
 			},
 			ExpectedNoOperation: true,
 		},
 		"pSecret with service account type created by token controller": {
 			ExistingObjectInSuper: []runtime.Object{
-				superSecret(defaultVCName, defaultVCNamespace, "secret", superDefaultNSName, "12345", defaultClusterKey, v1.SecretTypeServiceAccountToken),
+				superSecret(defaultVCName, defaultVCNamespace, "secret", superDefaultNSName, "12345", defaultClusterKey, corev1.SecretTypeServiceAccountToken),
 			},
 			ExpectedNoOperation: true,
 		},
 		"pSecret exists, vSecret does not exists": {
 			ExistingObjectInSuper: []runtime.Object{
-				superSecret(defaultVCName, defaultVCNamespace, "normal-secret", superDefaultNSName, "12345", defaultClusterKey, v1.SecretTypeOpaque),
+				superSecret(defaultVCName, defaultVCNamespace, "normal-secret", superDefaultNSName, "12345", defaultClusterKey, corev1.SecretTypeOpaque),
 			},
 			ExpectedDeletedPObject: []string{
 				superDefaultNSName + "/normal-secret",
@@ -85,10 +85,10 @@ func TestSecretPatrol(t *testing.T) {
 		},
 		"pSecret exists, vSecret exists with different uid": {
 			ExistingObjectInSuper: []runtime.Object{
-				superSecret(defaultVCName, defaultVCNamespace, "normal-secret", superDefaultNSName, "12345", defaultClusterKey, v1.SecretTypeOpaque),
+				superSecret(defaultVCName, defaultVCNamespace, "normal-secret", superDefaultNSName, "12345", defaultClusterKey, corev1.SecretTypeOpaque),
 			},
 			ExistingObjectInTenant: []runtime.Object{
-				tenantSecret("normal-secret", "default", "123456", v1.SecretTypeOpaque),
+				tenantSecret("normal-secret", "default", "123456", corev1.SecretTypeOpaque),
 			},
 			ExpectedDeletedPObject: []string{
 				superDefaultNSName + "/normal-secret",
@@ -96,28 +96,28 @@ func TestSecretPatrol(t *testing.T) {
 		},
 		"pSecret exists, vSecret exists with no diff": {
 			ExistingObjectInSuper: []runtime.Object{
-				superSecret(defaultVCName, defaultVCNamespace, "normal-secret", superDefaultNSName, "12345", defaultClusterKey, v1.SecretTypeOpaque),
+				superSecret(defaultVCName, defaultVCNamespace, "normal-secret", superDefaultNSName, "12345", defaultClusterKey, corev1.SecretTypeOpaque),
 			},
 			ExistingObjectInTenant: []runtime.Object{
-				tenantSecret("normal-secret", "default", "12345", v1.SecretTypeOpaque),
+				tenantSecret("normal-secret", "default", "12345", corev1.SecretTypeOpaque),
 			},
 			ExpectedNoOperation: true,
 		},
 		"pSecret exists, vSecret exists but different in data": {
 			ExistingObjectInSuper: []runtime.Object{
-				applyDataToSecret(superSecret(defaultVCName, defaultVCNamespace, "normal-secret", superDefaultNSName, "12345", defaultClusterKey, v1.SecretTypeOpaque), "data1"),
+				applyDataToSecret(superSecret(defaultVCName, defaultVCNamespace, "normal-secret", superDefaultNSName, "12345", defaultClusterKey, corev1.SecretTypeOpaque), "data1"),
 			},
 			ExistingObjectInTenant: []runtime.Object{
-				applyDataToSecret(tenantSecret("normal-secret", "default", "12345", v1.SecretTypeOpaque), "data2"),
+				applyDataToSecret(tenantSecret("normal-secret", "default", "12345", corev1.SecretTypeOpaque), "data2"),
 			},
 			ExpectedNoOperation: true,
 		},
 		"vSecret exists, pSecret does not exists": {
 			ExistingObjectInTenant: []runtime.Object{
-				tenantSecret("normal-secret", "default", "12345", v1.SecretTypeOpaque),
+				tenantSecret("normal-secret", "default", "12345", corev1.SecretTypeOpaque),
 			},
 			ExpectedCreatedPObject: []runtime.Object{
-				superSecret(defaultVCName, defaultVCNamespace, "normal-secret", superDefaultNSName, "12345", defaultClusterKey, v1.SecretTypeOpaque),
+				superSecret(defaultVCName, defaultVCNamespace, "normal-secret", superDefaultNSName, "12345", defaultClusterKey, corev1.SecretTypeOpaque),
 			},
 			WaitDWS: true,
 		},
@@ -131,7 +131,7 @@ func TestSecretPatrol(t *testing.T) {
 		},
 		"vSecret exists, pSecret does not exists, service account token type": {
 			ExistingObjectInTenant: []runtime.Object{
-				tenantSecret("sa-secret", "default", "12345", v1.SecretTypeServiceAccountToken),
+				tenantSecret("sa-secret", "default", "12345", corev1.SecretTypeServiceAccountToken),
 			},
 			ExpectedCreatedPObject: []runtime.Object{
 				superServiceAccountSecret(defaultVCName, defaultVCNamespace, "sa-secret", superDefaultNSName, "12345", defaultClusterKey),
@@ -143,7 +143,7 @@ func TestSecretPatrol(t *testing.T) {
 				applyDataToSecret(superServiceAccountSecret(defaultVCName, defaultVCNamespace, "sa-secret", superDefaultNSName, "12345", defaultClusterKey), "data1"),
 			},
 			ExistingObjectInTenant: []runtime.Object{
-				applyDataToSecret(tenantSecret("sa-secret", "default", "12345", v1.SecretTypeServiceAccountToken), "data2"),
+				applyDataToSecret(tenantSecret("sa-secret", "default", "12345", corev1.SecretTypeServiceAccountToken), "data2"),
 			},
 			ExpectedNoOperation: true,
 		},
@@ -196,8 +196,8 @@ func TestSecretPatrol(t *testing.T) {
 					if !action.Matches("create", "secrets") {
 						t.Errorf("%s: Unexpected action %s", k, action)
 					}
-					got := action.(core.CreateAction).GetObject().(*v1.Secret)
-					expectedSecret := expectedObject.(*v1.Secret)
+					got := action.(core.CreateAction).GetObject().(*corev1.Secret)
+					expectedSecret := expectedObject.(*corev1.Secret)
 					if !equality.Semantic.DeepEqual(got, expectedSecret) {
 						t.Errorf("%s: Expected secret %v, got %v: %v", k, expectedSecret, got, err)
 					}

@@ -21,21 +21,21 @@ import (
 	"strings"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/client-go/testing"
-	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
+	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
 
-func applyLoadBalancerToService(svc *v1.Service, ip string) *v1.Service {
-	svc.Spec.Type = v1.ServiceTypeLoadBalancer
-	svc.Status.LoadBalancer.Ingress = []v1.LoadBalancerIngress{
+func applyLoadBalancerToService(svc *corev1.Service, ip string) *corev1.Service {
+	svc.Spec.Type = corev1.ServiceTypeLoadBalancer
+	svc.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{
 		{
 			IP: ip,
 		},

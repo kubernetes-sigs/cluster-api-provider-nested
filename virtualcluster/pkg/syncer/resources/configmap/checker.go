@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -68,7 +68,7 @@ func (c *controller) PatrollerDo() {
 	knownClusterSet := sets.NewString(clusterNames...)
 	vSet := differ.NewDiffSet()
 	for _, cluster := range clusterNames {
-		cmList := &v1.ConfigMapList{}
+		cmList := &corev1.ConfigMapList{}
 		if err := c.MultiClusterController.List(cluster, cmList); err != nil {
 			klog.Errorf("error listing configmaps from cluster %s informer cache: %v", cluster, err)
 			knownClusterSet.Delete(cluster)
@@ -93,8 +93,8 @@ func (c *controller) PatrollerDo() {
 		}
 	}
 	configMapDiffer.UpdateFunc = func(vObj, pObj differ.ClusterObject) {
-		vCM := vObj.Object.(*v1.ConfigMap)
-		pCM := pObj.Object.(*v1.ConfigMap)
+		vCM := vObj.Object.(*corev1.ConfigMap)
+		pCM := pObj.Object.(*corev1.ConfigMap)
 
 		if pCM.Annotations[constants.LabelUID] != string(vCM.UID) {
 			klog.Errorf("Found pConfigMap %s delegated UID is different from tenant object.", pObj.Key)

@@ -17,8 +17,8 @@ limitations under the License.
 package record
 
 import (
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	clientgorecord "k8s.io/client-go/tools/record"
 	"k8s.io/client-go/tools/record/util"
 )
@@ -33,8 +33,8 @@ func NewEventSinker(options clientgorecord.CorrelatorOptions) *EventSinker {
 	return &EventSinker{correlator: clientgorecord.NewEventCorrelatorWithOptions(options)}
 }
 
-func (e *EventSinker) RecordToSink(sink clientgorecord.EventSink, event *v1.Event) error {
-	var newEvent *v1.Event
+func (e *EventSinker) RecordToSink(sink clientgorecord.EventSink, event *corev1.Event) error {
+	var newEvent *corev1.Event
 	var err error
 
 	result, err := e.correlator.EventCorrelate(event)
@@ -61,7 +61,7 @@ func (e *EventSinker) RecordToSink(sink clientgorecord.EventSink, event *v1.Even
 		return nil
 	}
 
-	if errors.IsAlreadyExists(err) {
+	if apierrors.IsAlreadyExists(err) {
 		return nil
 	}
 	return err

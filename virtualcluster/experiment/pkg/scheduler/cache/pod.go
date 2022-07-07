@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type Pod struct {
@@ -28,12 +28,12 @@ type Pod struct {
 	namespace string
 	name      string
 
-	request v1.ResourceList
+	request corev1.ResourceList
 
 	cluster string // the scheduled cluster
 }
 
-func NewPod(owner, namespace, name, cluster string, request v1.ResourceList) *Pod {
+func NewPod(owner, namespace, name, cluster string, request corev1.ResourceList) *Pod {
 	return &Pod{
 		owner:     owner,
 		namespace: namespace,
@@ -47,7 +47,7 @@ func (p *Pod) GetCluster() string {
 	return p.cluster
 }
 
-func (p *Pod) GetRequest() v1.ResourceList {
+func (p *Pod) GetRequest() corev1.ResourceList {
 	return p.request
 }
 

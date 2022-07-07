@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
@@ -187,7 +187,7 @@ func (c *schedulerCache) GetNamespace(key string) *Namespace {
 	return c.namespaces[key]
 }
 
-func (c *schedulerCache) addNamespaceToCluster(cluster, key string, num int, slice v1.ResourceList) error {
+func (c *schedulerCache) addNamespaceToCluster(cluster, key string, num int, slice corev1.ResourceList) error {
 	if num == 0 {
 		return nil
 	}
@@ -409,7 +409,7 @@ func (c *schedulerCache) RemoveProvision(clustername, key string) error {
 	return clusterState.RemoveProvision(key)
 }
 
-func (c *schedulerCache) UpdateClusterCapacity(clustername string, newCapacity v1.ResourceList) error {
+func (c *schedulerCache) UpdateClusterCapacity(clustername string, newCapacity corev1.ResourceList) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

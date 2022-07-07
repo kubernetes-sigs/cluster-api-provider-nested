@@ -24,15 +24,14 @@ import (
 
 	pkgerr "github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
@@ -57,12 +56,12 @@ func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Resul
 	targetNamespace := conversion.ToSuperClusterNamespace(request.ClusterName, request.Namespace)
 
 	pPod, err := c.podLister.Pods(targetNamespace).Get(request.Name)
-	if err != nil && !errors.IsNotFound(err) {
+	if err != nil && !apierrors.IsNotFound(err) {
 		return reconciler.Result{Requeue: true}, err
 	}
 
-	vPod := &v1.Pod{}
-	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vPod); err != nil && !errors.IsNotFound(err) {
+	vPod := &corev1.Pod{}
+	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vPod); err != nil && !apierrors.IsNotFound(err) {
 		return reconciler.Result{Requeue: true}, err
 	}
 
@@ -73,25 +72,25 @@ func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Resul
 	}()
 
 	switch {
-	case !reflect.DeepEqual(vPod, &v1.Pod{}) && pPod == nil:
+	case !reflect.DeepEqual(vPod, &corev1.Pod{}) && pPod == nil:
 		operation = "pod_add"
 		err := c.reconcilePodCreate(request.ClusterName, targetNamespace, request.UID, vPod)
 		if err != nil {
 			klog.Errorf("failed reconcile Pod %s/%s CREATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 
 			if parentRef := getParentRefFromPod(vPod); parentRef != nil {
-				c.MultiClusterController.Eventf(request.ClusterName, parentRef, v1.EventTypeWarning, "FailedCreate", "Error creating: %v", err)
+				c.MultiClusterController.Eventf(request.ClusterName, parentRef, corev1.EventTypeWarning, "FailedCreate", "Error creating: %v", err)
 			}
-			c.MultiClusterController.Eventf(request.ClusterName, &v1.ObjectReference{
+			c.MultiClusterController.Eventf(request.ClusterName, &corev1.ObjectReference{
 				Kind:      "Pod",
 				Name:      vPod.Name,
 				Namespace: vPod.Namespace,
 				UID:       vPod.UID,
-			}, v1.EventTypeWarning, "FailedCreate", "Error creating: %v", err)
+			}, corev1.EventTypeWarning, "FailedCreate", "Error creating: %v", err)
 
 			return reconciler.Result{Requeue: true}, err
 		}
-	case reflect.DeepEqual(vPod, &v1.Pod{}) && pPod != nil:
+	case reflect.DeepEqual(vPod, &corev1.Pod{}) && pPod != nil:
 		operation = "pod_delete"
 		err := c.reconcilePodRemove(request.ClusterName, targetNamespace, request.UID, request.Name, pPod)
 		if err != nil {
@@ -117,14 +116,14 @@ func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Resul
 	return reconciler.Result{}, nil
 }
 
-func isPodScheduled(pod *v1.Pod) bool {
-	_, cond := getPodCondition(&pod.Status, v1.PodScheduled)
-	return cond != nil && cond.Status == v1.ConditionTrue
+func isPodScheduled(pod *corev1.Pod) bool {
+	_, cond := getPodCondition(&pod.Status, corev1.PodScheduled)
+	return cond != nil && cond.Status == corev1.ConditionTrue
 }
 
 // getPodCondition extracts the provided condition from the given status and returns that.
 // Returns nil and -1 if the condition is not present, and the index of the located condition.
-func getPodCondition(status *v1.PodStatus, conditionType v1.PodConditionType) (int, *v1.PodCondition) {
+func getPodCondition(status *corev1.PodStatus, conditionType corev1.PodConditionType) (int, *corev1.PodCondition) {
 	if status == nil {
 		return -1, nil
 	}
@@ -133,7 +132,7 @@ func getPodCondition(status *v1.PodStatus, conditionType v1.PodConditionType) (i
 
 // getPodConditionFromList extracts the provided condition from the given list of condition and
 // returns the index of the condition and the condition. Returns -1 and nil if the condition is not present.
-func getPodConditionFromList(conditions []v1.PodCondition, conditionType v1.PodConditionType) (int, *v1.PodCondition) {
+func getPodConditionFromList(conditions []corev1.PodCondition, conditionType corev1.PodConditionType) (int, *corev1.PodCondition) {
 	if conditions == nil {
 		return -1, nil
 	}
@@ -145,13 +144,13 @@ func getPodConditionFromList(conditions []v1.PodCondition, conditionType v1.PodC
 	return -1, nil
 }
 
-func getParentRefFromPod(vPod *v1.Pod) *v1.ObjectReference {
+func getParentRefFromPod(vPod *corev1.Pod) *corev1.ObjectReference {
 	if len(vPod.OwnerReferences) == 0 {
 		return nil
 	}
 
 	owner := vPod.OwnerReferences[0]
-	return &v1.ObjectReference{
+	return &corev1.ObjectReference{
 		Kind:      owner.Kind,
 		Namespace: vPod.Namespace,
 		Name:      owner.Name,
@@ -159,7 +158,7 @@ func getParentRefFromPod(vPod *v1.Pod) *v1.ObjectReference {
 	}
 }
 
-func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID string, vPod *v1.Pod) error {
+func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID string, vPod *corev1.Pod) error {
 	// load deleting pod, don't create any pod on super control plane.
 	if vPod.DeletionTimestamp != nil {
 		return nil
@@ -167,12 +166,12 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 
 	if vPod.Spec.NodeName != "" {
 		// For now, we skip vPod that has NodeName set to prevent tenant from deploying DaemonSet or DaemonSet alike CRDs.
-		err := c.MultiClusterController.Eventf(clusterName, &v1.ObjectReference{
+		err := c.MultiClusterController.Eventf(clusterName, &corev1.ObjectReference{
 			Kind:      "Pod",
 			Name:      vPod.Name,
 			Namespace: vPod.Namespace,
 			UID:       vPod.UID,
-		}, v1.EventTypeWarning, "NotSupported", "The Pod has nodeName set in the spec which is not supported for now")
+		}, corev1.EventTypeWarning, "NotSupported", "The Pod has nodeName set in the spec which is not supported for now")
 		return err
 	}
 
@@ -181,7 +180,7 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 		return err
 	}
 
-	pPod := newObj.(*v1.Pod)
+	pPod := newObj.(*corev1.Pod)
 
 	pSecretMap, err := c.findPodServiceAccountSecret(clusterName, pPod, vPod)
 	if err != nil {
@@ -218,7 +217,7 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 			// Serialize pod creation for each tenant
 			t := c.plugin.GetTenantLocker(clusterName)
 			if t == nil {
-				return errors.NewBadRequest("cannot get tenant")
+				return apierrors.NewBadRequest("cannot get tenant")
 			}
 			t.Cond.Lock()
 			defer t.Cond.Unlock()
@@ -227,14 +226,14 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 				klog.Errorf("validation failed for virtual cluster namespace %v, no pod sync", targetNamespace)
 				recordOperationDuration("validation_plugin", pluginstart)
 				return nil
-				// do not requeue return errors.NewBadRequest("validation failed for virtual cluster")
+				// do not requeue return apierrors.NewBadRequest("validation failed for virtual cluster")
 			}
 		}
 		recordOperationDuration("validation_plugin", pluginstart)
 	}
 
 	pPod, err = c.client.Pods(targetNamespace).Create(context.TODO(), pPod, metav1.CreateOptions{})
-	if errors.IsAlreadyExists(err) {
+	if apierrors.IsAlreadyExists(err) {
 		if pPod.Annotations[constants.LabelUID] == requestUID {
 			klog.Infof("pod %s/%s of cluster %s already exist in super control plane", targetNamespace, pPod.Name, clusterName)
 			return nil
@@ -246,7 +245,7 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 	return err
 }
 
-func (c *controller) findPodServiceAccountSecret(clusterName string, pPod, vPod *v1.Pod) (map[string]string, error) {
+func (c *controller) findPodServiceAccountSecret(clusterName string, pPod, vPod *corev1.Pod) (map[string]string, error) {
 	mountSecretSet := sets.NewString()
 	for _, volume := range vPod.Spec.Volumes {
 		if volume.Secret != nil && !pointer.BoolDeref(volume.Secret.Optional, false) {
@@ -258,13 +257,13 @@ func (c *controller) findPodServiceAccountSecret(clusterName string, pPod, vPod 
 	mutateNameMap := make(map[string]string)
 
 	for secretName := range mountSecretSet {
-		vSecret := &v1.Secret{}
+		vSecret := &corev1.Secret{}
 		if err := c.MultiClusterController.Get(clusterName, vPod.Namespace, secretName, vSecret); err != nil {
 			return nil, pkgerr.Wrapf(err, "failed to get vSecret %s/%s", vPod.Namespace, secretName)
 		}
 
 		// normal secret. pSecret name is the same as the vSecret.
-		if vSecret.Type != v1.SecretTypeServiceAccountToken {
+		if vSecret.Type != corev1.SecretTypeServiceAccountToken {
 			continue
 		}
 
@@ -284,7 +283,7 @@ func (c *controller) findPodServiceAccountSecret(clusterName string, pPod, vPod 
 func (c *controller) getClusterNameServer(cluster string) (string, error) {
 	svc, err := c.serviceLister.Services(conversion.ToSuperClusterNamespace(cluster, constants.TenantDNSServerNS)).Get(constants.TenantDNSServerServiceName)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return "", nil
 		}
 		return "", err
@@ -292,8 +291,8 @@ func (c *controller) getClusterNameServer(cluster string) (string, error) {
 	return svc.Spec.ClusterIP, nil
 }
 
-func (c *controller) getPodRelatedServices(cluster string, pPod *v1.Pod) ([]*v1.Service, error) {
-	var services []*v1.Service
+func (c *controller) getPodRelatedServices(cluster string, pPod *corev1.Pod) ([]*corev1.Service, error) {
+	var services []*corev1.Service
 	if featuregate.DefaultFeatureGate.Enabled(featuregate.SuperClusterServiceNetwork) {
 		apiserver, err := c.serviceLister.Services(cluster).Get("apiserver-svc")
 		if err != nil {
@@ -302,14 +301,14 @@ func (c *controller) getPodRelatedServices(cluster string, pPod *v1.Pod) ([]*v1.
 		services = append(services, apiserver)
 	}
 
-	var list []*v1.Service
+	var list []*corev1.Service
 	var err error
 	if featuregate.DefaultFeatureGate.Enabled(featuregate.SuperClusterPooling) {
 		// In case of super cluster pooling, it is possible that the tenant default namespace is not synced to current super cluster.
 		// We need to query the tenant apiserver to get the services in tenant default namespace.
 		// Note that the cluster ip in the service from the tenant default namespace can be a bogus value.
 		// We expect an external loadbalancer is used for each tenant service.
-		serviceList := &v1.ServiceList{}
+		serviceList := &corev1.ServiceList{}
 		if err = c.MultiClusterController.List(cluster, serviceList, client.InNamespace(metav1.NamespaceDefault)); err != nil {
 			return nil, err
 		}
@@ -336,7 +335,7 @@ func (c *controller) getPodRelatedServices(cluster string, pPod *v1.Pod) ([]*v1.
 	return services, nil
 }
 
-func (c *controller) reconcilePodUpdate(clusterName, targetNamespace, requestUID string, pPod, vPod *v1.Pod) error {
+func (c *controller) reconcilePodUpdate(clusterName, targetNamespace, requestUID string, pPod, vPod *corev1.Pod) error {
 	if pPod.Annotations[constants.LabelUID] != requestUID {
 		return fmt.Errorf("pPod %s/%s delegated UID is different from updated object.", targetNamespace, pPod.Name)
 	}
@@ -349,7 +348,7 @@ func (c *controller) reconcilePodUpdate(clusterName, targetNamespace, requestUID
 		deleteOptions := metav1.NewDeleteOptions(*vPod.DeletionGracePeriodSeconds)
 		deleteOptions.Preconditions = metav1.NewUIDPreconditions(string(pPod.UID))
 		err := c.client.Pods(targetNamespace).Delete(context.TODO(), pPod.Name, *deleteOptions)
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil
 		}
 		return err
@@ -377,7 +376,7 @@ func (c *controller) reconcilePodUpdate(clusterName, targetNamespace, requestUID
 	return nil
 }
 
-func (c *controller) reconcilePodRemove(clusterName, targetNamespace, requestUID, name string, pPod *v1.Pod) error {
+func (c *controller) reconcilePodRemove(clusterName, targetNamespace, requestUID, name string, pPod *corev1.Pod) error {
 	if pPod.Annotations[constants.LabelUID] != requestUID {
 		return fmt.Errorf("To be deleted pPod %s/%s delegated UID is different from deleted object.", targetNamespace, name)
 	}
@@ -387,7 +386,7 @@ func (c *controller) reconcilePodRemove(clusterName, targetNamespace, requestUID
 		Preconditions:     metav1.NewUIDPreconditions(string(pPod.UID)),
 	}
 	err := c.client.Pods(targetNamespace).Delete(context.TODO(), name, *opts)
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		klog.Warningf("To be deleted pod %s/%s of cluster (%s) is not found in super control plane", targetNamespace, name, clusterName)
 		return nil
 	}

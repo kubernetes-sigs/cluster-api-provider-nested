@@ -20,21 +20,21 @@ import (
 	"strings"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	core "k8s.io/client-go/testing"
-	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
+	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
 
-func tenantService(name, namespace, uid string) *v1.Service {
-	return &v1.Service{
+func tenantService(name, namespace, uid string) *corev1.Service {
+	return &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
 			APIVersion: "v1",
@@ -47,8 +47,8 @@ func tenantService(name, namespace, uid string) *v1.Service {
 	}
 }
 
-func superService(name, namespace, uid, clusterKey string) *v1.Service {
-	return &v1.Service{
+func superService(name, namespace, uid, clusterKey string) *corev1.Service {
+	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -79,7 +79,7 @@ func TestDWServiceCreation(t *testing.T) {
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
-		ExistingObjectInTenant *v1.Service
+		ExistingObjectInTenant *corev1.Service
 
 		ExpectedCreatedServices []string
 		ExpectedError           string
@@ -141,7 +141,7 @@ func TestDWServiceCreation(t *testing.T) {
 				if !action.Matches("create", "services") {
 					t.Errorf("%s: Unexpected action %s", k, action)
 				}
-				createdSVC := action.(core.CreateAction).GetObject().(*v1.Service)
+				createdSVC := action.(core.CreateAction).GetObject().(*corev1.Service)
 				fullName := createdSVC.Namespace + "/" + createdSVC.Name
 				if fullName != expectedName {
 					t.Errorf("%s: Expected %s to be created, got %s", k, expectedName, fullName)
@@ -169,7 +169,7 @@ func TestDWServiceDeletion(t *testing.T) {
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper []runtime.Object
-		EnqueueObject         *v1.Service
+		EnqueueObject         *corev1.Service
 
 		ExpectedDeletedServices []string
 		ExpectedError           string
@@ -235,7 +235,7 @@ func TestDWServiceDeletion(t *testing.T) {
 	}
 }
 
-func applySpecToService(svc *v1.Service, spec *v1.ServiceSpec) *v1.Service {
+func applySpecToService(svc *corev1.Service, spec *corev1.ServiceSpec) *corev1.Service {
 	svc.Spec = *spec.DeepCopy()
 	return svc
 }
@@ -256,7 +256,7 @@ func TestDWServiceUpdate(t *testing.T) {
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
 	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
-	spec1 := &v1.ServiceSpec{
+	spec1 := &corev1.ServiceSpec{
 		Type:      "ClusterIP",
 		ClusterIP: "1.1.1.1",
 		Selector: map[string]string{
@@ -264,7 +264,7 @@ func TestDWServiceUpdate(t *testing.T) {
 		},
 	}
 
-	spec2 := &v1.ServiceSpec{
+	spec2 := &corev1.ServiceSpec{
 		Type:      "ClusterIP",
 		ClusterIP: "2.2.2.2",
 		Selector: map[string]string{
@@ -272,7 +272,7 @@ func TestDWServiceUpdate(t *testing.T) {
 		},
 	}
 
-	spec3 := &v1.ServiceSpec{
+	spec3 := &corev1.ServiceSpec{
 		Type:      "ClusterIP",
 		ClusterIP: "3.3.3.3",
 		Selector: map[string]string{
@@ -280,7 +280,7 @@ func TestDWServiceUpdate(t *testing.T) {
 		},
 	}
 
-	spec4 := &v1.ServiceSpec{
+	spec4 := &corev1.ServiceSpec{
 		Type:      "ClusterIP",
 		ClusterIP: "1.1.1.1",
 		Selector: map[string]string{
@@ -290,7 +290,7 @@ func TestDWServiceUpdate(t *testing.T) {
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
-		ExistingObjectInTenant *v1.Service
+		ExistingObjectInTenant *corev1.Service
 
 		ExpectedUpdatedServices []runtime.Object
 		ExpectedError           string

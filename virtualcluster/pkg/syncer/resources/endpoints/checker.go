@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
@@ -70,7 +70,7 @@ func (c *controller) PatrollerDo() {
 	knownClusterSet := sets.NewString(clusterNames...)
 	vSet := differ.NewDiffSet()
 	for _, cluster := range clusterNames {
-		vList := &v1.EndpointsList{}
+		vList := &corev1.EndpointsList{}
 		if err := c.MultiClusterController.List(cluster, vList); err != nil {
 			klog.Errorf("error listing endpoints from cluster %s informer cache: %v", cluster, err)
 			knownClusterSet.Delete(cluster)
@@ -96,8 +96,8 @@ func (c *controller) PatrollerDo() {
 		}
 	}
 	d.UpdateFunc = func(vObj, pObj differ.ClusterObject) {
-		v := vObj.Object.(*v1.Endpoints)
-		p := pObj.Object.(*v1.Endpoints)
+		v := vObj.Object.(*corev1.Endpoints)
+		p := pObj.Object.(*corev1.Endpoints)
 		updated := conversion.Equality(c.Config, nil).CheckEndpointsEquality(p, v)
 		if updated != nil {
 			atomic.AddUint64(&numMissMatchedEndPoints, 1)

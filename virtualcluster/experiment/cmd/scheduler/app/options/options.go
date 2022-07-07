@@ -24,7 +24,7 @@ import (
 
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
@@ -39,13 +39,12 @@ import (
 	componentbaseconfig "k8s.io/component-base/config"
 	"k8s.io/klog/v2"
 
-	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis"
-
 	schedulerappconfig "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/cmd/scheduler/app/config"
 	superclient "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/client/clientset/versioned"
 	superinformers "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/client/informers/externalversions"
 	schedulerconfig "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/scheduler/apis/config"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/scheduler/constants"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis"
 	vcclient "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/client/clientset/versioned"
 	vcinformers "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/client/informers/externalversions"
 )
@@ -65,9 +64,9 @@ func NewSchedulerOptions() (*SchedulerOptions, error) {
 			LeaderElection: schedulerconfig.SchedulerLeaderElectionConfiguration{
 				LeaderElectionConfiguration: componentbaseconfig.LeaderElectionConfiguration{
 					LeaderElect:   true,
-					LeaseDuration: v1.Duration{Duration: 15 * time.Second},
-					RenewDeadline: v1.Duration{Duration: 10 * time.Second},
-					RetryPeriod:   v1.Duration{Duration: 2 * time.Second},
+					LeaseDuration: metav1.Duration{Duration: 15 * time.Second},
+					RenewDeadline: metav1.Duration{Duration: 10 * time.Second},
+					RetryPeriod:   metav1.Duration{Duration: 2 * time.Second},
 					ResourceLock:  resourcelock.ConfigMapsResourceLock,
 				},
 				LockObjectName: "vc-scheduler-leaderelection-lock",

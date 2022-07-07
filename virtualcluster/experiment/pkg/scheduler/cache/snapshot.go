@@ -19,10 +19,10 @@ package cache
 import (
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
-func MaxAlloc(a v1.ResourceList, b v1.ResourceList) v1.ResourceList {
+func MaxAlloc(a corev1.ResourceList, b corev1.ResourceList) corev1.ResourceList {
 	ret := a.DeepCopy()
 	for key, value1 := range a {
 		value2 := b[key]
@@ -34,16 +34,16 @@ func MaxAlloc(a v1.ResourceList, b v1.ResourceList) v1.ResourceList {
 }
 
 type ClusterUsage struct {
-	capacity  v1.ResourceList
-	alloc     v1.ResourceList
-	provision v1.ResourceList
+	capacity  corev1.ResourceList
+	alloc     corev1.ResourceList
+	provision corev1.ResourceList
 }
 
-func (u *ClusterUsage) GetCapacity() v1.ResourceList {
+func (u *ClusterUsage) GetCapacity() corev1.ResourceList {
 	return u.capacity
 }
 
-func (u *ClusterUsage) GetMaxAlloc() v1.ResourceList {
+func (u *ClusterUsage) GetMaxAlloc() corev1.ResourceList {
 	return MaxAlloc(u.alloc, u.provision)
 }
 
@@ -120,7 +120,7 @@ func (c *schedulerCache) SnapshotForNamespaceSched(nsToRemove ...*Namespace) (*N
 			continue
 		}
 		var slicesToRemove []*Slice
-		for cluster, _ := range curState.GetPlacementMap() {
+		for cluster := range curState.GetPlacementMap() {
 			if _, exists := s.clusterUsageMap[cluster]; !exists {
 				continue
 			}
@@ -150,7 +150,7 @@ func (s *PodSchedSnapshot) GetClusterUsageMap() map[string]*ClusterUsage {
 	return s.clusterUsageMap
 }
 
-func (s *PodSchedSnapshot) AddUsage(cluster string, usage v1.ResourceList) error {
+func (s *PodSchedSnapshot) AddUsage(cluster string, usage corev1.ResourceList) error {
 	cur, exists := s.clusterUsageMap[cluster]
 	if !exists {
 		return fmt.Errorf("slices are added to nonexistence cluster")
@@ -176,8 +176,8 @@ func (c *schedulerCache) SnapshotForPodSched(pod *Pod) (*PodSchedSnapshot, error
 	}
 
 	for _, place := range ns.schedule {
-		capability := v1.ResourceList{}
-		alloc := v1.ResourceList{}
+		capability := corev1.ResourceList{}
+		alloc := corev1.ResourceList{}
 
 		for k, v := range ns.quotaSlice {
 			val := v.DeepCopy()

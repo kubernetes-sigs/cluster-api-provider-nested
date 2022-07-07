@@ -19,22 +19,22 @@ package cache
 import (
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 func TestSnapshotForNamespaceSched(t *testing.T) {
-	defaultCapacity := v1.ResourceList{
+	defaultCapacity := corev1.ResourceList{
 		"cpu":    resource.MustParse("4"),
 		"memory": resource.MustParse("8Gi"),
 	}
 
-	defaultQuota := v1.ResourceList{
+	defaultQuota := corev1.ResourceList{
 		"cpu":    resource.MustParse("2"),
 		"memory": resource.MustParse("4Gi"),
 	}
 
-	defaultQuotaSlice := v1.ResourceList{
+	defaultQuotaSlice := corev1.ResourceList{
 		"cpu":    resource.MustParse("0.5"),
 		"memory": resource.MustParse("1Gi"),
 	}
@@ -47,17 +47,17 @@ func TestSnapshotForNamespaceSched(t *testing.T) {
 	cluster2 := NewCluster(defaultCluster2, nil, defaultCapacity)
 
 	if err := cache.AddCluster(cluster1); err != nil {
-		t.Errorf("failed to add cluster %s", cluster1)
+		t.Errorf("failed to add cluster %s", cluster1.name)
 	}
 	if err := cache.AddCluster(cluster2); err != nil {
-		t.Errorf("failed to add cluster %s", cluster2)
+		t.Errorf("failed to add cluster %s", cluster2.name)
 	}
 
 	testcases := map[string]struct {
 		namespace    *Namespace
 		remove       bool
-		provision    map[string]v1.ResourceList
-		snapAllocMax map[string]v1.ResourceList
+		provision    map[string]corev1.ResourceList
+		snapAllocMax map[string]corev1.ResourceList
 	}{
 		"Snapshot with one namespace, two clusters": {
 			namespace: NewNamespace(defaultTenant, defaultNamespace, nil, defaultQuota, defaultQuotaSlice,
@@ -66,16 +66,16 @@ func TestSnapshotForNamespaceSched(t *testing.T) {
 					NewPlacement(defaultCluster2, 1),
 				}),
 			remove: false,
-			provision: map[string]v1.ResourceList{
+			provision: map[string]corev1.ResourceList{
 				defaultCluster1: nil,
 				defaultCluster2: nil,
 			},
-			snapAllocMax: map[string]v1.ResourceList{
-				defaultCluster1: v1.ResourceList{
+			snapAllocMax: map[string]corev1.ResourceList{
+				defaultCluster1: {
 					"cpu":    resource.MustParse("1.5"),
 					"memory": resource.MustParse("3Gi"),
 				},
-				defaultCluster2: v1.ResourceList{
+				defaultCluster2: {
 					"cpu":    resource.MustParse("0.5"),
 					"memory": resource.MustParse("1Gi"),
 				},
@@ -89,16 +89,16 @@ func TestSnapshotForNamespaceSched(t *testing.T) {
 					NewPlacement("shadow", 2),
 				}),
 			remove: false,
-			provision: map[string]v1.ResourceList{
+			provision: map[string]corev1.ResourceList{
 				defaultCluster1: nil,
 				defaultCluster2: nil,
 			},
-			snapAllocMax: map[string]v1.ResourceList{
-				defaultCluster1: v1.ResourceList{
+			snapAllocMax: map[string]corev1.ResourceList{
+				defaultCluster1: {
 					"cpu":    resource.MustParse("1"),
 					"memory": resource.MustParse("2Gi"),
 				},
-				defaultCluster2: v1.ResourceList{
+				defaultCluster2: {
 					"cpu":    resource.MustParse("0"),
 					"memory": resource.MustParse("0"),
 				},
@@ -112,19 +112,19 @@ func TestSnapshotForNamespaceSched(t *testing.T) {
 					NewPlacement(defaultCluster2, 2),
 				}),
 			remove: false,
-			provision: map[string]v1.ResourceList{
+			provision: map[string]corev1.ResourceList{
 				defaultCluster1: nil,
-				defaultCluster2: v1.ResourceList{
+				defaultCluster2: {
 					"cpu":    resource.MustParse("4"),
 					"memory": resource.MustParse("1Gi"),
 				},
 			},
-			snapAllocMax: map[string]v1.ResourceList{
-				defaultCluster1: v1.ResourceList{
+			snapAllocMax: map[string]corev1.ResourceList{
+				defaultCluster1: {
 					"cpu":    resource.MustParse("1"),
 					"memory": resource.MustParse("2Gi"),
 				},
-				defaultCluster2: v1.ResourceList{
+				defaultCluster2: {
 					"cpu":    resource.MustParse("4"),
 					"memory": resource.MustParse("2Gi"),
 				},
@@ -138,19 +138,19 @@ func TestSnapshotForNamespaceSched(t *testing.T) {
 					NewPlacement(defaultCluster2, 2),
 				}),
 			remove: true,
-			provision: map[string]v1.ResourceList{
+			provision: map[string]corev1.ResourceList{
 				defaultCluster1: nil,
-				defaultCluster2: v1.ResourceList{
+				defaultCluster2: {
 					"cpu":    resource.MustParse("4"),
 					"memory": resource.MustParse("1Gi"),
 				},
 			},
-			snapAllocMax: map[string]v1.ResourceList{
-				defaultCluster1: v1.ResourceList{
+			snapAllocMax: map[string]corev1.ResourceList{
+				defaultCluster1: {
 					"cpu":    resource.MustParse("0"),
 					"memory": resource.MustParse("0"),
 				},
-				defaultCluster2: v1.ResourceList{
+				defaultCluster2: {
 					"cpu":    resource.MustParse("4"),
 					"memory": resource.MustParse("1Gi"),
 				},

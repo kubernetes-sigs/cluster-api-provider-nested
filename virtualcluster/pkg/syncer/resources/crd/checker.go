@@ -22,7 +22,7 @@ import (
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiextensionclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
@@ -77,7 +77,7 @@ func (c *controller) PatrollerDo() {
 		for _, clusterName := range clusterNames {
 
 			if err := c.MultiClusterController.Get(clusterName, "", pCRD.Name, &v1beta1.CustomResourceDefinition{}); err != nil {
-				if errors.IsNotFound(err) {
+				if apierrors.IsNotFound(err) {
 					metrics.CheckerRemedyStats.WithLabelValues("RequeuedSuperControlPlaneCRD").Inc()
 					klog.Infof("patroller create crd %v in virtual cluster", clusterName+"/"+pCRD.Name)
 					c.UpwardController.AddToQueue(clusterName + "/" + pCRD.Name)
@@ -117,7 +117,7 @@ func (c *controller) checkCRDOfTenantCluster(clusterName string) {
 		err := c.superClient.Get(context.Background(), client.ObjectKey{
 			Name: vCRD.Name,
 		}, pCRD)
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			opts := &metav1.DeleteOptions{
 				PropagationPolicy: &constants.DefaultDeletionPolicy,
 			}

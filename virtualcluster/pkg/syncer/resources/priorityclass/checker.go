@@ -22,8 +22,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	v1 "k8s.io/api/scheduling/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	schedulingv1 "k8s.io/api/scheduling/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -75,8 +75,8 @@ func (c *controller) PatrollerDo() {
 			continue
 		}
 		for _, clusterName := range clusterNames {
-			if err := c.MultiClusterController.Get(clusterName, "", pPriorityClass.Name, &v1.PriorityClass{}); err != nil {
-				if errors.IsNotFound(err) {
+			if err := c.MultiClusterController.Get(clusterName, "", pPriorityClass.Name, &schedulingv1.PriorityClass{}); err != nil {
+				if apierrors.IsNotFound(err) {
 					metrics.CheckerRemedyStats.WithLabelValues("RequeuedSuperControlPlanePriorityClasses").Inc()
 					c.UpwardController.AddToQueue(clusterName + "/" + pPriorityClass.Name)
 				}
@@ -89,7 +89,7 @@ func (c *controller) PatrollerDo() {
 }
 
 func (c *controller) checkPriorityClassOfTenantCluster(clusterName string) {
-	scList := &v1.PriorityClassList{}
+	scList := &schedulingv1.PriorityClassList{}
 	if err := c.MultiClusterController.List(clusterName, scList); err != nil {
 		klog.Errorf("error listing priorityclass from cluster %s informer cache: %v", clusterName, err)
 		return
@@ -100,7 +100,7 @@ func (c *controller) checkPriorityClassOfTenantCluster(clusterName string) {
 			continue
 		}
 		pPriorityClass, err := c.priorityclassLister.Get(vPriorityClass.Name)
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// super control plane is the source of the truth for priorityclass object, delete tenant control plane obj
 			tenantClient, err := c.MultiClusterController.GetClusterClient(clusterName)
 			if err != nil {

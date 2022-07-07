@@ -25,7 +25,7 @@ import (
 	"sync"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,13 +36,13 @@ import (
 	clientgocache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/metrics"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/scheme"
 	utilconstants "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/errors"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/fairqueue"
@@ -101,7 +101,7 @@ type MultiClusterController struct {
 
 	MultiClusterInterface
 
-	// objectType is the type of object to watch.  e.g. &v1.Pod{}
+	// objectType is the type of object to watch.  e.g. &corev1.Pod{}
 	objectType client.Object
 
 	// objectKind is the kind of target object this controller watched.
@@ -327,7 +327,7 @@ func (c *MultiClusterController) GetClusterNames() []string {
 // 'message' is intended to be human readable.
 //
 // The resulting event will be created in the same namespace as the reference object.
-func (c *MultiClusterController) Eventf(clusterName string, ref *v1.ObjectReference, eventtype string, reason, messageFmt string, args ...interface{}) error {
+func (c *MultiClusterController) Eventf(clusterName string, ref *corev1.ObjectReference, eventtype string, reason, messageFmt string, args ...interface{}) error {
 	tenantClient, err := c.GetClusterClient(clusterName)
 	if err != nil {
 		return fmt.Errorf("failed to create client from cluster %s config: %v", clusterName, err)
@@ -337,12 +337,12 @@ func (c *MultiClusterController) Eventf(clusterName string, ref *v1.ObjectRefere
 		namespace = metav1.NamespaceDefault
 	}
 	eventTime := metav1.Now()
-	event := &v1.Event{
+	event := &corev1.Event{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%v.%x", ref.Name, eventTime.UnixNano()),
 			Namespace: namespace,
 		},
-		Source: v1.EventSource{
+		Source: corev1.EventSource{
 			Host: clusterName,
 		},
 		Count:               1, // the count needs to be set for event sinker to work
@@ -501,7 +501,7 @@ func (c *MultiClusterController) FilterObjectFromSchedulingResult(req reconciler
 }
 
 func filterSuperClusterRelatedObject(c *MultiClusterController, clusterName, nsName string) bool {
-	namespace := &v1.Namespace{}
+	namespace := &corev1.Namespace{}
 	if err := c.Get(clusterName, "", nsName, namespace); err != nil {
 		klog.Errorf("failed to get ns %s of cluster %s: %v", nsName, clusterName, err)
 		return true
@@ -515,7 +515,7 @@ func filterSuperClusterRelatedObject(c *MultiClusterController, clusterName, nsN
 }
 
 func filterSuperClusterSchedulePod(c *MultiClusterController, req reconciler.Request) bool {
-	pod := &v1.Pod{}
+	pod := &corev1.Pod{}
 	if err := c.Get(req.ClusterName, req.Namespace, req.Name, pod); err != nil {
 		klog.Errorf("failed to get pod %+v: %v", req, err)
 		return true

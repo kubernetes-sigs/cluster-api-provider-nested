@@ -21,10 +21,10 @@ import (
 	"fmt"
 	"math"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
-func Equals(a v1.ResourceList, b v1.ResourceList) bool {
+func Equals(a corev1.ResourceList, b corev1.ResourceList) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -79,19 +79,19 @@ type Namespace struct {
 	name   string
 	labels map[string]string
 
-	quota      v1.ResourceList
-	quotaSlice v1.ResourceList
+	quota      corev1.ResourceList
+	quotaSlice corev1.ResourceList
 
 	schedule []*Placement
 }
 
 type Slice struct {
 	owner   string // namespace key
-	unit    v1.ResourceList
+	unit    corev1.ResourceList
 	cluster string
 }
 
-func NewSlice(owner string, sliceSize v1.ResourceList, cluster string) *Slice {
+func NewSlice(owner string, sliceSize corev1.ResourceList, cluster string) *Slice {
 	return &Slice{
 		owner:   owner,
 		unit:    sliceSize.DeepCopy(),
@@ -116,7 +116,7 @@ func (s Slice) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func NewNamespace(owner, name string, labels map[string]string, quota, quotaSlice v1.ResourceList, schedule []*Placement) *Namespace {
+func NewNamespace(owner, name string, labels map[string]string, quota, quotaSlice corev1.ResourceList, schedule []*Placement) *Namespace {
 	return &Namespace{
 		owner:      owner,
 		name:       name,
@@ -162,7 +162,7 @@ func (n *Namespace) Comparable(in *Namespace) bool {
 	return Equals(n.quotaSlice, in.GetQuotaSlice())
 }
 
-func (n *Namespace) GetQuotaSlice() v1.ResourceList {
+func (n *Namespace) GetQuotaSlice() corev1.ResourceList {
 	return n.quotaSlice
 }
 
@@ -173,9 +173,9 @@ func (n *Namespace) SetNewPlacements(p map[string]int) {
 	}
 }
 
-func GetLeastFitSliceNum(quota, quotaSlice v1.ResourceList) (int, error) {
-	more := make(map[v1.ResourceName]struct{})
-	for k, _ := range quota {
+func GetLeastFitSliceNum(quota, quotaSlice corev1.ResourceList) (int, error) {
+	more := make(map[corev1.ResourceName]struct{})
+	for k := range quota {
 		more[k] = struct{}{}
 	}
 	num := 0

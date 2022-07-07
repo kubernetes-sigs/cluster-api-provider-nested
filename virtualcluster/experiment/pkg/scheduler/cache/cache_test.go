@@ -19,7 +19,7 @@ package cache
 import (
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -30,22 +30,22 @@ const (
 )
 
 func TestAddRemoveNamespace(t *testing.T) {
-	defaultCapacity := v1.ResourceList{
+	defaultCapacity := corev1.ResourceList{
 		"cpu":    resource.MustParse("2000M"),
 		"memory": resource.MustParse("4Gi"),
 	}
 
-	fullQuota := v1.ResourceList{
+	fullQuota := corev1.ResourceList{
 		"cpu":    resource.MustParse("4000M"),
 		"memory": resource.MustParse("8Gi"),
 	}
 
-	defaultQuota := v1.ResourceList{
+	defaultQuota := corev1.ResourceList{
 		"cpu":    resource.MustParse("1000M"),
 		"memory": resource.MustParse("2Gi"),
 	}
 
-	defaultQuotaSlice := v1.ResourceList{
+	defaultQuotaSlice := corev1.ResourceList{
 		"cpu":    resource.MustParse("500M"),
 		"memory": resource.MustParse("1Gi"),
 	}
@@ -62,7 +62,7 @@ func TestAddRemoveNamespace(t *testing.T) {
 
 	testcases := map[string]struct {
 		namespace  *Namespace
-		allocAfter map[string]v1.ResourceList
+		allocAfter map[string]corev1.ResourceList
 		succeed    bool
 	}{
 		"Succeed to add one namespace in two clusters": {
@@ -71,12 +71,12 @@ func TestAddRemoveNamespace(t *testing.T) {
 					NewPlacement(defaultCluster1, 1),
 					NewPlacement(defaultCluster2, 1),
 				}),
-			allocAfter: map[string]v1.ResourceList{
-				defaultCluster1: v1.ResourceList{
+			allocAfter: map[string]corev1.ResourceList{
+				defaultCluster1: {
 					"cpu":    resource.MustParse("500M"),
 					"memory": resource.MustParse("1Gi"),
 				},
-				defaultCluster2: v1.ResourceList{
+				defaultCluster2: {
 					"cpu":    resource.MustParse("500M"),
 					"memory": resource.MustParse("1Gi"),
 				},
@@ -89,12 +89,12 @@ func TestAddRemoveNamespace(t *testing.T) {
 				[]*Placement{
 					NewPlacement(defaultCluster1, 2),
 				}),
-			allocAfter: map[string]v1.ResourceList{
-				defaultCluster1: v1.ResourceList{
+			allocAfter: map[string]corev1.ResourceList{
+				defaultCluster1: {
 					"cpu":    resource.MustParse("1000M"),
 					"memory": resource.MustParse("2Gi"),
 				},
-				defaultCluster2: v1.ResourceList{
+				defaultCluster2: {
 					"cpu":    resource.MustParse("0M"),
 					"memory": resource.MustParse("0Gi"),
 				},
@@ -107,12 +107,12 @@ func TestAddRemoveNamespace(t *testing.T) {
 				[]*Placement{
 					NewPlacement(defaultCluster1, 1),
 				}),
-			allocAfter: map[string]v1.ResourceList{
-				defaultCluster1: v1.ResourceList{
+			allocAfter: map[string]corev1.ResourceList{
+				defaultCluster1: {
 					"cpu":    resource.MustParse("0M"),
 					"memory": resource.MustParse("0Gi"),
 				},
-				defaultCluster2: v1.ResourceList{
+				defaultCluster2: {
 					"cpu":    resource.MustParse("0M"),
 					"memory": resource.MustParse("0Gi"),
 				},
@@ -126,12 +126,12 @@ func TestAddRemoveNamespace(t *testing.T) {
 					NewPlacement(defaultCluster1, 1),
 					NewPlacement("shadow", 1),
 				}),
-			allocAfter: map[string]v1.ResourceList{
-				defaultCluster1: v1.ResourceList{
+			allocAfter: map[string]corev1.ResourceList{
+				defaultCluster1: {
 					"cpu":    resource.MustParse("500M"),
 					"memory": resource.MustParse("1Gi"),
 				},
-				defaultCluster2: v1.ResourceList{
+				defaultCluster2: {
 					"cpu":    resource.MustParse("0M"),
 					"memory": resource.MustParse("0Gi"),
 				},
@@ -145,12 +145,12 @@ func TestAddRemoveNamespace(t *testing.T) {
 					NewPlacement(defaultCluster1, 2),
 					NewPlacement(defaultCluster2, 6),
 				}),
-			allocAfter: map[string]v1.ResourceList{
-				defaultCluster1: v1.ResourceList{
+			allocAfter: map[string]corev1.ResourceList{
+				defaultCluster1: {
 					"cpu":    resource.MustParse("0M"),
 					"memory": resource.MustParse("0Gi"),
 				},
-				defaultCluster2: v1.ResourceList{
+				defaultCluster2: {
 					"cpu":    resource.MustParse("0M"),
 					"memory": resource.MustParse("0Gi"),
 				},
@@ -164,12 +164,12 @@ func TestAddRemoveNamespace(t *testing.T) {
 					NewPlacement(defaultCluster1, 4),
 					NewPlacement(defaultCluster2, 4),
 				}),
-			allocAfter: map[string]v1.ResourceList{
-				defaultCluster1: v1.ResourceList{
+			allocAfter: map[string]corev1.ResourceList{
+				defaultCluster1: {
 					"cpu":    resource.MustParse("2000M"),
 					"memory": resource.MustParse("4Gi"),
 				},
-				defaultCluster2: v1.ResourceList{
+				defaultCluster2: {
 					"cpu":    resource.MustParse("2000M"),
 					"memory": resource.MustParse("4Gi"),
 				},
@@ -201,22 +201,22 @@ func TestAddRemoveNamespace(t *testing.T) {
 }
 
 func TestUpdateNamespace(t *testing.T) {
-	defaultCapacity := v1.ResourceList{
+	defaultCapacity := corev1.ResourceList{
 		"cpu":    resource.MustParse("2000M"),
 		"memory": resource.MustParse("4Gi"),
 	}
 
-	fullQuota := v1.ResourceList{
+	fullQuota := corev1.ResourceList{
 		"cpu":    resource.MustParse("4000M"),
 		"memory": resource.MustParse("8Gi"),
 	}
 
-	defaultQuota := v1.ResourceList{
+	defaultQuota := corev1.ResourceList{
 		"cpu":    resource.MustParse("1000M"),
 		"memory": resource.MustParse("2Gi"),
 	}
 
-	defaultQuotaSlice := v1.ResourceList{
+	defaultQuotaSlice := corev1.ResourceList{
 		"cpu":    resource.MustParse("500M"),
 		"memory": resource.MustParse("1Gi"),
 	}
@@ -234,7 +234,7 @@ func TestUpdateNamespace(t *testing.T) {
 	testcases := map[string]struct {
 		oldNamespace *Namespace
 		newNamespace *Namespace
-		allocAfter   map[string]v1.ResourceList
+		allocAfter   map[string]corev1.ResourceList
 		succeed      bool
 	}{
 		"Succeed to update one namespace": {
@@ -248,12 +248,12 @@ func TestUpdateNamespace(t *testing.T) {
 					NewPlacement(defaultCluster1, 1),
 					NewPlacement(defaultCluster2, 1),
 				}),
-			allocAfter: map[string]v1.ResourceList{
-				defaultCluster1: v1.ResourceList{
+			allocAfter: map[string]corev1.ResourceList{
+				defaultCluster1: {
 					"cpu":    resource.MustParse("500M"),
 					"memory": resource.MustParse("1Gi"),
 				},
-				defaultCluster2: v1.ResourceList{
+				defaultCluster2: {
 					"cpu":    resource.MustParse("500M"),
 					"memory": resource.MustParse("1Gi"),
 				},
@@ -272,12 +272,12 @@ func TestUpdateNamespace(t *testing.T) {
 					NewPlacement(defaultCluster1, 6),
 					NewPlacement(defaultCluster2, 2),
 				}),
-			allocAfter: map[string]v1.ResourceList{
-				defaultCluster1: v1.ResourceList{
+			allocAfter: map[string]corev1.ResourceList{
+				defaultCluster1: {
 					"cpu":    resource.MustParse("500M"),
 					"memory": resource.MustParse("1Gi"),
 				},
-				defaultCluster2: v1.ResourceList{
+				defaultCluster2: {
 					"cpu":    resource.MustParse("500M"),
 					"memory": resource.MustParse("1Gi"),
 				},
@@ -334,17 +334,17 @@ func TestUpdateNamespace(t *testing.T) {
 }
 
 func TestShadowCluster(t *testing.T) {
-	defaultCapacity := v1.ResourceList{
+	defaultCapacity := corev1.ResourceList{
 		"cpu":    resource.MustParse("2000M"),
 		"memory": resource.MustParse("4Gi"),
 	}
 
-	defaultQuota := v1.ResourceList{
+	defaultQuota := corev1.ResourceList{
 		"cpu":    resource.MustParse("1000M"),
 		"memory": resource.MustParse("2Gi"),
 	}
 
-	defaultQuotaSlice := v1.ResourceList{
+	defaultQuotaSlice := corev1.ResourceList{
 		"cpu":    resource.MustParse("500M"),
 		"memory": resource.MustParse("1Gi"),
 	}
@@ -361,7 +361,7 @@ func TestShadowCluster(t *testing.T) {
 
 	testcases := map[string]struct {
 		namespace  *Namespace
-		allocAfter map[string]v1.ResourceList
+		allocAfter map[string]corev1.ResourceList
 		succeed    bool
 	}{
 		"add namespace with shadowcluster": {
@@ -370,16 +370,16 @@ func TestShadowCluster(t *testing.T) {
 					NewPlacement(defaultCluster1, 1),
 					NewPlacement("shadow", 1),
 				}),
-			allocAfter: map[string]v1.ResourceList{
-				defaultCluster1: v1.ResourceList{
+			allocAfter: map[string]corev1.ResourceList{
+				defaultCluster1: {
 					"cpu":    resource.MustParse("500M"),
 					"memory": resource.MustParse("1Gi"),
 				},
-				defaultCluster2: v1.ResourceList{
+				defaultCluster2: {
 					"cpu":    resource.MustParse("0"),
 					"memory": resource.MustParse("0"),
 				},
-				"shadow": v1.ResourceList{
+				"shadow": {
 					"cpu":    resource.MustParse("500M"),
 					"memory": resource.MustParse("1Gi"),
 				},

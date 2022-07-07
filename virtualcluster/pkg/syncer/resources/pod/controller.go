@@ -21,11 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode/provider"
-	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
-	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/plugin"
-
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
@@ -43,9 +39,12 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/manager"
 	pa "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/patrol"
-	validationplugin "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/resources/pod/validationplugin"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/resources/pod/validationplugin"
 	uw "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/uwcontroller"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode/provider"
+	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/plugin"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/reconciler"
 )
 
@@ -111,7 +110,7 @@ func NewPodController(config *config.SyncerConfiguration,
 	}
 
 	var err error
-	c.MultiClusterController, err = mc.NewMCController(&v1.Pod{}, &v1.PodList{}, c,
+	c.MultiClusterController, err = mc.NewMCController(&corev1.Pod{}, &corev1.PodList{}, c,
 		mc.WithMaxConcurrentReconciles(constants.DwsControllerWorkerHigh), mc.WithOptions(options.MCOptions))
 	if err != nil {
 		return nil, err
@@ -146,13 +145,13 @@ func NewPodController(config *config.SyncerConfiguration,
 		c.podSynced = c.informer.Pods().Informer().HasSynced
 	}
 
-	c.UpwardController, err = uw.NewUWController(&v1.Pod{}, c,
+	c.UpwardController, err = uw.NewUWController(&corev1.Pod{}, c,
 		uw.WithMaxConcurrentReconciles(constants.UwsControllerWorkerHigh), uw.WithOptions(options.UWOptions))
 	if err != nil {
 		return nil, err
 	}
 
-	c.Patroller, err = pa.NewPatroller(&v1.Pod{}, c, pa.WithOptions(options.PatrolOptions))
+	c.Patroller, err = pa.NewPatroller(&corev1.Pod{}, c, pa.WithOptions(options.PatrolOptions))
 	if err != nil {
 		return nil, err
 	}
@@ -161,13 +160,13 @@ func NewPodController(config *config.SyncerConfiguration,
 		cache.FilteringResourceEventHandler{
 			FilterFunc: func(obj interface{}) bool {
 				switch t := obj.(type) {
-				case *v1.Pod:
+				case *corev1.Pod:
 					return assignedPod(t)
 				case cache.DeletedFinalStateUnknown:
-					if pod, ok := t.Obj.(*v1.Pod); ok {
+					if pod, ok := t.Obj.(*corev1.Pod); ok {
 						return assignedPod(pod)
 					}
-					utilruntime.HandleError(fmt.Errorf("unable to convert object %T to *v1.Pod in %T", obj, c))
+					utilruntime.HandleError(fmt.Errorf("unable to convert object %T to *corev1.Pod in %T", obj, c))
 					return false
 				default:
 					utilruntime.HandleError(fmt.Errorf("unable to handle object in %T: %T", c, obj))
@@ -177,8 +176,8 @@ func NewPodController(config *config.SyncerConfiguration,
 			Handler: cache.ResourceEventHandlerFuncs{
 				AddFunc: c.enqueuePod,
 				UpdateFunc: func(oldObj, newObj interface{}) {
-					newPod := newObj.(*v1.Pod)
-					oldPod := oldObj.(*v1.Pod)
+					newPod := newObj.(*corev1.Pod)
+					oldPod := oldObj.(*corev1.Pod)
 					if newPod.ResourceVersion == oldPod.ResourceVersion {
 						// Periodic resync will send update events for all known Deployments.
 						// Two different versions of the same Deployment will always have different RVs.
@@ -195,7 +194,7 @@ func NewPodController(config *config.SyncerConfiguration,
 }
 
 func (c *controller) enqueuePod(obj interface{}) {
-	pod, ok := obj.(*v1.Pod)
+	pod, ok := obj.(*corev1.Pod)
 	if !ok {
 		return
 	}
@@ -294,6 +293,6 @@ func (c *controller) SetVNodeProvider(provider provider.VirtualNodeProvider) {
 }
 
 // assignedPod selects pods that are assigned (scheduled and running).
-func assignedPod(pod *v1.Pod) bool {
+func assignedPod(pod *corev1.Pod) bool {
 	return len(pod.Spec.NodeName) != 0
 }

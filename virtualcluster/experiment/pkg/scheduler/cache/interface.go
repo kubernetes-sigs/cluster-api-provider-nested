@@ -17,7 +17,7 @@ limitations under the License.
 package cache
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type Cache interface {
@@ -34,7 +34,7 @@ type Cache interface {
 	RemovePod(*Pod) error
 	AddProvision(string, string, []*Slice) error
 	RemoveProvision(string, string) error
-	UpdateClusterCapacity(string, v1.ResourceList) error
+	UpdateClusterCapacity(string, corev1.ResourceList) error
 	SnapshotForNamespaceSched(...*Namespace) (*NamespaceSchedSnapshot, error)
 	SnapshotForPodSched(pod *Pod) (*PodSchedSnapshot, error)
 	Dump() string

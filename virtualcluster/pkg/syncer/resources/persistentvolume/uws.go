@@ -21,8 +21,8 @@ import (
 	"fmt"
 
 	pkgerr "github.com/pkg/errors"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
@@ -43,7 +43,7 @@ func (c *controller) StartUWS(stopCh <-chan struct{}) error {
 func (c *controller) BackPopulate(key string) error {
 	pPV, err := c.pvLister.Get(key)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil
 		}
 		return err
@@ -55,7 +55,7 @@ func (c *controller) BackPopulate(key string) error {
 
 	pPVC, err := c.pvcLister.PersistentVolumeClaims(pPV.Spec.ClaimRef.Namespace).Get(pPV.Spec.ClaimRef.Name)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// Bound PVC is gone, we cannot find the tenant who owns the pv. Checker will fix any possible race.
 			return nil
 		}
@@ -73,9 +73,9 @@ func (c *controller) BackPopulate(key string) error {
 		return pkgerr.Wrapf(err, "failed to create client from cluster %s config", clusterName)
 	}
 
-	vPV := &v1.PersistentVolume{}
+	vPV := &corev1.PersistentVolume{}
 	if err := c.MultiClusterController.Get(clusterName, "", key, vPV); err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// Create a new pv with bound claim in tenant control plane
 			vPVC, err := tenantClient.CoreV1().PersistentVolumeClaims(vNamespace).Get(context.TODO(), pPVC.Name, metav1.GetOptions{})
 			if err != nil {

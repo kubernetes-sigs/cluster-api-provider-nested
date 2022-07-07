@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -78,7 +78,7 @@ func GetSuperClusterID(client clientset.Interface) (string, error) {
 	return id, nil
 }
 
-func GetNodeCondition(status *v1.NodeStatus, conditionType v1.NodeConditionType) (int, *v1.NodeCondition) {
+func GetNodeCondition(status *corev1.NodeStatus, conditionType corev1.NodeConditionType) (int, *corev1.NodeCondition) {
 	if status == nil {
 		return -1, nil
 	}
@@ -90,28 +90,28 @@ func GetNodeCondition(status *v1.NodeStatus, conditionType v1.NodeConditionType)
 	return -1, nil
 }
 
-func getTotalNodeCapacity(nodelist *v1.NodeList) v1.ResourceList {
-	total := v1.ResourceList{
-		v1.ResourceCPU:    resource.MustParse("0"),
-		v1.ResourceMemory: resource.MustParse("0"),
+func getTotalNodeCapacity(nodelist *corev1.NodeList) corev1.ResourceList {
+	total := corev1.ResourceList{
+		corev1.ResourceCPU:    resource.MustParse("0"),
+		corev1.ResourceMemory: resource.MustParse("0"),
 	}
 	for _, each := range nodelist.Items {
-		_, condition := GetNodeCondition(&each.Status, v1.NodeReady)
-		if condition == nil || condition.Status != v1.ConditionTrue {
+		_, condition := GetNodeCondition(&each.Status, corev1.NodeReady)
+		if condition == nil || condition.Status != corev1.ConditionTrue {
 			continue
 		}
-		cur := total[v1.ResourceCPU]
-		cur.Add(each.Status.Capacity[v1.ResourceCPU])
-		total[v1.ResourceCPU] = cur
+		cur := total[corev1.ResourceCPU]
+		cur.Add(each.Status.Capacity[corev1.ResourceCPU])
+		total[corev1.ResourceCPU] = cur
 
-		cur = total[v1.ResourceMemory]
-		cur.Add(each.Status.Capacity[v1.ResourceMemory])
-		total[v1.ResourceMemory] = cur
+		cur = total[corev1.ResourceMemory]
+		cur.Add(each.Status.Capacity[corev1.ResourceMemory])
+		total[corev1.ResourceMemory] = cur
 	}
 	return total
 }
 
-func GetSuperClusterCapacity(client clientset.Interface) (v1.ResourceList, error) {
+func GetSuperClusterCapacity(client clientset.Interface) (corev1.ResourceList, error) {
 	nodelist, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get node from super cluster %v", err)
@@ -120,7 +120,7 @@ func GetSuperClusterCapacity(client clientset.Interface) (v1.ResourceList, error
 	return getTotalNodeCapacity(nodelist), nil
 }
 
-func GetProvisionedSlices(namespace *v1.Namespace, clusterId, key string) ([]*internalcache.Slice, error) {
+func GetProvisionedSlices(namespace *corev1.Namespace, clusterId, key string) ([]*internalcache.Slice, error) {
 	placements, quotaSlice, err := GetSchedulingInfo(namespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get scheduling info in %s: %v", namespace.Name, err)
@@ -188,25 +188,25 @@ func SyncSuperClusterState(metaClient clientset.Interface, super *v1alpha4.Clust
 	return nil
 }
 
-func GetMaxQuota(quotalist *v1.ResourceQuotaList) v1.ResourceList {
-	quota := v1.ResourceList{
-		v1.ResourceCPU:    resource.MustParse("0"),
-		v1.ResourceMemory: resource.MustParse("0"),
+func GetMaxQuota(quotalist *corev1.ResourceQuotaList) corev1.ResourceList {
+	quota := corev1.ResourceList{
+		corev1.ResourceCPU:    resource.MustParse("0"),
+		corev1.ResourceMemory: resource.MustParse("0"),
 	}
 	for _, each := range quotalist.Items {
 		// for now, we ignore quotascope and scopeselector
-		cpu, ok := each.Spec.Hard[v1.ResourceCPU]
+		cpu, ok := each.Spec.Hard[corev1.ResourceCPU]
 		if ok {
-			cur := quota[v1.ResourceCPU]
+			cur := quota[corev1.ResourceCPU]
 			if cur.Cmp(cpu) == -1 {
-				quota[v1.ResourceCPU] = cpu
+				quota[corev1.ResourceCPU] = cpu
 			}
 		}
-		mem, ok := each.Spec.Hard[v1.ResourceMemory]
+		mem, ok := each.Spec.Hard[corev1.ResourceMemory]
 		if ok {
-			cur := quota[v1.ResourceMemory]
+			cur := quota[corev1.ResourceMemory]
 			if cur.Cmp(mem) == -1 {
-				quota[v1.ResourceMemory] = mem
+				quota[corev1.ResourceMemory] = mem
 			}
 		}
 	}
@@ -215,7 +215,7 @@ func GetMaxQuota(quotalist *v1.ResourceQuotaList) v1.ResourceList {
 
 // GetNamespaceQuota returns the namespace quota for cpu and memory resouces.
 // If there are multiple quota resources available, the largest quota is chosen.
-func GetNamespaceQuota(client clientset.Interface, namespace string) (v1.ResourceList, error) {
+func GetNamespaceQuota(client clientset.Interface, namespace string) (corev1.ResourceList, error) {
 	quotalist, err := client.CoreV1().ResourceQuotas(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get quota from namespace %s: %v", namespace, err)
@@ -223,42 +223,42 @@ func GetNamespaceQuota(client clientset.Interface, namespace string) (v1.Resourc
 	return GetMaxQuota(quotalist), nil
 }
 
-func GetPodRequirements(pod *v1.Pod) v1.ResourceList {
-	request := v1.ResourceList{
-		v1.ResourceCPU:    resource.MustParse("0"),
-		v1.ResourceMemory: resource.MustParse("0"),
+func GetPodRequirements(pod *corev1.Pod) corev1.ResourceList {
+	request := corev1.ResourceList{
+		corev1.ResourceCPU:    resource.MustParse("0"),
+		corev1.ResourceMemory: resource.MustParse("0"),
 	}
 	// We skip initcontainers for now
 	for _, each := range pod.Spec.Containers {
 		if each.Resources.Requests != nil {
-			cpu, ok := each.Resources.Requests[v1.ResourceCPU]
+			cpu, ok := each.Resources.Requests[corev1.ResourceCPU]
 			if ok {
-				cur := request[v1.ResourceCPU]
+				cur := request[corev1.ResourceCPU]
 				cur.Add(cpu)
-				request[v1.ResourceCPU] = cur
+				request[corev1.ResourceCPU] = cur
 			}
-			mem, ok := each.Resources.Requests[v1.ResourceMemory]
+			mem, ok := each.Resources.Requests[corev1.ResourceMemory]
 			if ok {
-				cur := request[v1.ResourceMemory]
+				cur := request[corev1.ResourceMemory]
 				cur.Add(mem)
-				request[v1.ResourceMemory] = cur
+				request[corev1.ResourceMemory] = cur
 			}
 		}
 	}
 	return request
 }
 
-func parseSlice(slice map[string]string) (v1.ResourceList, error) {
+func parseSlice(slice map[string]string) (corev1.ResourceList, error) {
 	quotaslice := utilconst.DefaultNamespaceSlice
 
-	if val, ok := slice[string(v1.ResourceCPU)]; ok {
-		quotaslice[v1.ResourceCPU] = resource.MustParse(val)
+	if val, ok := slice[string(corev1.ResourceCPU)]; ok {
+		quotaslice[corev1.ResourceCPU] = resource.MustParse(val)
 	} else {
 		return nil, fmt.Errorf("wrong slice CPU format %v", slice)
 	}
 
-	if val, ok := slice[string(v1.ResourceMemory)]; ok {
-		quotaslice[v1.ResourceMemory] = resource.MustParse(val)
+	if val, ok := slice[string(corev1.ResourceMemory)]; ok {
+		quotaslice[corev1.ResourceMemory] = resource.MustParse(val)
 	} else {
 		return nil, fmt.Errorf("wrong slice Memory format %v", slice)
 	}
@@ -266,7 +266,7 @@ func parseSlice(slice map[string]string) (v1.ResourceList, error) {
 }
 
 // GetSchedulingInfo returns the placement result and the quotaslice size
-func GetSchedulingInfo(namespace *v1.Namespace) (map[string]int, v1.ResourceList, error) {
+func GetSchedulingInfo(namespace *corev1.Namespace) (map[string]int, corev1.ResourceList, error) {
 	var err error
 	var placements map[string]int
 	if val, ok := namespace.GetAnnotations()[utilconst.LabelScheduledPlacements]; ok {
@@ -275,7 +275,7 @@ func GetSchedulingInfo(namespace *v1.Namespace) (map[string]int, v1.ResourceList
 			return nil, nil, fmt.Errorf("unknown format %s of key %s, ns %s: %v", val, utilconst.LabelScheduledPlacements, namespace.Name, err)
 		}
 	}
-	var quotaSlice v1.ResourceList
+	var quotaSlice corev1.ResourceList
 	if val, ok := namespace.GetAnnotations()[utilconst.LabelNamespaceSlice]; ok {
 		slice := make(map[string]string)
 		if err = json.Unmarshal([]byte(val), &slice); err != nil {
@@ -291,7 +291,7 @@ func GetSchedulingInfo(namespace *v1.Namespace) (map[string]int, v1.ResourceList
 	return placements, quotaSlice, nil
 }
 
-func GetPodSchedulingInfo(pod *v1.Pod) string {
+func GetPodSchedulingInfo(pod *corev1.Pod) string {
 	cluster, _ := pod.GetAnnotations()[utilconst.LabelScheduledCluster]
 	return cluster
 }
@@ -315,10 +315,10 @@ func SyncVirtualClusterState(metaClient clientset.Interface, vc *v1alpha1.Virtua
 		if err != nil {
 			return fmt.Errorf("failed to get quota in %s/%s: %v", vc.Namespace, vc.Name, err)
 		}
-		cpu := quota[v1.ResourceCPU]
-		mem := quota[v1.ResourceMemory]
+		cpu := quota[corev1.ResourceCPU]
+		mem := quota[corev1.ResourceMemory]
 		var placements map[string]int
-		var quotaSlice v1.ResourceList
+		var quotaSlice corev1.ResourceList
 		placements, quotaSlice, err = GetSchedulingInfo(&each)
 		if err != nil {
 			return fmt.Errorf("failed to get scheduling info in %s/%s: %v", vc.Namespace, vc.Name, err)
@@ -344,7 +344,7 @@ func SyncVirtualClusterState(metaClient clientset.Interface, vc *v1alpha1.Virtua
 			schedule = append(schedule, internalcache.NewPlacement(k, v))
 		}
 		if total != numSched {
-			fmt.Errorf("num of slices %d does not match num of sched slices %d", total, numSched)
+			return fmt.Errorf("num of slices %d does not match num of sched slices %d", total, numSched)
 		}
 
 		var labels map[string]string

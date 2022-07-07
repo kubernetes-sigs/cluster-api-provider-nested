@@ -19,7 +19,7 @@ package cache
 import (
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -31,27 +31,27 @@ const (
 )
 
 func TestAddNamespace(t *testing.T) {
-	defaultCapacity := v1.ResourceList{
+	defaultCapacity := corev1.ResourceList{
 		"cpu":    resource.MustParse("2000M"),
 		"memory": resource.MustParse("4Gi"),
 	}
 
-	defaultQuotaSlice := v1.ResourceList{
+	defaultQuotaSlice := corev1.ResourceList{
 		"cpu":    resource.MustParse("500M"),
 		"memory": resource.MustParse("1Gi"),
 	}
 
-	overMemQuotaSlice := v1.ResourceList{
+	overMemQuotaSlice := corev1.ResourceList{
 		"cpu":    resource.MustParse("400M"),
 		"memory": resource.MustParse("5Gi"),
 	}
 
-	overCpuQuotaSlice := v1.ResourceList{
+	overCpuQuotaSlice := corev1.ResourceList{
 		"cpu":    resource.MustParse("4000M"),
 		"memory": resource.MustParse("3Gi"),
 	}
 
-	unknownSlice := v1.ResourceList{
+	unknownSlice := corev1.ResourceList{
 		"cpu":     resource.MustParse("500M"),
 		"memory":  resource.MustParse("1Gi"),
 		"unknown": resource.MustParse("1Gi"),
@@ -60,7 +60,7 @@ func TestAddNamespace(t *testing.T) {
 	testcases := map[string]struct {
 		cluster    *Cluster
 		slices     []*Slice
-		allocAfter v1.ResourceList
+		allocAfter corev1.ResourceList
 		succeed    bool
 	}{
 		"Succeed to add one slice": {
@@ -68,7 +68,7 @@ func TestAddNamespace(t *testing.T) {
 			slices: []*Slice{
 				NewSlice(defaultNamespace, defaultQuotaSlice, defaultCluster),
 			},
-			allocAfter: v1.ResourceList{
+			allocAfter: corev1.ResourceList{
 				"cpu":    resource.MustParse("500M"),
 				"memory": resource.MustParse("1Gi"),
 			},
@@ -81,7 +81,7 @@ func TestAddNamespace(t *testing.T) {
 				NewSlice(defaultNamespace, defaultQuotaSlice, defaultCluster),
 				NewSlice(defaultNamespace, defaultQuotaSlice, defaultCluster),
 			},
-			allocAfter: v1.ResourceList{
+			allocAfter: corev1.ResourceList{
 				"cpu":    resource.MustParse("1000M"),
 				"memory": resource.MustParse("2Gi"),
 			},
@@ -93,7 +93,7 @@ func TestAddNamespace(t *testing.T) {
 			slices: []*Slice{
 				NewSlice(defaultNamespace, overMemQuotaSlice, defaultCluster),
 			},
-			allocAfter: v1.ResourceList{
+			allocAfter: corev1.ResourceList{
 				"cpu":    resource.MustParse("0M"),
 				"memory": resource.MustParse("0Gi"),
 			},
@@ -105,7 +105,7 @@ func TestAddNamespace(t *testing.T) {
 			slices: []*Slice{
 				NewSlice(defaultNamespace, overCpuQuotaSlice, defaultCluster),
 			},
-			allocAfter: v1.ResourceList{
+			allocAfter: corev1.ResourceList{
 				"cpu":    resource.MustParse("0M"),
 				"memory": resource.MustParse("0Gi"),
 			},
@@ -121,7 +121,7 @@ func TestAddNamespace(t *testing.T) {
 				NewSlice(defaultNamespace, defaultQuotaSlice, defaultCluster),
 				NewSlice(defaultNamespace, defaultQuotaSlice, defaultCluster),
 			},
-			allocAfter: v1.ResourceList{
+			allocAfter: corev1.ResourceList{
 				"cpu":    resource.MustParse("0M"),
 				"memory": resource.MustParse("0Gi"),
 			},
@@ -133,7 +133,7 @@ func TestAddNamespace(t *testing.T) {
 			slices: []*Slice{
 				NewSlice(defaultNamespace, defaultQuotaSlice, defaultCluster1),
 			},
-			allocAfter: v1.ResourceList{
+			allocAfter: corev1.ResourceList{
 				"cpu":    resource.MustParse("0"),
 				"memory": resource.MustParse("0"),
 			},
@@ -145,7 +145,7 @@ func TestAddNamespace(t *testing.T) {
 			slices: []*Slice{
 				NewSlice(defaultNamespace, unknownSlice, defaultCluster),
 			},
-			allocAfter: v1.ResourceList{
+			allocAfter: corev1.ResourceList{
 				"cpu":    resource.MustParse("0"),
 				"memory": resource.MustParse("0"),
 			},
@@ -177,7 +177,7 @@ func TestAddNamespace(t *testing.T) {
 	// duplicate add
 	cluster := NewCluster(defaultCluster, nil, defaultCapacity)
 	slices := []*Slice{NewSlice(defaultNamespace, defaultQuotaSlice, defaultCluster)}
-	allocAfter := v1.ResourceList{
+	allocAfter := corev1.ResourceList{
 		"cpu":    resource.MustParse("500M"),
 		"memory": resource.MustParse("1Gi"),
 	}
@@ -196,17 +196,17 @@ func TestAddNamespace(t *testing.T) {
 }
 
 func TestRemoveNamespace(t *testing.T) {
-	defaultCapacity := v1.ResourceList{
+	defaultCapacity := corev1.ResourceList{
 		"cpu":    resource.MustParse("2000M"),
 		"memory": resource.MustParse("4Gi"),
 	}
 
-	defaultQuotaSlice := v1.ResourceList{
+	defaultQuotaSlice := corev1.ResourceList{
 		"cpu":    resource.MustParse("500M"),
 		"memory": resource.MustParse("1Gi"),
 	}
 
-	defaultAlloc := v1.ResourceList{
+	defaultAlloc := corev1.ResourceList{
 		"cpu":    resource.MustParse("1000M"),
 		"memory": resource.MustParse("2Gi"),
 	}
@@ -214,8 +214,8 @@ func TestRemoveNamespace(t *testing.T) {
 	testcases := map[string]struct {
 		cluster    *Cluster
 		curSlices  []*Slice
-		curAlloc   v1.ResourceList
-		allocAfter v1.ResourceList
+		curAlloc   corev1.ResourceList
+		allocAfter corev1.ResourceList
 		succeed    bool
 	}{
 		"Succeed to remove one slice": {
@@ -224,7 +224,7 @@ func TestRemoveNamespace(t *testing.T) {
 				NewSlice(defaultNamespace, defaultQuotaSlice, defaultCluster),
 			},
 			curAlloc: defaultAlloc,
-			allocAfter: v1.ResourceList{
+			allocAfter: corev1.ResourceList{
 				"cpu":    resource.MustParse("500M"),
 				"memory": resource.MustParse("1Gi"),
 			},
@@ -238,7 +238,7 @@ func TestRemoveNamespace(t *testing.T) {
 				NewSlice(defaultNamespace, defaultQuotaSlice, defaultCluster),
 			},
 			curAlloc: defaultAlloc,
-			allocAfter: v1.ResourceList{
+			allocAfter: corev1.ResourceList{
 				"cpu":    resource.MustParse("0M"),
 				"memory": resource.MustParse("0Gi"),
 			},
@@ -284,15 +284,15 @@ func TestRemoveNamespace(t *testing.T) {
 }
 
 func TestDeepCopy(t *testing.T) {
-	defaultCapacity := v1.ResourceList{
+	defaultCapacity := corev1.ResourceList{
 		"cpu":    resource.MustParse("2000M"),
 		"memory": resource.MustParse("4Gi"),
 	}
-	defaultRequest := v1.ResourceList{
+	defaultRequest := corev1.ResourceList{
 		"cpu":    resource.MustParse("1000M"),
 		"memory": resource.MustParse("2Gi"),
 	}
-	defaultQuotaSlice := v1.ResourceList{
+	defaultQuotaSlice := corev1.ResourceList{
 		"cpu":    resource.MustParse("500M"),
 		"memory": resource.MustParse("1Gi"),
 	}

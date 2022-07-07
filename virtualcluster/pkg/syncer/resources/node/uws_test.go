@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/client-go/testing"
@@ -31,8 +31,8 @@ import (
 	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
 
-func makeNode(name string) *v1.Node {
-	return &v1.Node{
+func makeNode(name string) *corev1.Node {
+	return &corev1.Node{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Node",
 			APIVersion: "v1",
@@ -40,9 +40,9 @@ func makeNode(name string) *v1.Node {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Labels: map[string]string{
-				v1.LabelOSStable:   "linux",
-				v1.LabelArchStable: "amd64",
-				v1.LabelHostname:   "n1",
+				corev1.LabelOSStable:   "linux",
+				corev1.LabelArchStable: "amd64",
+				corev1.LabelHostname:   "n1",
 			},
 		},
 	}

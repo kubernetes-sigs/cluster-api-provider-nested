@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"sync"
 
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 
@@ -38,14 +38,14 @@ func (c *controller) StartUWS(stopCh <-chan struct{}) error {
 }
 
 func (c *controller) enqueueNode(obj interface{}) {
-	node := obj.(*v1.Node)
+	node := obj.(*corev1.Node)
 	c.UpwardController.AddToQueue(node.Name)
 }
 
 func (c *controller) BackPopulate(nodeName string) error {
 	node, err := c.nodeLister.Get(nodeName)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// TODO: notify every tenant.
 			return nil
 		}
@@ -73,7 +73,7 @@ func (c *controller) BackPopulate(nodeName string) error {
 	return nil
 }
 
-func (c *controller) updateClusterNodeStatus(clusterName string, node *v1.Node, wg *sync.WaitGroup) {
+func (c *controller) updateClusterNodeStatus(clusterName string, node *corev1.Node, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	tenantClient, err := c.MultiClusterController.GetClusterClient(clusterName)
@@ -86,9 +86,9 @@ func (c *controller) updateClusterNodeStatus(clusterName string, node *v1.Node, 
 		return
 	}
 
-	vNode := &v1.Node{}
+	vNode := &corev1.Node{}
 	if err := c.MultiClusterController.Get(clusterName, "", node.Name, vNode); err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			klog.Errorf("could not find node %s/%s: %v", clusterName, node.Name, err)
 			c.Lock()
 			if _, exists := c.nodeNameToCluster[node.Name]; exists {

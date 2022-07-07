@@ -26,7 +26,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/go-logr/logr"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -328,7 +328,7 @@ func GetAliyunAKPair(cli client.Client, log logr.Logger) (keyID string, keySecre
 		log.Info("can't find NS from inside the pod", "err", err)
 		vcManagerNs = DefaultVcManagerNs
 	}
-	akSrt := &v1.Secret{}
+	akSrt := &corev1.Secret{}
 	if getErr := cli.Get(context.TODO(), types.NamespacedName{
 		Namespace: vcManagerNs,
 		Name:      AliyunAkSrt,
@@ -359,7 +359,7 @@ func GetASKConfigs(cli client.Client, log logr.Logger) (cfg ASKConfig, err error
 		vcManagerNs = DefaultVcManagerNs
 	}
 
-	ASKCfgMp := &v1.ConfigMap{}
+	ASKCfgMp := &corev1.ConfigMap{}
 	if getErr := cli.Get(context.TODO(), types.NamespacedName{
 		Namespace: vcManagerNs,
 		Name:      AliyunASKConfigMap,

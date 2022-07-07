@@ -21,9 +21,9 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	crdclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -61,8 +61,8 @@ type Framework struct {
 
 	DynamicClient dynamic.Interface
 
-	Namespace                *v1.Namespace   // Every test has at least one namespace.
-	namespacesToDelete       []*v1.Namespace // Some tests have more than one.
+	Namespace                *corev1.Namespace   // Every test has at least one namespace.
+	namespacesToDelete       []*corev1.Namespace // Some tests have more than one.
 	NamespaceDeletionTimeout time.Duration
 
 	// To make sure that this framework cleans up after itself, no matter what,
@@ -172,7 +172,7 @@ func (f *Framework) AfterEach() {
 					timeout = f.NamespaceDeletionTimeout
 				}
 				if err := deleteNS(f.ClientSet, f.DynamicClient, ns.Name, timeout); err != nil {
-					if !apierrs.IsNotFound(err) {
+					if !apierrors.IsNotFound(err) {
 						nsDeletionErrors[ns.Name] = err
 					} else {
 						e2elog.Logf("Namespace %v was already deleted", ns.Name)
@@ -220,7 +220,7 @@ func deleteNS(c clientset.Interface, dynamicClient dynamic.Interface, namespace 
 	// wait for namespace to delete or timeout.
 	err := wait.PollImmediate(2*time.Second, timeout, func() (bool, error) {
 		if _, err := c.CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{}); err != nil {
-			if apierrs.IsNotFound(err) {
+			if apierrors.IsNotFound(err) {
 				return true, nil
 			}
 			e2elog.Logf("Error while waiting for namespace to be terminated: %v", err)
@@ -309,7 +309,7 @@ func logNamespaces(c clientset.Interface, namespace string) {
 	numActive := 0
 	numTerminating := 0
 	for _, namespace := range namespaceList.Items {
-		if namespace.Status.Phase == v1.NamespaceActive {
+		if namespace.Status.Phase == corev1.NamespaceActive {
 			numActive++
 		} else {
 			numTerminating++
@@ -322,7 +322,7 @@ func logNamespaces(c clientset.Interface, namespace string) {
 func logNamespace(c clientset.Interface, namespace string) {
 	ns, err := c.CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{})
 	if err != nil {
-		if apierrs.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			e2elog.Logf("namespace: %v no longer exists", namespace)
 			return
 		}
@@ -400,11 +400,11 @@ func hasRemainingContent(c clientset.Interface, dynamicClient dynamic.Interface,
 		unstructuredList, err := dynamicClient.List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			// not all resources support list, so we ignore those
-			if apierrs.IsMethodNotSupported(err) || apierrs.IsNotFound(err) || apierrs.IsForbidden(err) {
+			if apierrors.IsMethodNotSupported(err) || apierrors.IsNotFound(err) || apierrors.IsForbidden(err) {
 				continue
 			}
 			// skip unavailable servers
-			if apierrs.IsServiceUnavailable(err) {
+			if apierrors.IsServiceUnavailable(err) {
 				continue
 			}
 			return false, err
@@ -440,7 +440,7 @@ func waitForServerPreferredNamespacedResources(d discovery.DiscoveryInterface, t
 }
 
 // CreateNamespace creates a namespace for e2e testing.
-func (f *Framework) CreateNamespace(baseName string, labels map[string]string) (*v1.Namespace, error) {
+func (f *Framework) CreateNamespace(baseName string, labels map[string]string) (*corev1.Namespace, error) {
 	ns, err := CreateTestingNS(baseName, f.ClientSet, labels)
 	// check ns instead of err to see if it's nil as we may
 	// fail to create serviceAccount in it.
@@ -451,7 +451,7 @@ func (f *Framework) CreateNamespace(baseName string, labels map[string]string) (
 
 // AddNamespacesToDelete adds one or more namespaces to be deleted when the test
 // completes.
-func (f *Framework) AddNamespacesToDelete(namespaces ...*v1.Namespace) {
+func (f *Framework) AddNamespacesToDelete(namespaces ...*corev1.Namespace) {
 	for _, ns := range namespaces {
 		if ns == nil {
 			continue

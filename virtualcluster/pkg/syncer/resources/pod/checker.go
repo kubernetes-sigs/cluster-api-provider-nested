@@ -22,8 +22,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -117,7 +117,7 @@ func (c *controller) deleteClusterVNode(cluster, nodeName string) {
 	_ = tenantClient.CoreV1().Nodes().Delete(context.TODO(), nodeName, *opts)
 	// We need to double check here.
 	if _, err := tenantClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{}); err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			// If we cannot get the state from tenant apiserver, retry
 			return
 		}
@@ -156,7 +156,7 @@ func (c *controller) PatrollerDo() {
 	knownClusterSet := sets.NewString(clusterNames...)
 	vSet := differ.NewDiffSet()
 	for _, cluster := range clusterNames {
-		vList := &v1.PodList{}
+		vList := &corev1.PodList{}
 		if err := c.MultiClusterController.List(cluster, vList); err != nil {
 			klog.Errorf("error listing pod from cluster %s informer cache: %v", cluster, err)
 			knownClusterSet.Delete(cluster)
@@ -180,7 +180,7 @@ func (c *controller) PatrollerDo() {
 
 	d := differ.HandlerFuncs{}
 	d.AddFunc = func(vObj differ.ClusterObject) {
-		vPod := vObj.Object.(*v1.Pod)
+		vPod := vObj.Object.(*corev1.Pod)
 
 		// pPod not found and vPod is under deletion, we need to delete vPod manually
 		if vPod.DeletionTimestamp != nil {
@@ -199,8 +199,8 @@ func (c *controller) PatrollerDo() {
 		c.requeuePod(vObj.GetOwnerCluster(), vPod)
 	}
 	d.UpdateFunc = func(vObj, pObj differ.ClusterObject) {
-		vPod := vObj.Object.(*v1.Pod)
-		pPod := pObj.Object.(*v1.Pod)
+		vPod := vObj.Object.(*corev1.Pod)
+		pPod := pObj.Object.(*corev1.Pod)
 
 		if vPod.DeletionTimestamp != nil && pPod.DeletionTimestamp == nil {
 			c.requeuePod(vObj.GetOwnerCluster(), vPod)
@@ -272,7 +272,7 @@ func (c *controller) PatrollerDo() {
 		}
 	}
 	d.DeleteFunc = func(pObj differ.ClusterObject) {
-		c.graceDeletePPod(pObj.Object.(*v1.Pod))
+		c.graceDeletePPod(pObj.Object.(*corev1.Pod))
 	}
 
 	vSet.Difference(pSet, differ.FilteringHandler{
@@ -280,7 +280,7 @@ func (c *controller) PatrollerDo() {
 		FilterFunc: func(obj differ.ClusterObject) bool {
 			// vObj
 			if obj.GetOwnerCluster() != "" {
-				vPod := obj.Object.(*v1.Pod)
+				vPod := obj.Object.(*corev1.Pod)
 				if vPod.Spec.NodeName != "" && !isPodScheduled(vPod) {
 					// We should skip pods with NodeName set in the spec when unscheduled
 					return false
@@ -312,7 +312,7 @@ func (c *controller) PatrollerDo() {
 	c.vNodeGCDo()
 }
 
-func (c *controller) forceDeleteVPod(clusterName string, vPod *v1.Pod, graceful bool) {
+func (c *controller) forceDeleteVPod(clusterName string, vPod *corev1.Pod, graceful bool) {
 	client, err := c.MultiClusterController.GetClusterClient(clusterName)
 	if err != nil {
 		klog.Errorf("error getting cluster %s clientset: %v", clusterName, err)
@@ -336,7 +336,7 @@ func (c *controller) forceDeleteVPod(clusterName string, vPod *v1.Pod, graceful 
 	}
 }
 
-func (c *controller) graceDeletePPod(pPod *v1.Pod) {
+func (c *controller) graceDeletePPod(pPod *corev1.Pod) {
 	gracePeriod := int64(minimumGracePeriodInSeconds)
 	deleteOptions := metav1.NewDeleteOptions(gracePeriod)
 	deleteOptions.Preconditions = metav1.NewUIDPreconditions(string(pPod.UID))
@@ -347,7 +347,7 @@ func (c *controller) graceDeletePPod(pPod *v1.Pod) {
 	}
 }
 
-func (c *controller) requeuePod(clusterName string, vPod *v1.Pod) {
+func (c *controller) requeuePod(clusterName string, vPod *corev1.Pod) {
 	if err := c.MultiClusterController.RequeueObject(clusterName, vPod); err != nil {
 		klog.Errorf("error requeue vPod %s/%s in cluster %s: %v", vPod.GetNamespace(), vPod.GetName(), clusterName, err)
 	} else {
@@ -361,7 +361,7 @@ func (c *controller) requeuePod(clusterName string, vPod *v1.Pod) {
 // goes to tenant control plane directly. If this method causes performance issue, we should consider moving it to another
 // periodic thread with a larger check interval.
 func (c *controller) checkNodesOfTenantCluster(clusterName string) {
-	nodeList := &v1.NodeList{}
+	nodeList := &corev1.NodeList{}
 	if err := c.MultiClusterController.List(clusterName, nodeList); err != nil {
 		klog.Errorf("failed to list vNode from cluster %s config: %v", clusterName, err)
 		return

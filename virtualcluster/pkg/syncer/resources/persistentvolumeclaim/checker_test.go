@@ -19,17 +19,17 @@ package persistentvolumeclaim
 import (
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/client-go/testing"
 	"k8s.io/utils/pointer"
-	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
+	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
 
 func TestPVCPatrol(t *testing.T) {
@@ -45,26 +45,26 @@ func TestPVCPatrol(t *testing.T) {
 		},
 	}
 
-	spec1 := &v1.PersistentVolumeClaimSpec{
-		AccessModes: []v1.PersistentVolumeAccessMode{
-			v1.ReadWriteOnce,
+	spec1 := &corev1.PersistentVolumeClaimSpec{
+		AccessModes: []corev1.PersistentVolumeAccessMode{
+			corev1.ReadWriteOnce,
 		},
-		Resources: v1.ResourceRequirements{
-			Requests: v1.ResourceList{
-				v1.ResourceStorage: resource.MustParse("20Gi"),
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceStorage: resource.MustParse("20Gi"),
 			},
 		},
 		StorageClassName: pointer.StringPtr("storage-class-1"),
 		VolumeName:       "volume-1",
 	}
 
-	spec2 := &v1.PersistentVolumeClaimSpec{
-		AccessModes: []v1.PersistentVolumeAccessMode{
-			v1.ReadWriteOnce,
+	spec2 := &corev1.PersistentVolumeClaimSpec{
+		AccessModes: []corev1.PersistentVolumeAccessMode{
+			corev1.ReadWriteOnce,
 		},
-		Resources: v1.ResourceRequirements{
-			Requests: v1.ResourceList{
-				v1.ResourceStorage: resource.MustParse("30Gi"),
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceStorage: resource.MustParse("30Gi"),
 			},
 		},
 		StorageClassName: pointer.StringPtr("storage-class-1"),
@@ -197,7 +197,7 @@ func TestPVCPatrol(t *testing.T) {
 						t.Errorf("%s: Unexpected action %s", k, action)
 						continue
 					}
-					created := action.(core.CreateAction).GetObject().(*v1.PersistentVolumeClaim)
+					created := action.(core.CreateAction).GetObject().(*corev1.PersistentVolumeClaim)
 					fullName := created.Namespace + "/" + created.Name
 					if fullName != expectedName {
 						t.Errorf("%s: Expect to create pPVC %s, got %s", k, expectedName, fullName)

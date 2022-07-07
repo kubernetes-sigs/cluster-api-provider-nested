@@ -657,7 +657,7 @@ func (e vcEquality) CheckIngressEquality(pObj, vObj *v1beta1extensions.Ingress) 
 func filterNodePort(svc *v1.Service) *v1.ServiceSpec {
 	specClone := svc.Spec.DeepCopy()
 	specClone.HealthCheckNodePort = 0
-	for i, _ := range specClone.Ports {
+	for i := range specClone.Ports {
 		specClone.Ports[i].NodePort = 0
 	}
 	return specClone

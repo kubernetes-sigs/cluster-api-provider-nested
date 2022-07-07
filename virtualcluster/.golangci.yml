@@ -11,13 +11,13 @@ linters:
   - goconst
   - gocritic
 #  - gocyclo
-#  - gofmt
-#  - goimports
-#  - goprintffuncname
+  - gofmt
+  - goimports
+  - goprintffuncname
 #  - gosec
 #  - gosimple
-#  - govet
-#  - importas
+  - govet
+  - importas
 #  - ineffassign
 #  - misspell
 #  - nakedret

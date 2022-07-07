@@ -22,7 +22,7 @@ import (
 	"fmt"
 
 	pkgerr "github.com/pkg/errors"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -50,18 +50,18 @@ func GetNodeProvider(config *config.SyncerConfiguration, client clientset.Interf
 	return native.NewNativeVirtualNodeProvider(config.VNAgentPort)
 }
 
-func NewVirtualNode(provider provider.VirtualNodeProvider, node *v1.Node) (vnode *v1.Node, err error) {
+func NewVirtualNode(provider provider.VirtualNodeProvider, node *corev1.Node) (vnode *corev1.Node, err error) {
 	now := metav1.Now()
-	n := &v1.Node{
+	n := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: node.Name,
 		},
-		Spec: v1.NodeSpec{
+		Spec: corev1.NodeSpec{
 			Unschedulable: true,
-			Taints: []v1.Taint{
+			Taints: []corev1.Taint{
 				{
 					Key:       "node.kubernetes.io/unschedulable",
-					Effect:    v1.TaintEffectNoSchedule,
+					Effect:    corev1.TaintEffectNoSchedule,
 					TimeAdded: &now,
 				},
 			},
@@ -106,16 +106,16 @@ func NewVirtualNode(provider provider.VirtualNodeProvider, node *v1.Node) (vnode
 }
 
 var wellKnownNodeLabelsMap = map[string]struct{}{
-	v1.LabelOSStable:   {},
-	v1.LabelArchStable: {},
-	v1.LabelHostname:   {},
+	corev1.LabelOSStable:   {},
+	corev1.LabelArchStable: {},
+	corev1.LabelHostname:   {},
 }
 
-func nodeConditions() []v1.NodeCondition {
-	return []v1.NodeCondition{
+func nodeConditions() []corev1.NodeCondition {
+	return []corev1.NodeCondition{
 		{
 			Type:               "Ready",
-			Status:             v1.ConditionTrue,
+			Status:             corev1.ConditionTrue,
 			LastHeartbeatTime:  metav1.Now(),
 			LastTransitionTime: metav1.Now(),
 			Reason:             "KubeletReady",
@@ -123,7 +123,7 @@ func nodeConditions() []v1.NodeCondition {
 		},
 		{
 			Type:               "OutOfDisk",
-			Status:             v1.ConditionFalse,
+			Status:             corev1.ConditionFalse,
 			LastHeartbeatTime:  metav1.Now(),
 			LastTransitionTime: metav1.Now(),
 			Reason:             "KubeletHasSufficientDisk",
@@ -131,7 +131,7 @@ func nodeConditions() []v1.NodeCondition {
 		},
 		{
 			Type:               "MemoryPressure",
-			Status:             v1.ConditionFalse,
+			Status:             corev1.ConditionFalse,
 			LastHeartbeatTime:  metav1.Now(),
 			LastTransitionTime: metav1.Now(),
 			Reason:             "KubeletHasSufficientMemory",
@@ -139,7 +139,7 @@ func nodeConditions() []v1.NodeCondition {
 		},
 		{
 			Type:               "DiskPressure",
-			Status:             v1.ConditionFalse,
+			Status:             corev1.ConditionFalse,
 			LastHeartbeatTime:  metav1.Now(),
 			LastTransitionTime: metav1.Now(),
 			Reason:             "KubeletHasNoDiskPressure",
@@ -147,7 +147,7 @@ func nodeConditions() []v1.NodeCondition {
 		},
 		{
 			Type:               "NetworkUnavailable",
-			Status:             v1.ConditionFalse,
+			Status:             corev1.ConditionFalse,
 			LastHeartbeatTime:  metav1.Now(),
 			LastTransitionTime: metav1.Now(),
 			Reason:             "RouteCreated",
@@ -156,14 +156,14 @@ func nodeConditions() []v1.NodeCondition {
 	}
 }
 
-func UpdateNodeStatus(client v1core.NodeInterface, node, newNode *v1.Node) error {
+func UpdateNodeStatus(client v1core.NodeInterface, node, newNode *corev1.Node) error {
 	_, _, err := patchNodeStatus(client, types.NodeName(node.Name), node, newNode)
 	return err
 }
 
 // patchNodeStatus patches node status.
 // Copied from github.com/kubernetes/kubernetes/pkg/util/node
-func patchNodeStatus(nodes v1core.NodeInterface, nodeName types.NodeName, oldNode *v1.Node, newNode *v1.Node) (*v1.Node, []byte, error) {
+func patchNodeStatus(nodes v1core.NodeInterface, nodeName types.NodeName, oldNode *corev1.Node, newNode *corev1.Node) (*corev1.Node, []byte, error) {
 	patchBytes, err := preparePatchBytesforNodeStatus(nodeName, oldNode, newNode)
 	if err != nil {
 		return nil, nil, err
@@ -176,7 +176,7 @@ func patchNodeStatus(nodes v1core.NodeInterface, nodeName types.NodeName, oldNod
 	return updatedNode, patchBytes, nil
 }
 
-func preparePatchBytesforNodeStatus(nodeName types.NodeName, oldNode *v1.Node, newNode *v1.Node) ([]byte, error) {
+func preparePatchBytesforNodeStatus(nodeName types.NodeName, oldNode *corev1.Node, newNode *corev1.Node) ([]byte, error) {
 	oldData, err := json.Marshal(oldNode)
 	if err != nil {
 		return nil, fmt.Errorf("failed to Marshal oldData for node %q: %v", nodeName, err)
@@ -187,7 +187,7 @@ func preparePatchBytesforNodeStatus(nodeName types.NodeName, oldNode *v1.Node, n
 	// if it changed.
 	manuallyPatchAddresses := (len(oldNode.Status.Addresses) > 0) && !equality.Semantic.DeepEqual(oldNode.Status.Addresses, newNode.Status.Addresses)
 
-	var newAddresses []v1.NodeAddress
+	var newAddresses []corev1.NodeAddress
 	if manuallyPatchAddresses {
 		newAddresses = newNode.Status.Addresses
 		newNode.Status.Addresses = oldNode.Status.Addresses
@@ -197,7 +197,7 @@ func preparePatchBytesforNodeStatus(nodeName types.NodeName, oldNode *v1.Node, n
 		return nil, fmt.Errorf("failed to Marshal newData for node %q: %v", nodeName, err)
 	}
 
-	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, v1.Node{})
+	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, corev1.Node{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to CreateTwoWayMergePatch for node %q: %v", nodeName, err)
 	}
@@ -213,7 +213,7 @@ func preparePatchBytesforNodeStatus(nodeName types.NodeName, oldNode *v1.Node, n
 
 // fixupPatchForNodeStatusAddresses adds a replace-strategy patch for Status.Addresses to
 // the existing patch
-func fixupPatchForNodeStatusAddresses(patchBytes []byte, addresses []v1.NodeAddress) ([]byte, error) {
+func fixupPatchForNodeStatusAddresses(patchBytes []byte, addresses []corev1.NodeAddress) ([]byte, error) {
 	// Given patchBytes='{"status": {"conditions": [ ... ], "phase": ...}}' and
 	// addresses=[{"type": "InternalIP", "address": "10.0.0.1"}], we need to generate:
 	//

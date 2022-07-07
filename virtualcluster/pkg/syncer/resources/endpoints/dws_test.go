@@ -22,23 +22,22 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/utils/pointer"
-	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
-
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	core "k8s.io/client-go/testing"
+	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
+	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
 
-func tenantEndpoints(name, namespace, uid string) *v1.Endpoints {
-	return &v1.Endpoints{
+func tenantEndpoints(name, namespace, uid string) *corev1.Endpoints {
+	return &corev1.Endpoints{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "v1",
 			APIVersion: "Endpoints",
@@ -51,8 +50,8 @@ func tenantEndpoints(name, namespace, uid string) *v1.Endpoints {
 	}
 }
 
-func superEndpoints(name, namespace, uid, clusterKey string) *v1.Endpoints {
-	return &v1.Endpoints{
+func superEndpoints(name, namespace, uid, clusterKey string) *corev1.Endpoints {
+	return &corev1.Endpoints{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "v1",
 			APIVersion: "Endpoints",
@@ -69,8 +68,8 @@ func superEndpoints(name, namespace, uid, clusterKey string) *v1.Endpoints {
 	}
 }
 
-func tenantService(name, namespace, uid string) *v1.Service {
-	return &v1.Service{
+func tenantService(name, namespace, uid string) *corev1.Service {
+	return &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
 			APIVersion: "v1",
@@ -80,13 +79,13 @@ func tenantService(name, namespace, uid string) *v1.Service {
 			Namespace: namespace,
 			UID:       types.UID(uid),
 		},
-		Spec: v1.ServiceSpec{
+		Spec: corev1.ServiceSpec{
 			Selector: nil,
 		},
 	}
 }
 
-func applySelectorToService(svc *v1.Service, key, value string) *v1.Service {
+func applySelectorToService(svc *corev1.Service, key, value string) *corev1.Service {
 	svc.Spec.Selector = map[string]string{
 		key: value,
 	}
@@ -194,7 +193,7 @@ func TestDWEndpointsCreation(t *testing.T) {
 				if !action.Matches("create", "endpoints") {
 					t.Errorf("%s: Unexpected action %s", k, action)
 				}
-				created := action.(core.CreateAction).GetObject().(*v1.Endpoints)
+				created := action.(core.CreateAction).GetObject().(*corev1.Endpoints)
 				fullName := created.Namespace + "/" + created.Name
 				if fullName != expectedName {
 					t.Errorf("%s: Expected %s to be created, got %s", k, expectedName, fullName)
@@ -223,7 +222,7 @@ func TestDWEndpointsDeletion(t *testing.T) {
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
 		ExistingObjectInTenant []runtime.Object
-		EnqueueObject          *v1.Endpoints
+		EnqueueObject          *corev1.Endpoints
 		ExpectedDeletedPObject []string
 		ExpectedNoOperation    bool
 		ExpectedError          string
@@ -295,7 +294,7 @@ func TestDWEndpointsDeletion(t *testing.T) {
 	}
 }
 
-func applySpecToEndpoints(ep *v1.Endpoints, sbs []v1.EndpointSubset) *v1.Endpoints {
+func applySpecToEndpoints(ep *corev1.Endpoints, sbs []corev1.EndpointSubset) *corev1.Endpoints {
 	ep.Subsets = sbs
 	return ep
 }
@@ -316,13 +315,13 @@ func TestDWEndpointsUpdate(t *testing.T) {
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
 	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
-	subset1 := []v1.EndpointSubset{
+	subset1 := []corev1.EndpointSubset{
 		{
-			Addresses: []v1.EndpointAddress{
+			Addresses: []corev1.EndpointAddress{
 				{
 					IP:       "1.1.1.1",
 					NodeName: pointer.StringPtr("n1"),
-					TargetRef: &v1.ObjectReference{
+					TargetRef: &corev1.ObjectReference{
 						Kind:      "Pod",
 						Namespace: "n1",
 						Name:      "pod1",
@@ -333,13 +332,13 @@ func TestDWEndpointsUpdate(t *testing.T) {
 		},
 	}
 
-	subset2 := []v1.EndpointSubset{
+	subset2 := []corev1.EndpointSubset{
 		{
-			Addresses: []v1.EndpointAddress{
+			Addresses: []corev1.EndpointAddress{
 				{
 					IP:       "1.1.1.1",
 					NodeName: pointer.StringPtr("n1"),
-					TargetRef: &v1.ObjectReference{
+					TargetRef: &corev1.ObjectReference{
 						Kind:      "Pod",
 						Namespace: "n2",
 						Name:      "pod1",
@@ -350,13 +349,13 @@ func TestDWEndpointsUpdate(t *testing.T) {
 		},
 	}
 
-	subset3 := []v1.EndpointSubset{
+	subset3 := []corev1.EndpointSubset{
 		{
-			Addresses: []v1.EndpointAddress{
+			Addresses: []corev1.EndpointAddress{
 				{
 					IP:       "1.1.1.2",
 					NodeName: pointer.StringPtr("n2"),
-					TargetRef: &v1.ObjectReference{
+					TargetRef: &corev1.ObjectReference{
 						Kind:      "Pod",
 						Namespace: "n1",
 						Name:      "pod1",
@@ -367,13 +366,13 @@ func TestDWEndpointsUpdate(t *testing.T) {
 		},
 	}
 
-	updatedSubset3 := []v1.EndpointSubset{
+	updatedSubset3 := []corev1.EndpointSubset{
 		{
-			Addresses: []v1.EndpointAddress{
+			Addresses: []corev1.EndpointAddress{
 				{
 					IP:       "1.1.1.2",
 					NodeName: pointer.StringPtr("n2"),
-					TargetRef: &v1.ObjectReference{
+					TargetRef: &corev1.ObjectReference{
 						Kind: "Pod",
 						Name: "pod1",
 					},

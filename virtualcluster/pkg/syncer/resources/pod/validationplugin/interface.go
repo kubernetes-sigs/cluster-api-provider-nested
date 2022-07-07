@@ -14,10 +14,11 @@ limitations under the License.
 package validationplugin
 
 import (
+	"sync"
+
 	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
 	uplugin "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/plugin"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sync"
 )
 
 type ValidationPluginInterface interface {

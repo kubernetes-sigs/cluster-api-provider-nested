@@ -17,11 +17,11 @@ limitations under the License.
 package provider
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
-// NodeProvider is the interface used for registering the node address.
+// VirtualNodeProvider is the interface used for registering the node address.
 type VirtualNodeProvider interface {
-	GetNodeDaemonEndpoints(node *v1.Node) (v1.NodeDaemonEndpoints, error)
-	GetNodeAddress(node *v1.Node) ([]v1.NodeAddress, error)
+	GetNodeDaemonEndpoints(node *corev1.Node) (corev1.NodeDaemonEndpoints, error)
+	GetNodeAddress(node *corev1.Node) ([]corev1.NodeAddress, error)
 }

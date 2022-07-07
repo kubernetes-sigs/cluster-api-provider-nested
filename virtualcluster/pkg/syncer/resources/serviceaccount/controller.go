@@ -17,7 +17,7 @@ limitations under the License.
 package serviceaccount
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -62,7 +62,7 @@ func NewServiceAccountController(config *config.SyncerConfiguration,
 	}
 
 	var err error
-	c.MultiClusterController, err = mc.NewMCController(&v1.ServiceAccount{}, &v1.ServiceAccountList{}, c, mc.WithOptions(options.MCOptions))
+	c.MultiClusterController, err = mc.NewMCController(&corev1.ServiceAccount{}, &corev1.ServiceAccountList{}, c, mc.WithOptions(options.MCOptions))
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func NewServiceAccountController(config *config.SyncerConfiguration,
 		c.saSynced = informer.Core().V1().ServiceAccounts().Informer().HasSynced
 	}
 
-	c.Patroller, err = pa.NewPatroller(&v1.ServiceAccount{}, c, pa.WithOptions(options.PatrolOptions))
+	c.Patroller, err = pa.NewPatroller(&corev1.ServiceAccount{}, c, pa.WithOptions(options.PatrolOptions))
 	if err != nil {
 		return nil, err
 	}

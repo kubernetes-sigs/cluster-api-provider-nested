@@ -19,7 +19,7 @@ package node
 import (
 	"sync"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
@@ -78,7 +78,7 @@ func NewNodeController(config *config.SyncerConfiguration,
 	}
 
 	var err error
-	c.MultiClusterController, err = mc.NewMCController(&v1.Node{}, &v1.NodeList{}, c, mc.WithOptions(options.MCOptions))
+	c.MultiClusterController, err = mc.NewMCController(&corev1.Node{}, &corev1.NodeList{}, c, mc.WithOptions(options.MCOptions))
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func NewNodeController(config *config.SyncerConfiguration,
 		c.nodeSynced = informer.Core().V1().Nodes().Informer().HasSynced
 	}
 
-	c.UpwardController, err = uw.NewUWController(&v1.Node{}, c,
+	c.UpwardController, err = uw.NewUWController(&corev1.Node{}, c,
 		uw.WithMaxConcurrentReconciles(constants.UwsControllerWorkerHigh), uw.WithOptions(options.UWOptions))
 	if err != nil {
 		return nil, err
@@ -100,8 +100,8 @@ func NewNodeController(config *config.SyncerConfiguration,
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: c.enqueueNode,
 			UpdateFunc: func(oldObj, newObj interface{}) {
-				newNode := newObj.(*v1.Node)
-				oldNode := oldObj.(*v1.Node)
+				newNode := newObj.(*corev1.Node)
+				oldNode := oldObj.(*corev1.Node)
 				if newNode.ResourceVersion == oldNode.ResourceVersion {
 					return
 				}

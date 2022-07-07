@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -28,21 +28,21 @@ import (
 type Cluster struct {
 	name     string
 	labels   map[string]string
-	capacity v1.ResourceList
+	capacity corev1.ResourceList
 	shadow   bool // a shadow cluster has a fake capacity, hence is not involved in scheduling
 
-	alloc      v1.ResourceList
+	alloc      corev1.ResourceList
 	allocItems map[string][]*Slice            // ns key -> slice array
 	pods       map[string]map[string]struct{} // ns key -> Pod map
 
 	// provision and provisionItems record the observed namespaces from the super cluster
-	provision      v1.ResourceList
+	provision      corev1.ResourceList
 	provisionItems map[string][]*Slice
 
 	lastUpdateTime metav1.Time
 }
 
-func NewCluster(name string, labels map[string]string, capacity v1.ResourceList) *Cluster {
+func NewCluster(name string, labels map[string]string, capacity corev1.ResourceList) *Cluster {
 	zeroRes := capacity.DeepCopy()
 
 	for k, v := range zeroRes {
@@ -95,7 +95,7 @@ func (c *Cluster) DeepCopy() *Cluster {
 	podsCopy := make(map[string]map[string]struct{})
 	for k, v := range c.pods {
 		podsCopy[k] = make(map[string]struct{})
-		for name, _ := range v {
+		for name := range v {
 			podsCopy[k][name] = struct{}{}
 		}
 	}
@@ -107,7 +107,7 @@ func (c *Cluster) DeepCopy() *Cluster {
 	return out
 }
 
-func (c *Cluster) addItem(key string, items map[string][]*Slice, alloc v1.ResourceList, slices []*Slice) (v1.ResourceList, error) {
+func (c *Cluster) addItem(key string, items map[string][]*Slice, alloc corev1.ResourceList, slices []*Slice) (corev1.ResourceList, error) {
 	if _, ok := items[key]; ok {
 		return nil, fmt.Errorf("key %s is already in cluster %s, cannot add twice", key, c.name)
 	}
@@ -147,7 +147,7 @@ func (c *Cluster) AddNamespace(key string, slices []*Slice) error {
 	return err
 }
 
-func (c *Cluster) removeItem(key string, items map[string][]*Slice, alloc v1.ResourceList) (v1.ResourceList, error) {
+func (c *Cluster) removeItem(key string, items map[string][]*Slice, alloc corev1.ResourceList) (corev1.ResourceList, error) {
 	allocCopy := alloc.DeepCopy()
 	slices, ok := items[key]
 	if !ok {

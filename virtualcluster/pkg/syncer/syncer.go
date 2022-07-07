@@ -26,11 +26,12 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
@@ -38,8 +39,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
-
-	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
@@ -301,7 +300,7 @@ func (s *Syncer) syncVirtualCluster(key string) error {
 
 	vc, err := s.lister.VirtualClusters(namespace).Get(name)
 	if err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return err
 		}
 
@@ -389,12 +388,12 @@ func (s *Syncer) runCluster(cluster *cluster.Cluster, vc *v1alpha1.VirtualCluste
 	}()
 
 	if !cluster.WaitForCacheSync() {
-		s.recorder.Eventf(&v1.ObjectReference{
+		s.recorder.Eventf(&corev1.ObjectReference{
 			Kind:      "VirtualCluster",
 			Namespace: vc.Namespace,
 			Name:      vc.Name,
 			UID:       vc.UID,
-		}, v1.EventTypeWarning, "ClusterUnHealth", "VirtualCluster %v unhealth: failed to sync cache", cluster.GetClusterName())
+		}, corev1.EventTypeWarning, "ClusterUnHealth", "VirtualCluster %v unhealth: failed to sync cache", cluster.GetClusterName())
 
 		klog.Warningf("failed to sync cache for cluster %s, retry", cluster.GetClusterName())
 		key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(vc)
@@ -457,10 +456,10 @@ func (s *Syncer) checkTenantClusterHealth(cluster mc.ClusterInterface) {
 
 	ns, name, uid := cluster.GetOwnerInfo()
 
-	s.recorder.Eventf(&v1.ObjectReference{
+	s.recorder.Eventf(&corev1.ObjectReference{
 		Kind:      "VirtualCluster",
 		Namespace: ns,
 		Name:      name,
 		UID:       types.UID(uid),
-	}, v1.EventTypeWarning, "ClusterUnHealth", "VirtualCluster %v unhealth: %v", cluster.GetClusterName(), discoveryErr.Error())
+	}, corev1.EventTypeWarning, "ClusterUnHealth", "VirtualCluster %v unhealth: %v", cluster.GetClusterName(), discoveryErr.Error())
 }

@@ -20,8 +20,8 @@ import (
 	"context"
 	"fmt"
 
-	v1 "k8s.io/api/scheduling/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	schedulingv1 "k8s.io/api/scheduling/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 
@@ -46,7 +46,7 @@ func (c *controller) BackPopulate(key string) error {
 	op := reconciler.AddEvent
 	pPriorityClass, err := c.priorityclassLister.Get(scName)
 	if err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return err
 		}
 		op = reconciler.DeleteEvent
@@ -57,9 +57,9 @@ func (c *controller) BackPopulate(key string) error {
 		return fmt.Errorf("failed to create client from cluster %s config: %v", clusterName, err)
 	}
 
-	vPriorityClass := &v1.PriorityClass{}
+	vPriorityClass := &schedulingv1.PriorityClass{}
 	if err := c.MultiClusterController.Get(clusterName, "", scName, vPriorityClass); err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			if op == reconciler.AddEvent {
 				// Available in super, hence create a new in tenant control plane
 				vPriorityClass := conversion.BuildVirtualPriorityClass(clusterName, pPriorityClass)

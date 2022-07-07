@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -19,7 +19,7 @@ const (
 // GetSvcNodePort returns the nodePort of service with given name
 // in given namespace
 func GetSvcNodePort(name, namespace string, cli client.Client) (int32, error) {
-	svc := &v1.Service{}
+	svc := &corev1.Service{}
 	err := cli.Get(context.TODO(), types.NamespacedName{
 		Namespace: namespace,
 		Name:      name}, svc)
@@ -31,7 +31,7 @@ func GetSvcNodePort(name, namespace string, cli client.Client) (int32, error) {
 
 // GetNodeIP returns a node IP address
 func GetNodeIP(cli client.Client) (string, error) {
-	nodeLst := &v1.NodeList{}
+	nodeLst := &corev1.NodeList{}
 	if err := cli.List(context.TODO(), nodeLst); err != nil {
 		return "", err
 	}
@@ -39,7 +39,7 @@ func GetNodeIP(cli client.Client) (string, error) {
 		return "", errors.New("there is no available nodes")
 	}
 	for _, addr := range nodeLst.Items[0].Status.Addresses {
-		if addr.Type == v1.NodeInternalIP {
+		if addr.Type == corev1.NodeInternalIP {
 			return addr.Address, nil
 		}
 	}
@@ -59,7 +59,7 @@ func GetLBIP(name, namespace string, cli client.Client) (string, error) {
 		case <-period:
 			// if external IP is not assigned to LB yet, we will
 			// retry to get in period second
-			svc := &v1.Service{}
+			svc := &corev1.Service{}
 			err := cli.Get(context.TODO(), types.NamespacedName{
 				Namespace: namespace,
 				Name:      name}, svc)

@@ -21,9 +21,9 @@ import (
 	"fmt"
 
 	pkgerr "github.com/pkg/errors"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
@@ -52,7 +52,7 @@ func (c *controller) BackPopulate(key string) error {
 
 	pService, err := c.serviceLister.Services(pNamespace).Get(pName)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil
 		}
 		return err
@@ -78,9 +78,9 @@ func (c *controller) BackPopulate(key string) error {
 		return nil
 	}
 
-	vService := &v1.Service{}
+	vService := &corev1.Service{}
 	if err := c.MultiClusterController.Get(clusterName, vNamespace, pName, vService); err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil
 		}
 		return pkgerr.Wrapf(err, "could not find pService %s/%s's vService in controller cache", vNamespace, pName)
@@ -100,7 +100,7 @@ func (c *controller) BackPopulate(key string) error {
 		return pkgerr.Wrapf(err, "failed to get spec of cluster %s", clusterName)
 	}
 
-	var newService *v1.Service
+	var newService *corev1.Service
 	updatedMeta := conversion.Equality(c.Config, vc).CheckUWObjectMetaEquality(&pService.ObjectMeta, &vService.ObjectMeta)
 	if updatedMeta != nil {
 		newService = vService.DeepCopy()
