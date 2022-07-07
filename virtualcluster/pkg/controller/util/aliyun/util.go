@@ -61,6 +61,11 @@ const (
 	// AliyunASKCfgMpPrivateCfg for PrivateCfg
 	AliyunASKCfgMpPrivateCfg = "askPrivateKbCfg"
 
+	// AliyunDomain is the domain name for aliyun requests
+	AliyunDomain = "cs.aliyuncs.com"
+	// AliyunVersion is the version for aliyun requests
+	AliyunVersion = "2015-12-15"
+
 	// AnnotationClusterID is the cluster id of the remote virtualcluster control plane on the cloud
 	AnnotationClusterID = "tenancy.x-k8s.io/ask.clusterID"
 	// AnnotationSlbID is the loadbalancer id of the remote virtualcluster control plane on the cloud
@@ -91,12 +96,12 @@ const (
 // GetASKKubeConfig retrieves the kubeconfig of the ASK with the given clusterID.
 func GetASKKubeConfig(cli *sdk.Client, clusterID, regionID, privateKbCfg string) (string, error) {
 	request := requests.NewCommonRequest()
-	request.Method = "GET"
-	request.Scheme = "http"
-	request.Domain = "cs.aliyuncs.com"
-	request.Version = "2015-12-15"
+	request.Method = requests.GET
+	request.Scheme = requests.HTTP
+	request.Domain = AliyunDomain
+	request.Version = AliyunVersion
 	request.PathPattern = fmt.Sprintf("/k8s/%s/user_config", clusterID)
-	request.Headers["Content-Type"] = "application/json"
+	request.Headers["Content-Type"] = requests.Json
 	request.QueryParams["RegionId"] = regionID
 	if privateKbCfg != "" {
 		// if specified, get kubeconfig that uses private IP
@@ -122,12 +127,12 @@ func GetASKKubeConfig(cli *sdk.Client, clusterID, regionID, privateKbCfg string)
 // state of the ASK with the given clusterID
 func GetASKStateAndSlbID(cli *sdk.Client, clusterID, regionID string) (slbID, state string, err error) {
 	request := requests.NewCommonRequest()
-	request.Method = "GET"
-	request.Scheme = "http"
-	request.Domain = "cs.aliyuncs.com"
-	request.Version = "2015-12-15"
+	request.Method = requests.GET
+	request.Scheme = requests.HTTP
+	request.Domain = AliyunDomain
+	request.Version = AliyunVersion
 	request.PathPattern = fmt.Sprintf("/clusters/%s", clusterID)
-	request.Headers["Content-Type"] = "application/json"
+	request.Headers["Content-Type"] = requests.Json
 	request.QueryParams["RegionId"] = regionID
 
 	response, err := cli.ProcessCommonRequest(request)
@@ -183,12 +188,12 @@ func GetASKStateAndSlbID(cli *sdk.Client, clusterID, regionID string) (slbID, st
 // GetClusterIDByName returns the clusterID of the cluster with clusterName
 func GetClusterIDByName(cli *sdk.Client, clusterName, regionID string) (string, error) {
 	request := requests.NewCommonRequest()
-	request.Method = "GET"
-	request.Scheme = "http"
-	request.Domain = "cs.aliyuncs.com"
-	request.Version = "2015-12-15"
+	request.Method = requests.GET
+	request.Scheme = requests.HTTP
+	request.Domain = AliyunDomain
+	request.Version = AliyunVersion
 	request.PathPattern = "/clusters"
-	request.Headers["Content-Type"] = "application/json"
+	request.Headers["Content-Type"] = requests.Json
 	request.QueryParams["RegionId"] = regionID
 	response, err := cli.ProcessCommonRequest(request)
 	if err != nil {
@@ -246,12 +251,12 @@ func IsSDKErr(err error) bool {
 // creating a new one
 func SendCreationRequest(cli *sdk.Client, clusterName string, askCfg ASKConfig) (string, error) {
 	request := requests.NewCommonRequest()
-	request.Method = "POST"
-	request.Scheme = "http"
-	request.Domain = "cs.aliyuncs.com"
-	request.Version = "2015-12-15"
+	request.Method = requests.POST
+	request.Scheme = requests.HTTP
+	request.Domain = AliyunDomain
+	request.Version = AliyunVersion
 	request.PathPattern = "/clusters"
-	request.Headers["Content-Type"] = "application/json"
+	request.Headers["Content-Type"] = requests.Json
 	request.QueryParams["RegionId"] = askCfg.RegionID
 
 	// set vpc, if VPCID is specified
@@ -300,12 +305,12 @@ func SendCreationRequest(cli *sdk.Client, clusterName string, askCfg ASKConfig) 
 // SendDeletionRequest sends a request for deleting the ASK with the given clusterID
 func SendDeletionRequest(cli *sdk.Client, clusterID, regionID string) error {
 	request := requests.NewCommonRequest()
-	request.Method = "DELETE"
-	request.Scheme = "http"
-	request.Domain = "cs.aliyuncs.com"
-	request.Version = "2015-12-15"
+	request.Method = requests.DELETE
+	request.Scheme = requests.HTTP
+	request.Domain = AliyunDomain
+	request.Version = AliyunVersion
 	request.PathPattern = fmt.Sprintf("/clusters/%s", clusterID)
-	request.Headers["Content-Type"] = "application/json"
+	request.Headers["Content-Type"] = requests.Json
 	request.QueryParams["RegionId"] = regionID
 	_, err := cli.ProcessCommonRequest(request)
 	if err != nil {

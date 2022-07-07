@@ -8,7 +8,7 @@ linters:
   - dogsled
   - exportloopref
   - errcheck
-#  - goconst
+  - goconst
 #  - gocritic
 #  - gocyclo
 #  - gofmt
