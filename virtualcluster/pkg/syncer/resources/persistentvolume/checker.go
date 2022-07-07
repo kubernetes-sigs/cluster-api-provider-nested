@@ -45,7 +45,7 @@ func (c *controller) StartPatrol(stopCh <-chan struct{}) error {
 	return nil
 }
 
-// PatrollerDo check if persistent volumes keep consistency between super master and tenant masters.
+// PatrollerDo check if persistent volumes keep consistency between super control plane and tenant control planes.
 func (c *controller) PatrollerDo() {
 	clusterNames := c.MultiClusterController.GetClusterNames()
 	if len(clusterNames) == 0 {
@@ -58,7 +58,7 @@ func (c *controller) PatrollerDo() {
 
 	pList, err := c.pvLister.List(labels.Everything())
 	if err != nil {
-		klog.Errorf("error listing pv from super master informer cache: %v", err)
+		klog.Errorf("error listing pv from super control plane informer cache: %v", err)
 		return
 	}
 	pSet := differ.NewDiffSet()
@@ -86,7 +86,7 @@ func (c *controller) PatrollerDo() {
 	d := differ.HandlerFuncs{}
 	d.AddFunc = func(pObj differ.ClusterObject) {
 		c.UpwardController.AddToQueue(pObj.GetName())
-		metrics.CheckerRemedyStats.WithLabelValues("RequeuedSuperMasterPVs").Inc()
+		metrics.CheckerRemedyStats.WithLabelValues("RequeuedSuperControlPlanePVs").Inc()
 	}
 	d.UpdateFunc = func(pObj, vObj differ.ClusterObject) {
 		pPV := pObj.Object.(*v1.PersistentVolume)
@@ -116,7 +116,7 @@ func (c *controller) PatrollerDo() {
 		updatedPVSpec := conversion.Equality(c.Config, nil).CheckPVSpecEquality(&pPV.Spec, &vPV.Spec)
 		if updatedPVSpec != nil {
 			atomic.AddUint64(&numSpecMissMatchedPVs, 1)
-			klog.Warningf("spec of pv %v diff in super&tenant master %s", vPV.Name, clusterName)
+			klog.Warningf("spec of pv %v diff in super&tenant control plane %s", vPV.Name, clusterName)
 			if boundPersistentVolume(pPV) {
 				c.enqueuePersistentVolume(pPV)
 			}
@@ -166,7 +166,7 @@ func (c *controller) PatrollerDo() {
 			pPVC, err := c.pvcLister.PersistentVolumeClaims(pPV.Spec.ClaimRef.Namespace).Get(pPV.Spec.ClaimRef.Name)
 			if err != nil {
 				if !errors.IsNotFound(err) {
-					klog.Errorf("fail to get pPVC %s/%s in super master :%v", pPVC.Namespace, pPVC.Name, err)
+					klog.Errorf("fail to get pPVC %s/%s in super control plane :%v", pPVC.Namespace, pPVC.Name, err)
 				}
 				return false
 			}

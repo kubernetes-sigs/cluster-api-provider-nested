@@ -142,7 +142,7 @@ func (s *Server) proxy(req *restful.Request, resp *restful.Response) {
 		// forward request to super apiserver
 		err := TranslatePathForSuper(req, tenantName)
 		if err != nil {
-			klog.Errorf("fail to translate url path for super master: %s", err)
+			klog.Errorf("fail to translate url path for super control plane: %s", err)
 			resp.ResponseWriter.WriteHeader(http.StatusNotFound)
 			resp.ResponseWriter.Write([]byte(err.Error()))
 			if s.enableMetrics {

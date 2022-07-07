@@ -44,9 +44,9 @@ func init() {
 
 type controller struct {
 	manager.BaseResourceSyncer
-	// super master endpoints client
+	// super control plane endpoints client
 	endpointClient v1core.EndpointsGetter
-	// super master endpoints informer lister/synced function
+	// super control plane endpoints informer lister/synced function
 	endpointsLister listersv1.EndpointsLister
 	endpointsSynced cache.InformerSynced
 }

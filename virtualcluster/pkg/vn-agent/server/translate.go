@@ -26,7 +26,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// TranslatePath translate the naming between tenant and master cluster.
+// TranslatePath translate the naming between tenant and super cluster.
 func TranslatePath(req *restful.Request, tenantName string) {
 	podNamespace := req.PathParameter("podNamespace")
 	path := req.Request.URL.Path

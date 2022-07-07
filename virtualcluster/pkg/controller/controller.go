@@ -20,10 +20,11 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/controllers"
 )
 
 // Controllers defines all the shared information between all
@@ -53,7 +54,7 @@ func (c *Controllers) SetupWithManager(mgr ctrl.Manager) error {
 		return nil
 	}
 
-	// add controller based the type of the masterProvisioner
+	// add controller based the type of the controlPlaneProvisioner
 	if c.ProvisionerName == "native" {
 		if err := (&controllers.ReconcileClusterVersion{
 			Client: mgr.GetClient(),

@@ -394,7 +394,7 @@ func hasRemainingContent(c clientset.Interface, dynamicClient dynamic.Interface,
 		// get the api resource
 		apiResource := metav1.APIResource{Name: gvr.Resource, Namespaced: true}
 		if ignoredResources.Has(gvr.Resource) {
-			e2elog.Logf("namespace: %s, resource: %s, ignored listing per whitelist", namespace, apiResource.Name)
+			e2elog.Logf("namespace: %s, resource: %s, ignored listing per ignorelist", namespace, apiResource.Name)
 			continue
 		}
 		unstructuredList, err := dynamicClient.List(context.TODO(), metav1.ListOptions{})

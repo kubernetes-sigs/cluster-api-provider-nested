@@ -29,7 +29,7 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 	return c.MultiClusterController.Start(stopCh)
 }
 
-// The reconcile logic for tenant master node informer, the main purpose is to maintain
+// The reconcile logic for tenant control plane node informer, the main purpose is to maintain
 // the nodeNameToCluster mapping
 func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, error) {
 	klog.V(4).Infof("reconcile node %s for cluster %s", request.Name, request.ClusterName)

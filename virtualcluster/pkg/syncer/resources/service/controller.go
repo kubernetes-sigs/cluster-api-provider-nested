@@ -49,9 +49,9 @@ func init() {
 
 type controller struct {
 	manager.BaseResourceSyncer
-	// super master service client
+	// super control plane service client
 	serviceClient v1core.ServicesGetter
-	// super master informer/listers/synced functions
+	// super control plane informer/listers/synced functions
 	serviceLister listersv1.ServiceLister
 	serviceSynced cache.InformerSynced
 }
@@ -105,7 +105,7 @@ func NewServiceController(config *config.SyncerConfiguration,
 					utilruntime.HandleError(fmt.Errorf("unable to convert object %v to *v1.Service", obj))
 					return false
 				default:
-					utilruntime.HandleError(fmt.Errorf("unable to handle object in super master service controller: %v", obj))
+					utilruntime.HandleError(fmt.Errorf("unable to handle object in super control plane service controller: %v", obj))
 					return false
 				}
 			},

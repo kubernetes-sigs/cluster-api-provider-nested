@@ -39,7 +39,7 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 	return c.MultiClusterController.Start(stopCh)
 }
 
-// The reconcile logic for tenant master configMap informer
+// The reconcile logic for tenant control plane configMap informer
 func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, error) {
 	klog.V(4).Infof("reconcile configmap %s/%s event for cluster %s", request.Namespace, request.Name, request.ClusterName)
 
@@ -94,7 +94,7 @@ func (c *controller) reconcileConfigMapCreate(clusterName, targetNamespace, requ
 	pConfigMap, err := c.configMapClient.ConfigMaps(targetNamespace).Create(context.TODO(), newObj.(*v1.ConfigMap), metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {
 		if pConfigMap.Annotations[constants.LabelUID] == requestUID {
-			klog.Infof("configmap %s/%s of cluster %s already exist in super master", targetNamespace, configMap.Name, clusterName)
+			klog.Infof("configmap %s/%s of cluster %s already exist in super control plane", targetNamespace, configMap.Name, clusterName)
 			return nil
 		} else {
 			return fmt.Errorf("pConfigMap %s/%s exists but its delegated object UID is different.", targetNamespace, pConfigMap.Name)
@@ -130,7 +130,7 @@ func (c *controller) reconcileConfigMapRemove(clusterName, targetNamespace, requ
 	}
 	err := c.configMapClient.ConfigMaps(targetNamespace).Delete(context.TODO(), name, *opts)
 	if errors.IsNotFound(err) {
-		klog.Warningf("configmap %s/%s of cluster %s not found in super master", targetNamespace, name, clusterName)
+		klog.Warningf("configmap %s/%s of cluster %s not found in super control plane", targetNamespace, name, clusterName)
 		return nil
 	}
 	return err

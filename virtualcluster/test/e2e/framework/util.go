@@ -107,7 +107,7 @@ func DumpEventsInNamespace(eventsLister EventsLister, namespace string) {
 	}
 	// Note that we don't wait for any Cleanup to propagate, which means
 	// that if you delete a bunch of pods right before ending your test,
-	// you may or may not see the killing/deletion/Cleanup events.
+	// you may or may not see the deletion or cleanup events.
 }
 
 // DumpAllNamespaceInfo dumps events, pods and nodes information in the given namespace.

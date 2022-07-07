@@ -94,7 +94,7 @@ func (c *controller) reconcileIngressCreate(clusterName, targetNamespace, reques
 	pIngress, err = c.ingressClient.Ingresses(targetNamespace).Create(context.TODO(), pIngress, metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {
 		if pIngress.Annotations[constants.LabelUID] == requestUID {
-			klog.Infof("ingress %s/%s of cluster %s already exist in super master", targetNamespace, pIngress.Name, clusterName)
+			klog.Infof("ingress %s/%s of cluster %s already exist in super control plane", targetNamespace, pIngress.Name, clusterName)
 			return nil
 		} else {
 			return fmt.Errorf("pIngress %s/%s exists but its delegated object UID is different.", targetNamespace, pIngress.Name)
@@ -133,7 +133,7 @@ func (c *controller) reconcileIngressRemove(clusterName, targetNamespace, reques
 	}
 	err := c.ingressClient.Ingresses(targetNamespace).Delete(context.TODO(), name, *opts)
 	if errors.IsNotFound(err) {
-		klog.Warningf("To be deleted ingress %s/%s not found in super master", targetNamespace, name)
+		klog.Warningf("To be deleted ingress %s/%s not found in super control plane", targetNamespace, name)
 		return nil
 	}
 	return err

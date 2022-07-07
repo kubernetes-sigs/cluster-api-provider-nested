@@ -439,7 +439,7 @@ func getPodName(name, namespace string) string {
 	return name + "_" + namespace
 }
 
-// getEffectiveNamespace translate the tenant namespace name to super master namespace name.
+// getEffectiveNamespace translate the tenant namespace name to super control plane namespace name.
 func getEffectiveNamespace(tenantName, namespace string) string {
 	return tenantName + "-" + namespace
 }

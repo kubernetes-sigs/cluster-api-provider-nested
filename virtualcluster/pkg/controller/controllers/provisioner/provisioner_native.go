@@ -160,10 +160,10 @@ func complementCtrlMgrTemplate(vcns string, ctrlMgrBdl *tenancyv1alpha1.Stateful
 	ctrlMgrBdl.StatefulSet.ObjectMeta.Namespace = vcns
 }
 
-// deployComponent deploys master component in namespace vcName based on the given StatefulSet
+// deployComponent deploys control plane component in namespace vcName based on the given StatefulSet
 // and Service Bundle ssBdl
 func (mpn *ProvisionerNative) deployComponent(vc *tenancyv1alpha1.VirtualCluster, ssBdl *tenancyv1alpha1.StatefulSetSvcBundle) error {
-	mpn.Log.Info("deploying StatefulSet for master component", "component", ssBdl.Name)
+	mpn.Log.Info("deploying StatefulSet for control plane component", "component", ssBdl.Name)
 
 	ns := conversion.ToClusterKey(vc)
 
@@ -190,7 +190,7 @@ func (mpn *ProvisionerNative) deployComponent(vc *tenancyv1alpha1.VirtualCluster
 
 	// skip apiserver clusterIP service creation as it is already created in CreateVirtualCluster()
 	if ssBdl.Service != nil && !(ssBdl.Name == "apiserver" && ssBdl.Service.Spec.Type == v1.ServiceTypeClusterIP) {
-		mpn.Log.Info("deploying Service for master component", "component", ssBdl.Name)
+		mpn.Log.Info("deploying Service for control plane component", "component", ssBdl.Name)
 		err = mpn.Create(context.TODO(), ssBdl.Service)
 		if err != nil {
 			if !apierrors.IsAlreadyExists(err) {
@@ -210,7 +210,7 @@ func (mpn *ProvisionerNative) deployComponent(vc *tenancyv1alpha1.VirtualCluster
 }
 
 // createPKISecrets creates secrets to store crt/key pairs and kubeconfigs
-// for master components of the virtual cluster
+// for control plane components of the virtual cluster
 func (mpn *ProvisionerNative) createPKISecrets(caGroup *vcpki.ClusterCAGroup, namespace string) error {
 	// create secret for root crt/key pair
 	rootSrt := secret.CrtKeyPairToSecret(secret.RootCASecretName, namespace, caGroup.RootCA)

@@ -46,7 +46,7 @@ func (c *controller) StartPatrol(stopCh <-chan struct{}) error {
 	return nil
 }
 
-// PatrollerDo checks to see if configmaps in super master informer cache and tenant master
+// PatrollerDo checks to see if configmaps in super control plane informer cache and tenant control plane
 // keep consistency.
 func (c *controller) PatrollerDo() {
 	clusterNames := c.MultiClusterController.GetClusterNames()
@@ -57,7 +57,7 @@ func (c *controller) PatrollerDo() {
 
 	pConfigMaps, err := c.configMapLister.List(util.GetSuperClusterListerLabelsSelector())
 	if err != nil {
-		klog.Errorf("error listing configmaps from super master informer cache: %v", err)
+		klog.Errorf("error listing configmaps from super control plane informer cache: %v", err)
 		return
 	}
 	pSet := differ.NewDiffSet()
@@ -109,16 +109,16 @@ func (c *controller) PatrollerDo() {
 		updated := conversion.Equality(c.Config, vc).CheckConfigMapEquality(pCM, vCM)
 		if updated != nil {
 			atomic.AddUint64(&numMissMatchedConfigMaps, 1)
-			klog.Warningf("ConfigMap %s diff in super&tenant master", pObj.Key)
+			klog.Warningf("ConfigMap %s diff in super&tenant control plane", pObj.Key)
 		}
 	}
 	configMapDiffer.DeleteFunc = func(pObj differ.ClusterObject) {
 		deleteOptions := &metav1.DeleteOptions{}
 		deleteOptions.Preconditions = metav1.NewUIDPreconditions(string(pObj.GetUID()))
 		if err = c.configMapClient.ConfigMaps(pObj.GetNamespace()).Delete(context.TODO(), pObj.GetName(), *deleteOptions); err != nil {
-			klog.Errorf("error deleting pConfigMap %s in super master: %v", pObj.Key, err)
+			klog.Errorf("error deleting pConfigMap %s in super control plane: %v", pObj.Key, err)
 		} else {
-			metrics.CheckerRemedyStats.WithLabelValues("DeletedOrphanSuperMasterConfigMaps").Inc()
+			metrics.CheckerRemedyStats.WithLabelValues("DeletedOrphanSuperControlPlaneConfigMaps").Inc()
 		}
 	}
 

@@ -50,9 +50,9 @@ func init() {
 
 type controller struct {
 	manager.BaseResourceSyncer
-	// super master ingress client
+	// super control plane ingress client
 	ingressClient v1beta1extensions.IngressesGetter
-	// super master informer/listers/synced functions
+	// super control plane informer/listers/synced functions
 	ingressLister listersv1beta1.IngressLister
 	ingressSynced cache.InformerSynced
 }
@@ -106,7 +106,7 @@ func NewIngressController(config *config.SyncerConfiguration,
 					utilruntime.HandleError(fmt.Errorf("unable to convert object %v to *v1beta1.Ingress", obj))
 					return false
 				default:
-					utilruntime.HandleError(fmt.Errorf("unable to handle object in super master ingress controller: %v", obj))
+					utilruntime.HandleError(fmt.Errorf("unable to handle object in super control plane ingress controller: %v", obj))
 					return false
 				}
 			},

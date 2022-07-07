@@ -241,7 +241,7 @@ spec:
         args:
         - --disable-stacktrace=true
         - --enable-webhook=false
-        - --master-prov=capi
+        - --provisioner=capi
         image: virtualcluster/manager-amd64
         imagePullPolicy: Never
         name: vc-manager

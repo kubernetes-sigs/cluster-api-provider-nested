@@ -40,7 +40,7 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 	return c.MultiClusterController.Start(stopCh)
 }
 
-// The reconcile logic for tenant master namespace informer
+// The reconcile logic for tenant control plane namespace informer
 func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, error) {
 	klog.V(4).Infof("reconcile namespace %s for cluster %s", request.Name, request.ClusterName)
 	targetNamespace := conversion.ToSuperClusterNamespace(request.ClusterName, request.Name)
@@ -93,7 +93,7 @@ func (c *controller) reconcileNamespaceCreate(clusterName, targetNamespace, requ
 
 	_, err = c.namespaceClient.Namespaces().Create(context.TODO(), newObj.(*v1.Namespace), metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {
-		klog.Infof("namespace %s of cluster %s already exist in super master", targetNamespace, clusterName)
+		klog.Infof("namespace %s of cluster %s already exist in super control plane", targetNamespace, clusterName)
 		return nil
 	}
 	return err
@@ -132,7 +132,7 @@ func (c *controller) reconcileNamespaceRemove(clusterName, targetNamespace, requ
 	}
 	err := c.namespaceClient.Namespaces().Delete(context.TODO(), targetNamespace, *opts)
 	if errors.IsNotFound(err) {
-		klog.Warningf("namespace %s of cluster %s not found in super master", targetNamespace, clusterName)
+		klog.Warningf("namespace %s of cluster %s not found in super control plane", targetNamespace, clusterName)
 		return nil
 	}
 	return err

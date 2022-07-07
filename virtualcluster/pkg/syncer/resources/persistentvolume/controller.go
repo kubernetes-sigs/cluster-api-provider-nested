@@ -49,9 +49,9 @@ func init() {
 
 type controller struct {
 	manager.BaseResourceSyncer
-	// super master client
+	// super control plane client
 	client v1core.CoreV1Interface
-	// super master pv/pvc lister/synced functions
+	// super control plane pv/pvc lister/synced functions
 	informer  coreinformers.Interface
 	pvLister  listersv1.PersistentVolumeLister
 	pvSynced  cache.InformerSynced
@@ -113,7 +113,7 @@ func NewPVController(config *config.SyncerConfiguration,
 					utilruntime.HandleError(fmt.Errorf("unable to convert object %v to *v1.PersistentVolume", obj))
 					return false
 				default:
-					utilruntime.HandleError(fmt.Errorf("unable to handle object in super master persistentvolume controller: %v", obj))
+					utilruntime.HandleError(fmt.Errorf("unable to handle object in super control plane persistentvolume controller: %v", obj))
 					return false
 				}
 			},

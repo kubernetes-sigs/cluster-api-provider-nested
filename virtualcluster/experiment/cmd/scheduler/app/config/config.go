@@ -50,7 +50,7 @@ type Config struct {
 	// the client only used for leader election
 	LeaderElectionClient clientset.Interface
 
-	// the rest config for the master
+	// the rest config for the control plane
 	Kubeconfig *restclient.Config
 
 	// the event sink

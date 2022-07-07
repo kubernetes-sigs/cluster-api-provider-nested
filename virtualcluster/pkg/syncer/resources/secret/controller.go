@@ -44,9 +44,9 @@ func init() {
 
 type controller struct {
 	manager.BaseResourceSyncer
-	// super master secret client
+	// super control plane secret client
 	secretClient v1core.CoreV1Interface
-	// super master secret lister/synced function
+	// super control plane secret lister/synced function
 	secretLister listersv1.SecretLister
 	secretSynced cache.InformerSynced
 }

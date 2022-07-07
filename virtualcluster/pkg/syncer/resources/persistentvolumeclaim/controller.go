@@ -44,9 +44,9 @@ func init() {
 
 type controller struct {
 	manager.BaseResourceSyncer
-	// super master pvc client
+	// super control plane pvc client
 	pvcClient v1core.PersistentVolumeClaimsGetter
-	// super master pvc lister
+	// super control plane pvc lister
 	pvcLister listersv1.PersistentVolumeClaimLister
 	pvcSynced cache.InformerSynced
 }

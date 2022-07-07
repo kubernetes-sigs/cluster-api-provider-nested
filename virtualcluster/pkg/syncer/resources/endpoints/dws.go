@@ -39,16 +39,16 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 	return c.MultiClusterController.Start(stopCh)
 }
 
-// The reconcile logic for tenant master endpoints informer
+// The reconcile logic for tenant control plane endpoints informer
 func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, error) {
 	vService := &v1.Service{}
 	err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vService)
 	if err != nil && !errors.IsNotFound(err) {
-		return reconciler.Result{Requeue: true}, fmt.Errorf("fail to query service from tenant master %s", request.ClusterName)
+		return reconciler.Result{Requeue: true}, fmt.Errorf("fail to query service from tenant control plane %s", request.ClusterName)
 	}
 	if err == nil {
 		if vService.Spec.Selector != nil {
-			// Supermaster ep controller handles the service ep lifecycle, quit.
+			// Supercontrol plane ep controller handles the service ep lifecycle, quit.
 			return reconciler.Result{}, nil
 		}
 	}
@@ -106,7 +106,7 @@ func (c *controller) reconcileEndpointsCreate(clusterName, targetNamespace, requ
 	pEndpoints, err = c.endpointClient.Endpoints(targetNamespace).Create(context.TODO(), pEndpoints, metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {
 		if pEndpoints.Annotations[constants.LabelUID] == requestUID {
-			klog.Infof("endpoints %s/%s of cluster %s already exist in super master", targetNamespace, pEndpoints.Name, clusterName)
+			klog.Infof("endpoints %s/%s of cluster %s already exist in super control plane", targetNamespace, pEndpoints.Name, clusterName)
 			return nil
 		} else {
 			return fmt.Errorf("pEndpoints %s/%s exists but its delegated object UID is different.", targetNamespace, pEndpoints.Name)
@@ -142,7 +142,7 @@ func (c *controller) reconcileEndpointsRemove(clusterName, targetNamespace, requ
 	}
 	err := c.endpointClient.Endpoints(targetNamespace).Delete(context.TODO(), name, *opts)
 	if errors.IsNotFound(err) {
-		klog.Warningf("endpoints %s/%s of %s cluster not found in super master", targetNamespace, name, clusterName)
+		klog.Warningf("endpoints %s/%s of %s cluster not found in super control plane", targetNamespace, name, clusterName)
 		return nil
 	}
 	return err

@@ -33,7 +33,7 @@ type SchedulerConfiguration struct {
 	// settings for the proxy server to use when communicating with the apiserver.
 	ClientConnection componentbaseconfig.ClientConnectionConfiguration
 
-	// Super master rest config
+	// Super control plane rest config
 	RestConfig *rest.Config
 }
 

@@ -122,7 +122,7 @@ func NewCrdController(config *config.SyncerConfiguration,
 	}
 
 	if config.RestConfig == nil {
-		return nil, fmt.Errorf("cannot get super master restful config")
+		return nil, fmt.Errorf("cannot get super control plane restful config")
 	} else {
 		sc, err = dclient.New(config.RestConfig, dclient.Options{})
 		if err != nil {
@@ -132,7 +132,7 @@ func NewCrdController(config *config.SyncerConfiguration,
 	}
 
 	if config.RestConfig == nil {
-		return nil, fmt.Errorf("cannot get super master restful config")
+		return nil, fmt.Errorf("cannot get super control plane restful config")
 	}
 
 	c.crdcache, err = rinformer.New(config.RestConfig, rinformer.Options{})
@@ -180,7 +180,7 @@ func NewCrdController(config *config.SyncerConfiguration,
 					utilruntime.HandleError(fmt.Errorf("unable to convert object %v to *v1beta1.CustomResourceDefinition", obj))
 					return false
 				default:
-					utilruntime.HandleError(fmt.Errorf("unable to handle object in super master CRD controller: %v", obj))
+					utilruntime.HandleError(fmt.Errorf("unable to handle object in super control plane CRD controller: %v", obj))
 					return false
 				}
 			},
@@ -208,7 +208,7 @@ func (c *controller) GetListener() listener.ClusterChangeListener {
 }
 
 func publicCRD(e *v1beta1.CustomResourceDefinition) bool {
-	// We only backpopulate specific crds to tenant masters
+	// We only backpopulate specific crds to tenant control planes
 	return e.Labels[constants.PublicObjectKey] == "true"
 }
 

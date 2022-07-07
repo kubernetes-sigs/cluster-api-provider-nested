@@ -54,9 +54,9 @@ type controller struct {
 	sync.Mutex
 	// phyical node to tenant cluster map. A physical node can be presented as virtual node in multiple tenant clusters.
 	nodeNameToCluster map[string]map[string]struct{}
-	// super master node client
+	// super control plane node client
 	nodeClient v1core.NodesGetter
-	// super master node lister/synced function
+	// super control plane node lister/synced function
 	nodeLister    listersv1.NodeLister
 	nodeSynced    cache.InformerSynced
 	vnodeProvider provider.VirtualNodeProvider

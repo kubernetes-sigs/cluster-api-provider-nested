@@ -28,6 +28,8 @@ import (
 	listersv1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	vcclient "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/client/clientset/versioned"
 	vcinformers "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/client/informers/externalversions/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/apis/config"
@@ -35,7 +37,6 @@ import (
 	uw "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/uwcontroller"
 	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/plugin"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func init() {
@@ -49,9 +50,9 @@ func init() {
 
 type controller struct {
 	manager.BaseResourceSyncer
-	// super master event client (not used for now)
+	// super control plane event client (not used for now)
 	client v1core.EventsGetter
-	// super master event informer/lister/synced functions
+	// super control plane event informer/lister/synced functions
 	informer    coreinformers.Interface
 	eventLister listersv1.EventLister
 	eventSynced cache.InformerSynced
@@ -113,7 +114,7 @@ func NewEventController(config *config.SyncerConfiguration,
 					utilruntime.HandleError(fmt.Errorf("unable to convert object %v to *v1.Event", obj))
 					return false
 				default:
-					utilruntime.HandleError(fmt.Errorf("unable to handle object in super master event controller: %v", obj))
+					utilruntime.HandleError(fmt.Errorf("unable to handle object in super control plane event controller: %v", obj))
 					return false
 				}
 			},

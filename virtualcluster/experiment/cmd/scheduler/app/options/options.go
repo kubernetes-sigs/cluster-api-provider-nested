@@ -38,6 +38,7 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	componentbaseconfig "k8s.io/component-base/config"
 	"k8s.io/klog/v2"
+
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis"
 
 	schedulerappconfig "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/cmd/scheduler/app/config"
@@ -101,7 +102,7 @@ func BindFlags(l *schedulerconfig.SchedulerLeaderElectionConfiguration, fs *pfla
 		"before it is replaced by another candidate. This is only applicable if leader "+
 		"election is enabled.")
 	fs.DurationVar(&l.RenewDeadline.Duration, "leader-elect-renew-deadline", l.RenewDeadline.Duration, ""+
-		"The interval between attempts by the acting master to renew a leadership slot "+
+		"The interval between attempts by the acting leader to renew a leadership slot "+
 		"before it stops leading. This must be less than or equal to the lease duration. "+
 		"This is only applicable if leader election is enabled.")
 	fs.DurationVar(&l.RetryPeriod.Duration, "leader-elect-retry-period", l.RetryPeriod.Duration, ""+
@@ -219,23 +220,23 @@ func getInClusterNamespace() (string, error) {
 	return string(namespace), nil
 }
 
-func createClients(config componentbaseconfig.ClientConnectionConfiguration, masterOverride string, timeout time.Duration) (clientset.Interface,
+func createClients(config componentbaseconfig.ClientConnectionConfiguration, serverAddrOverride string, timeout time.Duration) (clientset.Interface,
 	clientset.Interface, vcclient.Interface, superclient.Interface, *restclient.Config, error) {
 	// This creates a client, first loading any specified kubeconfig
-	// file, and then overriding the Master flag, if non-empty.
+	// file, and then overriding the serverAddr flag, if non-empty.
 	var (
 		restConfig *restclient.Config
 		err        error
 	)
-	if len(config.Kubeconfig) == 0 && len(masterOverride) == 0 {
-		klog.Info("Neither kubeconfig file nor master URL was specified. Falling back to in-cluster config.")
+	if len(config.Kubeconfig) == 0 && len(serverAddrOverride) == 0 {
+		klog.Info("Neither kubeconfig file nor control plane URL was specified. Falling back to in-cluster config.")
 		restConfig, err = restclient.InClusterConfig()
 	} else {
 		// This creates a client, first loading any specified kubeconfig
-		// file, and then overriding the Master flag, if non-empty.
+		// file, and then overriding the serverAddr flag, if non-empty.
 		restConfig, err = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 			&clientcmd.ClientConfigLoadingRules{ExplicitPath: config.Kubeconfig},
-			&clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: masterOverride}}).ClientConfig()
+			&clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: serverAddrOverride}}).ClientConfig()
 	}
 
 	if err != nil {

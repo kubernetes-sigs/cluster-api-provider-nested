@@ -45,7 +45,7 @@ func Equality(syncerConfig *config.SyncerConfiguration, vc *v1alpha1.VirtualClus
 	return &vcEquality{config: syncerConfig, vc: vc}
 }
 
-// CheckPodEquality check whether super master Pod object and virtual Pod object
+// CheckPodEquality check whether super control plane Pod object and virtual Pod object
 // are logically equal. The source of truth is virtual Pod.
 // notes: we only care about the metadata and pod spec update.
 func (e vcEquality) CheckPodEquality(pPod, vPod *v1.Pod) *v1.Pod {
@@ -69,9 +69,9 @@ func (e vcEquality) CheckPodEquality(pPod, vPod *v1.Pod) *v1.Pod {
 	return updatedPod
 }
 
-// CheckDWPodConditionEquality check whether super master Pod Status and virtual Pod Status
+// CheckDWPodConditionEquality check whether super control plane Pod Status and virtual Pod Status
 // are logically equal.
-// In most cases, the source of truth is super pod status, because super master actually
+// In most cases, the source of truth is super pod status, because super control plane actually
 // own the physical resources, status is reported by **real** kubelet.
 // Besides, kubernetes allows user-defined conditions, such as pod readiness gate, it will
 // report readiness state to pod conditions. In other words, the source of truth for user-defined
@@ -115,7 +115,7 @@ func CheckDWPodConditionEquality(pPod, vPod *v1.Pod) *v1.PodStatus {
 	return nil
 }
 
-// CheckDWObjectMetaEquality check whether super master object meta and virtual object meta
+// CheckDWObjectMetaEquality check whether super control plane object meta and virtual object meta
 // are logically equal. The source of truth is virtual object.
 // Reference to ObjectMetaUpdateValidation: https://github.com/kubernetes/kubernetes/blob/release-1.15/staging/src/k8s.io/apimachinery/pkg/api/validation/objectmeta.go#L227
 // Mutable fields:
@@ -171,8 +171,8 @@ func hasPrefixInArray(key string, array []string) bool {
 	return false
 }
 
-// CheckUWObjectMetaEquality mainly checks if super master label or annotations defined in
-// VC.Spec.TransparentMetaPrefixes are back populated to tenant master.
+// CheckUWObjectMetaEquality mainly checks if super control plane label or annotations defined in
+// VC.Spec.TransparentMetaPrefixes are back populated to tenant control plane.
 func (e vcEquality) CheckUWObjectMetaEquality(pObj, vObj *metav1.ObjectMeta) *metav1.ObjectMeta {
 	var updatedObj *metav1.ObjectMeta
 	labels, equal := e.checkUWKVEquality(pObj.Labels, vObj.Labels)
@@ -227,10 +227,10 @@ func (e vcEquality) checkUWKVEquality(pKV, vKV map[string]string) (map[string]st
 	return updated, false
 }
 
-// checkDWKVEquality check the whether super master object labels and virtual object labels
+// checkDWKVEquality check the whether super control plane object labels and virtual object labels
 // are logically equal. If not, return the updated value. The source of truth is virtual object.
-// The exceptional keys that used by super master object are specified in
-// VC.Spec.TransparentMetaPrefixes plus a white list (e.g., tenancy.x-k8s.io).
+// The exceptional keys that used by super control plane object are specified in
+// VC.Spec.TransparentMetaPrefixes plus an ignorelist (e.g., tenancy.x-k8s.io).
 func (e vcEquality) checkDWKVEquality(pKV, vKV map[string]string) (map[string]string, bool) {
 	var exceptionsList []string
 	if e.vc != nil {
@@ -360,7 +360,7 @@ func (e vcEquality) CheckUWPodStatusEquality(pObj, vObj *v1.Pod) *v1.PodStatus {
 	return nil
 }
 
-// checkPodSpecEquality check the whether super master Pod Spec and virtual object
+// checkPodSpecEquality check the whether super control plane Pod Spec and virtual object
 // PodSpec are logically equal. The source of truth is virtual Pod Spec.
 // Mutable fields:
 // - spec.containers[*].image
@@ -445,7 +445,7 @@ func (e vcEquality) checkInt64Equality(pObj, vObj *int64) (*int64, bool) {
 	return updated, false
 }
 
-// CheckConfigMapEquality checks whether super master ConfigMap and virtual ConfigMap
+// CheckConfigMapEquality checks whether super control plane ConfigMap and virtual ConfigMap
 // are logically equal. The source of truth is virtual object.
 func (e vcEquality) CheckConfigMapEquality(pObj, vObj *v1.ConfigMap) *v1.ConfigMap {
 	var updated *v1.ConfigMap
@@ -717,7 +717,7 @@ func (e vcEquality) CheckPVCEquality(pObj, vObj *v1.PersistentVolumeClaim) *v1.P
 		}
 		updated.Spec.Resources.Requests["storage"] = vObj.Spec.Resources.Requests["storage"]
 	}
-	// We don't check PVC status since it will be managed by tenant/master pv binder controller independently.
+	// We don't check PVC status since it will be managed by tenant/control plane pv binder controller independently.
 	return updated
 }
 

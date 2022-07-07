@@ -95,7 +95,7 @@ func (c *controller) reconcileServiceCreate(clusterName, targetNamespace, reques
 	pService, err = c.serviceClient.Services(targetNamespace).Create(context.TODO(), pService, metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {
 		if pService.Annotations[constants.LabelUID] == requestUID {
-			klog.Infof("service %s/%s of cluster %s already exist in super master", targetNamespace, pService.Name, clusterName)
+			klog.Infof("service %s/%s of cluster %s already exist in super control plane", targetNamespace, pService.Name, clusterName)
 			return nil
 		} else {
 			return fmt.Errorf("pService %s/%s exists but its delegated object UID is different.", targetNamespace, pService.Name)
@@ -134,7 +134,7 @@ func (c *controller) reconcileServiceRemove(clusterName, targetNamespace, reques
 	}
 	err := c.serviceClient.Services(targetNamespace).Delete(context.TODO(), name, *opts)
 	if errors.IsNotFound(err) {
-		klog.Warningf("To be deleted service %s/%s not found in super master", targetNamespace, name)
+		klog.Warningf("To be deleted service %s/%s not found in super control plane", targetNamespace, name)
 		return nil
 	}
 	return err

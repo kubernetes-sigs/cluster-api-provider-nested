@@ -45,12 +45,12 @@ func init() {
 
 type controller struct {
 	manager.BaseResourceSyncer
-	// super master namespace client
+	// super control plane namespace client
 	namespaceClient v1core.NamespacesGetter
-	// super master namespace lister
+	// super control plane namespace lister
 	nsLister listersv1.NamespaceLister
 	nsSynced cache.InformerSynced
-	// super master virtual cluster lister
+	// super control plane virtual cluster lister
 	vcClient vcclient.Interface
 	vcLister vclisters.VirtualClusterLister
 	vcSynced cache.InformerSynced

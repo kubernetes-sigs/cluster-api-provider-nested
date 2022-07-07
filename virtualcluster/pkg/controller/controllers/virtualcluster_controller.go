@@ -129,7 +129,7 @@ func (r *ReconcileVirtualCluster) Reconcile(ctx context.Context, request reconci
 
 	// reconcile VirtualCluster (vc) based on vc status
 	// NOTE: vc status is required by other components (e.g. syncer need to
-	// know the vc status in order to setup connection to the tenant master)
+	// know the vc status in order to setup connection to the tenant control plane)
 	switch vc.Status.Phase {
 	case "":
 		// set vc status as ClusterPending if no status is set
@@ -152,11 +152,11 @@ func (r *ReconcileVirtualCluster) Reconcile(ctx context.Context, request reconci
 				kubeutil.SetVCStatus(vc, tenancyv1alpha1.ClusterPending, errMsg, errReason)
 			} else {
 				kubeutil.SetVCStatus(vc, tenancyv1alpha1.ClusterRunning,
-					"tenant master is running", "TenantMasterRunning")
+					"tenant control plane is running", "TenantControlPlaneRunning")
 			}
 		} else {
 			kubeutil.SetVCStatus(vc, tenancyv1alpha1.ClusterError,
-				"fail to create virtualcluster", "TenantMasterError")
+				"fail to create virtualcluster", "TenantControlPlaneError")
 		}
 
 		err = kubeutil.RetryUpdateVCStatusOnConflict(ctx, r, vc, r.Log)

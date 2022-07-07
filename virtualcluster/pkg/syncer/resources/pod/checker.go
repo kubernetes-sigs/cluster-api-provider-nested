@@ -128,7 +128,7 @@ func (c *controller) deleteClusterVNode(cluster, nodeName string) {
 	c.Unlock()
 }
 
-// PatrollerDo checks to see if pods in super master informer cache and tenant master
+// PatrollerDo checks to see if pods in super control plane informer cache and tenant control plane
 // keep consistency.
 func (c *controller) PatrollerDo() {
 	clusterNames := c.MultiClusterController.GetClusterNames()
@@ -145,7 +145,7 @@ func (c *controller) PatrollerDo() {
 
 	pList, err := c.podLister.List(util.GetSuperClusterListerLabelsSelector())
 	if err != nil {
-		klog.Errorf("error listing pod from super master informer cache: %v", err)
+		klog.Errorf("error listing pod from super control plane informer cache: %v", err)
 		return
 	}
 	pSet := differ.NewDiffSet()
@@ -184,7 +184,7 @@ func (c *controller) PatrollerDo() {
 
 		// pPod not found and vPod is under deletion, we need to delete vPod manually
 		if vPod.DeletionTimestamp != nil {
-			// since pPod not found in super master, we can force delete vPod
+			// since pPod not found in super control plane, we can force delete vPod
 			c.forceDeleteVPod(vObj.GetOwnerCluster(), vPod, false)
 			return
 		}
@@ -237,7 +237,7 @@ func (c *controller) PatrollerDo() {
 
 		if conversion.Equality(c.Config, vc).CheckPodEquality(pPod, vPod) != nil {
 			atomic.AddUint64(&numSpecMissMatchedPods, 1)
-			klog.Warningf("spec of pod %s diff in super&tenant master", pObj.Key)
+			klog.Warningf("spec of pod %s diff in super&tenant control plane", pObj.Key)
 			if err := c.MultiClusterController.RequeueObject(clusterName, vPod); err != nil {
 				klog.Errorf("error requeue vPod %s: %v", vObj.Key, err)
 			} else {
@@ -247,7 +247,7 @@ func (c *controller) PatrollerDo() {
 
 		if conversion.CheckDWPodConditionEquality(pPod, vPod) != nil {
 			atomic.AddUint64(&numSpecMissMatchedPods, 1)
-			klog.Warningf("DWStatus of pod %s diff in super&tenant master", pObj.Key)
+			klog.Warningf("DWStatus of pod %s diff in super&tenant control plane", pObj.Key)
 			if err := c.MultiClusterController.RequeueObject(clusterName, vPod); err != nil {
 				klog.Errorf("error requeue vpod %v/%v in cluster %s: %v", vPod.Namespace, vPod.Name, clusterName, err)
 			} else {
@@ -257,7 +257,7 @@ func (c *controller) PatrollerDo() {
 
 		if conversion.Equality(c.Config, nil).CheckUWPodStatusEquality(pPod, vPod) != nil {
 			atomic.AddUint64(&numStatusMissMatchedPods, 1)
-			klog.Warningf("status of pod %v/%v diff in super&tenant master", pPod.Namespace, pPod.Name)
+			klog.Warningf("status of pod %v/%v diff in super&tenant control plane", pPod.Namespace, pPod.Name)
 			if assignedPod(pPod) {
 				c.enqueuePod(pPod)
 			}
@@ -265,7 +265,7 @@ func (c *controller) PatrollerDo() {
 
 		if conversion.Equality(c.Config, vc).CheckUWObjectMetaEquality(&pPod.ObjectMeta, &vPod.ObjectMeta) != nil {
 			atomic.AddUint64(&numUWMetaMissMatchedPods, 1)
-			klog.Warningf("UWObjectMeta of pod %v/%v diff in super&tenant master", vPod.Namespace, vPod.Name)
+			klog.Warningf("UWObjectMeta of pod %v/%v diff in super&tenant control plane", vPod.Namespace, vPod.Name)
 			if assignedPod(pPod) {
 				c.enqueuePod(pPod)
 			}
@@ -308,7 +308,7 @@ func (c *controller) PatrollerDo() {
 	}
 	wg.Wait()
 
-	// GC unused(orphan) vNodes in tenant masters
+	// GC unused(orphan) vNodes in tenant control planes
 	c.vNodeGCDo()
 }
 
@@ -341,9 +341,9 @@ func (c *controller) graceDeletePPod(pPod *v1.Pod) {
 	deleteOptions := metav1.NewDeleteOptions(gracePeriod)
 	deleteOptions.Preconditions = metav1.NewUIDPreconditions(string(pPod.UID))
 	if err := c.client.Pods(pPod.Namespace).Delete(context.TODO(), pPod.Name, *deleteOptions); err != nil {
-		klog.Errorf("error deleting pPod %v/%v in super master: %v", pPod.Namespace, pPod.Name, err)
+		klog.Errorf("error deleting pPod %v/%v in super control plane: %v", pPod.Namespace, pPod.Name, err)
 	} else {
-		metrics.CheckerRemedyStats.WithLabelValues("DeletedOrphanSuperMasterPods").Inc()
+		metrics.CheckerRemedyStats.WithLabelValues("DeletedOrphanSuperControlPlanePods").Inc()
 	}
 }
 
@@ -358,7 +358,7 @@ func (c *controller) requeuePod(clusterName string, vPod *v1.Pod) {
 // checkNodesOfTenantCluster checks if any orphan vNode is missed in c.clusterVNodeGCMap, which can happen if syncer
 // is restarted.
 // Note that this method can be expensive since it cannot leverage pod mccontroller informer cache. The List query
-// goes to tenant master directly. If this method causes performance issue, we should consider moving it to another
+// goes to tenant control plane directly. If this method causes performance issue, we should consider moving it to another
 // periodic thread with a larger check interval.
 func (c *controller) checkNodesOfTenantCluster(clusterName string) {
 	nodeList := &v1.NodeList{}

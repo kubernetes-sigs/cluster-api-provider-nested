@@ -76,7 +76,7 @@ func (c *controller) BackPopulate(key string) error {
 	vPV := &v1.PersistentVolume{}
 	if err := c.MultiClusterController.Get(clusterName, "", key, vPV); err != nil {
 		if errors.IsNotFound(err) {
-			// Create a new pv with bound claim in tenant master
+			// Create a new pv with bound claim in tenant control plane
 			vPVC, err := tenantClient.CoreV1().PersistentVolumeClaims(vNamespace).Get(context.TODO(), pPVC.Name, metav1.GetOptions{})
 			if err != nil {
 				// If corresponding pvc does not exist in tenant, we'll let checker fix any possible race.

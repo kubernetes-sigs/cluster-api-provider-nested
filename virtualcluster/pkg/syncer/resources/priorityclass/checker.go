@@ -44,7 +44,7 @@ func (c *controller) StartPatrol(stopCh <-chan struct{}) error {
 	return nil
 }
 
-// PatrollerDo check if PriorityClass keeps consistency between super master and tenant masters.
+// PatrollerDo check if PriorityClass keeps consistency between super control plane and tenant control planes.
 func (c *controller) PatrollerDo() {
 	clusterNames := c.MultiClusterController.GetClusterNames()
 	if len(clusterNames) == 0 {
@@ -66,7 +66,7 @@ func (c *controller) PatrollerDo() {
 
 	pPriorityClassList, err := c.priorityclassLister.List(labels.Everything())
 	if err != nil {
-		klog.Errorf("error listing priorityclass from super master informer cache: %v", err)
+		klog.Errorf("error listing priorityclass from super control plane informer cache: %v", err)
 		return
 	}
 
@@ -77,7 +77,7 @@ func (c *controller) PatrollerDo() {
 		for _, clusterName := range clusterNames {
 			if err := c.MultiClusterController.Get(clusterName, "", pPriorityClass.Name, &v1.PriorityClass{}); err != nil {
 				if errors.IsNotFound(err) {
-					metrics.CheckerRemedyStats.WithLabelValues("RequeuedSuperMasterPriorityClasses").Inc()
+					metrics.CheckerRemedyStats.WithLabelValues("RequeuedSuperControlPlanePriorityClasses").Inc()
 					c.UpwardController.AddToQueue(clusterName + "/" + pPriorityClass.Name)
 				}
 				klog.Errorf("fail to get priorityclass from cluster %s: %v", clusterName, err)
@@ -101,7 +101,7 @@ func (c *controller) checkPriorityClassOfTenantCluster(clusterName string) {
 		}
 		pPriorityClass, err := c.priorityclassLister.Get(vPriorityClass.Name)
 		if errors.IsNotFound(err) {
-			// super master is the source of the truth for priorityclass object, delete tenant master obj
+			// super control plane is the source of the truth for priorityclass object, delete tenant control plane obj
 			tenantClient, err := c.MultiClusterController.GetClusterClient(clusterName)
 			if err != nil {
 				klog.Errorf("error getting cluster %s clientset: %v", clusterName, err)
@@ -119,14 +119,14 @@ func (c *controller) checkPriorityClassOfTenantCluster(clusterName string) {
 		}
 
 		if err != nil {
-			klog.Errorf("failed to get pPriorityClass %s from super master cache: %v", vPriorityClass.Name, err)
+			klog.Errorf("failed to get pPriorityClass %s from super control plane cache: %v", vPriorityClass.Name, err)
 			continue
 		}
 
 		updatedPriorityClass := conversion.Equality(nil, nil).CheckPriorityClassEquality(pPriorityClass, &scList.Items[i])
 		if updatedPriorityClass != nil {
 			atomic.AddUint64(&numMissMatchedPriorityClasses, 1)
-			klog.Warningf("spec of priorityClass %v diff in super&tenant master", vPriorityClass.Name)
+			klog.Warningf("spec of priorityClass %v diff in super&tenant control plane", vPriorityClass.Name)
 			if publicPriorityClass(pPriorityClass) {
 				c.UpwardController.AddToQueue(clusterName + "/" + pPriorityClass.Name)
 			}

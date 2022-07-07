@@ -44,9 +44,9 @@ func init() {
 
 type controller struct {
 	manager.BaseResourceSyncer
-	// super master sa client
+	// super control plane sa client
 	saClient v1core.CoreV1Interface
-	// super master sa lister/synced function
+	// super control plane sa lister/synced function
 	saLister listersv1.ServiceAccountLister
 	saSynced cache.InformerSynced
 }

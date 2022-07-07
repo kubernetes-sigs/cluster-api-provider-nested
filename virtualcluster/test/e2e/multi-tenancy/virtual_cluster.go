@@ -68,7 +68,7 @@ var _ = SIGDescribe("VirtualCluster", func() {
 			By("creating the virtualcluster " + vc.Name)
 			vc = vcClient.CreateSync(vc)
 
-			By("check if tenant master is healthy")
+			By("check if tenant control plane is healthy")
 			kubecfgBytes, err := conversion.GetKubeConfigOfVC(vcClient.Interface.CoreV1(), vc)
 			framework.ExpectNoError(err, "failed to get kubeconfig of vc")
 			clusterRestConfig, err := clientcmd.RESTConfigFromKubeConfig(kubecfgBytes)
