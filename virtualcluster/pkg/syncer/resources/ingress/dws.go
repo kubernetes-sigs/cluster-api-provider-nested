@@ -59,25 +59,26 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		vExists = false
 	}
 
-	if vExists && !pExists {
+	switch {
+	case vExists && !pExists:
 		err := c.reconcileIngressCreate(request.ClusterName, targetNamespace, request.UID, vIngress)
 		if err != nil {
 			klog.Errorf("failed reconcile ingress %s/%s CREATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if !vExists && pExists {
+	case !vExists && pExists:
 		err := c.reconcileIngressRemove(request.ClusterName, targetNamespace, request.UID, request.Name, pIngress)
 		if err != nil {
 			klog.Errorf("failed reconcile ingress %s/%s DELETE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if vExists && pExists {
+	case vExists && pExists:
 		err := c.reconcileIngressUpdate(request.ClusterName, targetNamespace, request.UID, pIngress, vIngress)
 		if err != nil {
 			klog.Errorf("failed reconcile ingress %s/%s UPDATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else {
+	default:
 		// object is gone.
 	}
 	return reconciler.Result{}, nil

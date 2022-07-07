@@ -240,7 +240,7 @@ func (c *schedulerCache) addNamespaceWithoutLock(namespace *Namespace) error {
 
 	sched := 0
 	for _, each := range clone.schedule {
-		sched = sched + each.num
+		sched += each.num
 	}
 	if expect != sched {
 		return fmt.Errorf("namespace %s has %d slices, but only %d have been scheduled, it cannot be added to cache", key, expect, sched)

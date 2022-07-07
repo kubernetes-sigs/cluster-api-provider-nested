@@ -71,25 +71,26 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		vExists = false
 	}
 
-	if vExists && !pExists {
+	switch {
+	case vExists && !pExists:
 		err := c.reconcileEndpointsCreate(request.ClusterName, targetNamespace, request.UID, vEndpoints)
 		if err != nil {
 			klog.Errorf("failed reconcile endpoints %s/%s CREATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if !vExists && pExists {
+	case !vExists && pExists:
 		err := c.reconcileEndpointsRemove(request.ClusterName, targetNamespace, request.UID, request.Name, pEndpoints)
 		if err != nil {
 			klog.Errorf("failed reconcile endpoints %s/%s DELETE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if vExists && pExists {
+	case vExists && pExists:
 		err := c.reconcileEndpointsUpdate(request.ClusterName, targetNamespace, request.UID, pEndpoints, vEndpoints)
 		if err != nil {
 			klog.Errorf("failed reconcile endpoints %s/%s UPDATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else {
+	default:
 		// object is gone.
 	}
 	return reconciler.Result{}, nil

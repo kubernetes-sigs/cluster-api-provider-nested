@@ -60,26 +60,26 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		}
 		vExists = false
 	}
-
-	if vExists && !pExists {
+	switch {
+	case vExists && !pExists:
 		err := c.reconcileNamespaceCreate(request.ClusterName, targetNamespace, request.UID, vNamespace)
 		if err != nil {
 			klog.Errorf("failed reconcile namespace %s CREATE of cluster %s %v", request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if !vExists && pExists {
+	case !vExists && pExists:
 		err := c.reconcileNamespaceRemove(request.ClusterName, targetNamespace, request.UID, pNamespace)
 		if err != nil {
 			klog.Errorf("failed reconcile namespace %s DELETE of cluster %s %v", request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if vExists && pExists {
+	case vExists && pExists:
 		err := c.reconcileNamespaceUpdate(request.ClusterName, targetNamespace, request.UID, pNamespace, vNamespace)
 		if err != nil {
 			klog.Errorf("failed reconcile namespace %s UPDATE of cluster %s %v", request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else {
+	default:
 		// object is gone.
 	}
 	return reconciler.Result{}, nil

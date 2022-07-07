@@ -60,25 +60,26 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		vExists = false
 	}
 
-	if vExists && !pExists {
+	switch {
+	case vExists && !pExists:
 		err := c.reconcileServiceAccountCreate(request.ClusterName, targetNamespace, request.UID, vSa)
 		if err != nil {
 			klog.Errorf("failed reconcile serviceaccount %s/%s CREATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if !vExists && pExists {
+	case !vExists && pExists:
 		err := c.reconcileServiceAccountRemove(request.ClusterName, targetNamespace, request.UID, request.Name, pSa)
 		if err != nil {
 			klog.Errorf("failed reconcile serviceaccount %s/%s DELETE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if vExists && pExists {
+	case vExists && pExists:
 		err := c.reconcileServiceAccountUpdate(request.ClusterName, targetNamespace, request.UID, pSa, vSa)
 		if err != nil {
 			klog.Errorf("failed reconcile serviceaccount %s/%s UPDATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else {
+	default:
 		// object is gone.
 	}
 	return reconciler.Result{}, nil

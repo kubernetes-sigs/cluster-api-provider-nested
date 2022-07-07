@@ -340,7 +340,7 @@ func SyncVirtualClusterState(metaClient clientset.Interface, vc *v1alpha1.Virtua
 		numSched := 0
 		var schedule []*internalcache.Placement
 		for k, v := range placements {
-			numSched = numSched + v
+			numSched += v
 			schedule = append(schedule, internalcache.NewPlacement(k, v))
 		}
 		if total != numSched {

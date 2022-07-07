@@ -72,7 +72,8 @@ func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Resul
 		recordOperationStatus(operation, retErr)
 	}()
 
-	if !reflect.DeepEqual(vPod, &v1.Pod{}) && pPod == nil {
+	switch {
+	case !reflect.DeepEqual(vPod, &v1.Pod{}) && pPod == nil:
 		operation = "pod_add"
 		err := c.reconcilePodCreate(request.ClusterName, targetNamespace, request.UID, vPod)
 		if err != nil {
@@ -90,7 +91,7 @@ func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Resul
 
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if reflect.DeepEqual(vPod, &v1.Pod{}) && pPod != nil {
+	case reflect.DeepEqual(vPod, &v1.Pod{}) && pPod != nil:
 		operation = "pod_delete"
 		err := c.reconcilePodRemove(request.ClusterName, targetNamespace, request.UID, request.Name, pPod)
 		if err != nil {
@@ -100,7 +101,7 @@ func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Resul
 		if pPod.Spec.NodeName != "" {
 			c.updateClusterVNodePodMap(request.ClusterName, pPod.Spec.NodeName, request.UID, reconciler.DeleteEvent)
 		}
-	} else if vPod != nil && pPod != nil {
+	case vPod != nil && pPod != nil:
 		operation = "pod_update"
 		err := c.reconcilePodUpdate(request.ClusterName, targetNamespace, request.UID, pPod, vPod)
 		if err != nil {
@@ -110,7 +111,7 @@ func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Resul
 		if vPod.Spec.NodeName != "" {
 			c.updateClusterVNodePodMap(request.ClusterName, vPod.Spec.NodeName, request.UID, reconciler.UpdateEvent)
 		}
-	} else {
+	default:
 		// object is gone.
 	}
 	return reconciler.Result{}, nil

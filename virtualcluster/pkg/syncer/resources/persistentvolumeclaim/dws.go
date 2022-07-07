@@ -61,26 +61,26 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		}
 		vExists = false
 	}
-
-	if vExists && !pExists {
+	switch {
+	case vExists && !pExists:
 		err := c.reconcilePVCCreate(request.ClusterName, targetNamespace, request.UID, vPVC)
 		if err != nil {
 			klog.Errorf("failed reconcile pvc %s/%s CREATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if !vExists && pExists {
+	case !vExists && pExists:
 		err := c.reconcilePVCRemove(request.ClusterName, targetNamespace, request.UID, request.Name, pPVC)
 		if err != nil {
 			klog.Errorf("failed reconcile pvc %s/%s DELETE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if vExists && pExists {
+	case vExists && pExists:
 		err := c.reconcilePVCUpdate(request.ClusterName, targetNamespace, request.UID, pPVC, vPVC)
 		if err != nil {
 			klog.Errorf("failed reconcile pvc %s/%s UPDATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else {
+	default:
 		// object is gone.
 	}
 	return reconciler.Result{}, nil

@@ -24,7 +24,7 @@ import (
 )
 
 type Pod struct {
-	owner     string //tenant cluster name
+	owner     string // tenant cluster name
 	namespace string
 	name      string
 

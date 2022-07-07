@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/cmd/syncer/app"
 )
 
-func main() {
+func mainMethod() error {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	logs.InitLogs()
@@ -35,7 +35,11 @@ func main() {
 
 	stopChan := genericapiserver.SetupSignalHandler()
 
-	if err := app.NewSyncerCommand(stopChan).Execute(); err != nil {
+	return app.NewSyncerCommand(stopChan).Execute()
+}
+
+func main() {
+	if mainMethod() != nil {
 		os.Exit(1)
 	}
 }

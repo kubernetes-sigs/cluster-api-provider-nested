@@ -126,7 +126,7 @@ func genInitialClusterArgs(replicas int32, stsName, svcName string) (argsVal str
 		peerAddr := fmt.Sprintf("%s-%d=https://%s-%d.%s:%d",
 			stsName, i, stsName, i, svcName, DefaultETCDPeerPort)
 		if i == replicas-1 {
-			argsVal = argsVal + peerAddr
+			argsVal += peerAddr
 			break
 		}
 		argsVal = argsVal + peerAddr + ","

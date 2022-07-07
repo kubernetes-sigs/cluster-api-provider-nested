@@ -83,25 +83,26 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		}
 	}
 
-	if !reflect.DeepEqual(vSecret, &v1.Secret{}) && pSecret == nil {
+	switch {
+	case !reflect.DeepEqual(vSecret, &v1.Secret{}) && pSecret == nil:
 		err := c.reconcileSecretCreate(request.ClusterName, targetNamespace, request.UID, vSecret)
 		if err != nil {
 			klog.Errorf("failed reconcile secret %s/%s CREATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if reflect.DeepEqual(vSecret, &v1.Secret{}) && pSecret != nil {
+	case reflect.DeepEqual(vSecret, &v1.Secret{}) && pSecret != nil:
 		err := c.reconcileSecretRemove(request.ClusterName, targetNamespace, request.UID, request.Name, pSecret)
 		if err != nil {
 			klog.Errorf("failed reconcile secret %s/%s DELETE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if vSecret != nil && pSecret != nil {
+	case vSecret != nil && pSecret != nil:
 		err := c.reconcileSecretUpdate(request.ClusterName, targetNamespace, request.UID, pSecret, vSecret)
 		if err != nil {
 			klog.Errorf("failed reconcile secret %s/%s UPDATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else {
+	default:
 		// object is gone.
 	}
 	return reconciler.Result{}, nil

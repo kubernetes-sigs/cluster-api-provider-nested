@@ -149,7 +149,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	numSched := 0
 	schedule := make([]*internalcache.Placement, 0, len(placements))
 	for k, v := range placements {
-		numSched = numSched + v
+		numSched += v
 		schedule = append(schedule, internalcache.NewPlacement(k, v))
 	}
 

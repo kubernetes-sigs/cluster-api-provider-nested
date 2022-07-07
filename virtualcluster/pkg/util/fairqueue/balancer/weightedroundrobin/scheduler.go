@@ -56,7 +56,7 @@ func (w *wrr) Next() string {
 	for {
 		w.i = (w.i + 1) % w.n
 		if w.i == 0 {
-			w.cw = w.cw - w.gcd
+			w.cw -= w.gcd
 			if w.cw <= 0 {
 				w.cw = w.maxW
 				if w.cw == 0 {
@@ -137,7 +137,7 @@ func (w *wrr) Remove(ref string) {
 		if w.nodes[i].Key == ref {
 			w.nodes = append(w.nodes[:i], w.nodes[i+1:]...)
 			if w.i >= i {
-				w.i = w.i - 1
+				w.i--
 			}
 			break
 		}

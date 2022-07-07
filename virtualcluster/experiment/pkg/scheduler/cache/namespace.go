@@ -75,7 +75,7 @@ func NewPlacement(cluster string, num int) *Placement {
 }
 
 type Namespace struct {
-	owner  string //tenant cluster name
+	owner  string // tenant cluster name
 	name   string
 	labels map[string]string
 
