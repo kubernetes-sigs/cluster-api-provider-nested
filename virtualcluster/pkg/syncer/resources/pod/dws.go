@@ -202,7 +202,7 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 		conversion.PodMutateDefault(vPod, pSecretMap, services, nameServer, c.Config.DNSOptions),
 		conversion.PodMutateAutoMountServiceAccountToken(c.Config.DisableServiceAccountToken),
 		// TODO: make extension configurable
-		//conversion.PodAddExtensionMeta(vPod),
+		// conversion.PodAddExtensionMeta(vPod),
 	}
 
 	err = conversion.VC(c.MultiClusterController, clusterName).Pod(pPod).Mutate(ms...)
@@ -226,7 +226,7 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 				klog.Errorf("validation failed for virtual cluster namespace %v, no pod sync", targetNamespace)
 				recordOperationDuration("validation_plugin", pluginstart)
 				return nil
-				//do not requeue return errors.NewBadRequest("validation failed for virtual cluster")
+				// do not requeue return errors.NewBadRequest("validation failed for virtual cluster")
 			}
 		}
 		recordOperationDuration("validation_plugin", pluginstart)
@@ -368,7 +368,7 @@ func (c *controller) reconcilePodUpdate(clusterName, targetNamespace, requestUID
 	if updatedPodStatus != nil {
 		updatedPod = pPod.DeepCopy()
 		updatedPod.Status = *updatedPodStatus
-		pPod, err = c.client.Pods(targetNamespace).UpdateStatus(context.TODO(), updatedPod, metav1.UpdateOptions{})
+		_, err = c.client.Pods(targetNamespace).UpdateStatus(context.TODO(), updatedPod, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}

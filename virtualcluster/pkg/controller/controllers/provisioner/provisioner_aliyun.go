@@ -34,6 +34,7 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/go-logr/logr"
+
 	tenancyv1alpha1 "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/secret"
 	aliyunutil "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/util/aliyun"
@@ -277,7 +278,7 @@ OuterLoop:
 				break OuterLoop
 			}
 		case <-deletionTimeout:
-			return fmt.Errorf("Delete ASK(%s) timeout", vc.Name)
+			return fmt.Errorf("delete ASK(%s) timeout", vc.Name)
 		}
 	}
 

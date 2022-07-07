@@ -125,7 +125,7 @@ func (c *controller) reconcileEndpointsUpdate(clusterName, targetNamespace, requ
 	}
 	updatedEndpoints := conversion.Equality(c.Config, vc).CheckEndpointsEquality(pEP, vEP)
 	if updatedEndpoints != nil {
-		pEP, err = c.endpointClient.Endpoints(targetNamespace).Update(context.TODO(), updatedEndpoints, metav1.UpdateOptions{})
+		_, err = c.endpointClient.Endpoints(targetNamespace).Update(context.TODO(), updatedEndpoints, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}

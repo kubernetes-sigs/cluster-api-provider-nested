@@ -116,7 +116,7 @@ func (c *controller) reconcilePVCUpdate(clusterName, targetNamespace, requestUID
 	}
 	updatedPVC := conversion.Equality(c.Config, vc).CheckPVCEquality(pPVC, vPVC)
 	if updatedPVC != nil {
-		pPVC, err = c.pvcClient.PersistentVolumeClaims(targetNamespace).Update(context.TODO(), updatedPVC, metav1.UpdateOptions{})
+		_, err = c.pvcClient.PersistentVolumeClaims(targetNamespace).Update(context.TODO(), updatedPVC, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}

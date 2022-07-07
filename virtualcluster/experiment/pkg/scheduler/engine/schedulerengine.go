@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/scheduler/util"
 )
 
+// Engine is an interface for scheduler handler
 type Engine interface {
 	ScheduleNamespace(*internalcache.Namespace) (*internalcache.Namespace, error)
 	EnsureNamespacePlacements(*internalcache.Namespace) error
@@ -43,10 +44,12 @@ type schedulerEngine struct {
 	cache internalcache.Cache
 }
 
+// NewSchedulerEngine creates new instance of Engine with cache
 func NewSchedulerEngine(schedulerCache internalcache.Cache) Engine {
 	return &schedulerEngine{cache: schedulerCache}
 }
 
+// GetSlicesToSchedule retrieve all slices and return unscheduled
 func GetSlicesToSchedule(namespace *internalcache.Namespace, oldPlacements map[string]int) algorithm.SliceInfoArray {
 	key := namespace.GetKey()
 	slicesToSchedule := make(algorithm.SliceInfoArray, 0)
@@ -83,6 +86,7 @@ func GetSlicesToSchedule(namespace *internalcache.Namespace, oldPlacements map[s
 	return slicesToSchedule
 }
 
+// GetNewPlacement finds the placement for slices
 func GetNewPlacement(slices algorithm.SliceInfoArray) (map[string]int, error) {
 	newPlacement := make(map[string]int)
 	for _, each := range slices {

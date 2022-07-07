@@ -54,7 +54,7 @@ func GetLBIP(name, namespace string, cli client.Client) (string, error) {
 		period := time.After(GetLBIPPeriodSec * time.Second)
 		select {
 		case <-timeout:
-			return "", fmt.Errorf("Get LoadBalancer IP timeout for svc %s:%s",
+			return "", fmt.Errorf("get LoadBalancer IP timeout for svc %s:%s",
 				namespace, name)
 		case <-period:
 			// if external IP is not assigned to LB yet, we will

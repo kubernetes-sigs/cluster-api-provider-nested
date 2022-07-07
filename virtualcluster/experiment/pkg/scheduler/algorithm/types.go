@@ -17,13 +17,13 @@ limitations under the License.
 package algorithm
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
-// SliceInfo is the input to the algorithm
+// SliceInfo is the input to the algorithm.
 type SliceInfo struct {
 	Namespace string // namespace key
-	Request   v1.ResourceList
+	Request   corev1.ResourceList
 	Mandatory string // if not empty, it is the cluster that the slice should go if all checks are passed
 	Hint      string // if not empty, it is the preferred cluster
 
@@ -31,9 +31,11 @@ type SliceInfo struct {
 	Err    error
 }
 
+// SliceInfoArray is the list of SliceInfo.
 type SliceInfoArray []*SliceInfo
 
-func (s *SliceInfoArray) Repeat(n int, namespace string, request v1.ResourceList, mandatory, hint string) {
+// Repeat adds the request to SliceInfoArray one more time.
+func (s *SliceInfoArray) Repeat(n int, namespace string, request corev1.ResourceList, mandatory, hint string) {
 	for i := 0; i < n; i++ {
 		*s = append(*s, &SliceInfo{
 			Namespace: namespace,

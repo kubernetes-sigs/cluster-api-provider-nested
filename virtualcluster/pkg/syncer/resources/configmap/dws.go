@@ -113,7 +113,7 @@ func (c *controller) reconcileConfigMapUpdate(clusterName, targetNamespace, requ
 	}
 	updatedConfigMap := conversion.Equality(c.Config, vc).CheckConfigMapEquality(pConfigMap, vConfigMap)
 	if updatedConfigMap != nil {
-		pConfigMap, err = c.configMapClient.ConfigMaps(targetNamespace).Update(context.TODO(), updatedConfigMap, metav1.UpdateOptions{})
+		_, err = c.configMapClient.ConfigMaps(targetNamespace).Update(context.TODO(), updatedConfigMap, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}

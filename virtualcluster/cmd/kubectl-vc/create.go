@@ -26,7 +26,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -136,9 +135,9 @@ func createVirtualCluster(cli client.Client, vccli vcclient.Interface, vc *tenan
 
 	// fail early, if service type is not supported
 	svcType := cv.Spec.APIServer.Service.Spec.Type
-	if svcType != v1.ServiceTypeNodePort &&
-		svcType != v1.ServiceTypeLoadBalancer &&
-		svcType != v1.ServiceTypeClusterIP {
+	if svcType != corev1.ServiceTypeNodePort &&
+		svcType != corev1.ServiceTypeLoadBalancer &&
+		svcType != corev1.ServiceTypeClusterIP {
 		return nil, fmt.Errorf("unsupported apiserver service type: %s", svcType)
 	}
 
@@ -173,7 +172,7 @@ func createVirtualCluster(cli client.Client, vccli vcclient.Interface, vc *tenan
 }
 
 // getAPISvcPort gets the apiserver service port if not specifed
-func getAPISvcPort(svc *v1.Service) (int, error) {
+func getAPISvcPort(svc *corev1.Service) (int, error) {
 	if len(svc.Spec.Ports) == 0 {
 		return 0, errors.New("no port is specified for apiserver service ")
 	}
@@ -256,10 +255,10 @@ func genKubeConfig(cli client.Client, vc *tenancyv1alpha1.VirtualCluster, cv *te
 
 // replaceServerAddr replace api server IP with the minikube gateway IP, and
 // disable TLS varification by removing the server CA
-func replaceServerAddr(kubecfg clientcmd.ClientConfig, cli client.Client, clusterNamespace string, svcType v1.ServiceType, apiSvcPort int) (clientcmd.ClientConfig, error) {
+func replaceServerAddr(kubecfg clientcmd.ClientConfig, cli client.Client, clusterNamespace string, svcType corev1.ServiceType, apiSvcPort int) (clientcmd.ClientConfig, error) {
 	var newStr string
 	switch svcType {
-	case v1.ServiceTypeNodePort:
+	case corev1.ServiceTypeNodePort:
 		nodeIP, err := netutil.GetNodeIP(cli)
 		if err != nil {
 			return nil, err
@@ -269,7 +268,7 @@ func replaceServerAddr(kubecfg clientcmd.ClientConfig, cli client.Client, cluste
 			return nil, err
 		}
 		newStr = fmt.Sprintf("https://%s:%d", nodeIP, svcNodePort)
-	case v1.ServiceTypeLoadBalancer:
+	case corev1.ServiceTypeLoadBalancer:
 		externalIP, err := netutil.GetLBIP(APIServerSvcName, clusterNamespace, cli)
 		if err != nil {
 			return nil, err

@@ -188,7 +188,7 @@ func (c *controller) reconcileNormalSecretUpdate(clusterName, targetNamespace, r
 	}
 	updatedSecret := conversion.Equality(c.Config, vc).CheckSecretEquality(pSecret, vSecret)
 	if updatedSecret != nil {
-		pSecret, err = c.secretClient.Secrets(targetNamespace).Update(context.TODO(), updatedSecret, metav1.UpdateOptions{})
+		_, err = c.secretClient.Secrets(targetNamespace).Update(context.TODO(), updatedSecret, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}

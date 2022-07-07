@@ -11,7 +11,6 @@ linters:
   - goconst
   - gocritic
   - gocyclo
-  - godot
   - gofmt
   - goimports
   - goprintffuncname
@@ -74,6 +73,8 @@ issues:
   - Subprocess launch(ed with variable|ing should be audited)
   - (Expect directory permissions to be 0750 or less|Expect file permissions to be 0600 or less)
   - (G104|G307)
+  - "ST1000: at least one file in a package should have a package comment"
+  - "SA9003: empty branch"
   exclude-rules:
   # With Go 1.16, the new embed directive can be used with an un-named import,
   # revive (previously, golint) only allows these to be imported in a main.go, which wouldn't work for us.

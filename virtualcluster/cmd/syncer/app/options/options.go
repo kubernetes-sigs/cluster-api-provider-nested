@@ -26,13 +26,11 @@ import (
 
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
-	clientgokubescheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -79,9 +77,9 @@ func NewResourceSyncerOptions() (*ResourceSyncerOptions, error) {
 			LeaderElection: syncerconfig.SyncerLeaderElectionConfiguration{
 				LeaderElectionConfiguration: componentbaseconfig.LeaderElectionConfiguration{
 					LeaderElect:   true,
-					LeaseDuration: v1.Duration{Duration: 15 * time.Second},
-					RenewDeadline: v1.Duration{Duration: 10 * time.Second},
-					RetryPeriod:   v1.Duration{Duration: 2 * time.Second},
+					LeaseDuration: metav1.Duration{Duration: 15 * time.Second},
+					RenewDeadline: metav1.Duration{Duration: 10 * time.Second},
+					RetryPeriod:   metav1.Duration{Duration: 2 * time.Second},
 					ResourceLock:  resourcelock.ConfigMapsResourceLock,
 				},
 				LockObjectName: "syncer-leaderelection-lock",
@@ -222,9 +220,9 @@ func (o *ResourceSyncerOptions) Config() (*syncerappconfig.Config, error) {
 
 	// Prepare event clients.
 	eventBroadcaster := record.NewBroadcaster()
-	recorder := eventBroadcaster.NewRecorder(clientgokubescheme.Scheme, corev1.EventSource{Component: constants.ResourceSyncerUserAgent})
+	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: constants.ResourceSyncerUserAgent})
 	leaderElectionBroadcaster := record.NewBroadcaster()
-	leaderElectionRecorder := leaderElectionBroadcaster.NewRecorder(clientgokubescheme.Scheme, corev1.EventSource{Component: constants.ResourceSyncerUserAgent})
+	leaderElectionRecorder := leaderElectionBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: constants.ResourceSyncerUserAgent})
 
 	// Set up leader election if enabled.
 	var leaderElectionConfig *leaderelection.LeaderElectionConfig
@@ -333,7 +331,7 @@ func getClientConfig(config componentbaseconfig.ClientConnectionConfiguration, s
 	)
 	if len(config.Kubeconfig) == 0 && len(serverAddrOverride) == 0 && inCluster {
 		klog.Info("Neither kubeconfig file nor control plane URL was specified. Falling back to in-cluster config.")
-		restConfig, err = rest.InClusterConfig()
+		restConfig, err = restclient.InClusterConfig()
 	} else {
 		// This creates a client, first loading any specified kubeconfig
 		// file, and then overriding the serverAddr flag, if non-empty.

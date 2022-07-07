@@ -21,12 +21,13 @@ import (
 	"fmt"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/apis/cluster/v1alpha4"
 	superListers "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/client/listers/cluster/v1alpha4"
@@ -37,7 +38,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/cluster"
 	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type virtualclusterGetter struct {
@@ -86,7 +86,7 @@ func (s *Scheduler) syncVirtualCluster(key string) error {
 
 	vc, err := s.virtualClusterLister.VirtualClusters(namespace).Get(name)
 	if err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return err
 		}
 
@@ -187,12 +187,12 @@ func (s *Scheduler) syncVirtualClusterCache(cluster *cluster.Cluster, vc *v1alph
 	}()
 
 	if !cluster.WaitForCacheSync() {
-		s.recorder.Eventf(&v1.ObjectReference{
+		s.recorder.Eventf(&corev1.ObjectReference{
 			Kind:      "VirtualCluster",
 			Namespace: vc.Namespace,
 			Name:      vc.Name,
 			UID:       vc.UID,
-		}, v1.EventTypeWarning, "ClusterUnHealth", "VirtualCluster %v unhealth: failed to sync cache", cluster.GetClusterName())
+		}, corev1.EventTypeWarning, "ClusterUnHealth", "VirtualCluster %v unhealth: failed to sync cache", cluster.GetClusterName())
 
 		klog.Warningf("failed to sync cache for virtualcluster %s, retry", cluster.GetClusterName())
 		key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(vc)
@@ -252,7 +252,7 @@ func (s *Scheduler) syncSuperCluster(key string) error {
 
 	super, err := s.superClusterLister.Clusters(namespace).Get(name)
 	if err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return err
 		}
 
@@ -358,12 +358,12 @@ func (s *Scheduler) syncSuperClusterCache(cluster *cluster.Cluster, super *v1alp
 	}()
 
 	if !cluster.WaitForCacheSync() {
-		s.recorder.Eventf(&v1.ObjectReference{
+		s.recorder.Eventf(&corev1.ObjectReference{
 			Kind:      "Cluster",
 			Namespace: super.Namespace,
 			Name:      super.Name,
 			UID:       super.UID,
-		}, v1.EventTypeWarning, "ClusterUnHealth", "SuperCluster %v unhealth: failed to sync cache", cluster.GetClusterName())
+		}, corev1.EventTypeWarning, "ClusterUnHealth", "SuperCluster %v unhealth: failed to sync cache", cluster.GetClusterName())
 
 		klog.Warningf("failed to sync cache for supercluster %s, retry", cluster.GetClusterName())
 		key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(super)

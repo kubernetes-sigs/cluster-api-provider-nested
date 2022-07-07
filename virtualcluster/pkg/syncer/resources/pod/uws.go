@@ -93,7 +93,7 @@ func (c *controller) BackPopulate(key string) error {
 			c.Lock()
 			defer c.Unlock()
 			if !c.removeQuiescingNodeFromClusterVNodeGCMap(clusterName, pPod.Spec.NodeName) {
-				return fmt.Errorf("The bind target vNode %s is being GCed in cluster %s, retry", pPod.Spec.NodeName, clusterName)
+				return fmt.Errorf("the bind target vNode %s is being GCed in cluster %s, retry", pPod.Spec.NodeName, clusterName)
 			}
 			return nil
 		}(); err != nil {

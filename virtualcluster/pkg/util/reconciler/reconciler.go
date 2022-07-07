@@ -42,6 +42,7 @@ func (r Request) GroupName() string {
 	return r.ClusterName
 }
 
+// Result contains the result of a Reconciler invocation.
 type Result reconcile.Result
 
 // DWReconciler is the interface used by a Controller to do downward reconcile (tenant->super).

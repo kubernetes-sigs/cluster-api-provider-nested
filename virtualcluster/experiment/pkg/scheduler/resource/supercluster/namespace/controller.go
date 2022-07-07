@@ -19,10 +19,10 @@ package namespace
 import (
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/scheduler"
 	schedulerconfig "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/scheduler/apis/config"
 	internalcache "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/scheduler/cache"
@@ -55,6 +55,7 @@ type controller struct {
 	MultiClusterController *mc.MultiClusterController
 }
 
+// NewNamespaceController creates new supercluster namespace controller watcher
 func NewNamespaceController(schedulerCache internalcache.Cache, config *schedulerconfig.SchedulerConfiguration) (manager.ResourceWatcher, error) {
 	c := &controller{
 		SchedulerCache: schedulerCache,
@@ -62,7 +63,7 @@ func NewNamespaceController(schedulerCache internalcache.Cache, config *schedule
 	}
 
 	var err error
-	c.MultiClusterController, err = mc.NewMCController(&v1.Namespace{}, &v1.NamespaceList{}, c)
+	c.MultiClusterController, err = mc.NewMCController(&corev1.Namespace{}, &corev1.NamespaceList{}, c)
 	if err != nil {
 		return nil, err
 	}
@@ -86,9 +87,9 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	key := fmt.Sprintf("%s/%s", request.ClusterName, request.Name)
 	exists := true
 
-	ns := &v1.Namespace{}
+	ns := &corev1.Namespace{}
 	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, ns); err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return reconciler.Result{Requeue: true}, err
 		}
 		exists = false

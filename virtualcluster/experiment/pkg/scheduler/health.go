@@ -21,7 +21,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 
@@ -38,8 +38,8 @@ var (
 )
 
 func (s *Scheduler) superClusterHealthPatrol() {
-	var clusters []mc.ClusterInterface
 	s.superClusterLock.Lock()
+	clusters := make([]mc.ClusterInterface, 0, len(s.superClusterSet))
 	for _, c := range s.superClusterSet {
 		clusters = append(clusters, c)
 	}
@@ -72,19 +72,19 @@ func (s *Scheduler) checkSuperClusterHealth(cluster mc.ClusterInterface) {
 		return
 	}
 
-	var capacity v1.ResourceList
+	var capacity corev1.ResourceList
 	capacity, err = util.GetSuperClusterCapacity(cs)
 	if err != nil {
 		klog.Warningf("[checkSuperClusterHealth] fails to get cluster %v capacity: %v", cluster.GetClusterName(), err)
 		atomic.AddUint64(&numUnHealthSuperCluster, 1)
 
 		ns, name, uid := cluster.GetOwnerInfo()
-		s.recorder.Eventf(&v1.ObjectReference{
+		s.recorder.Eventf(&corev1.ObjectReference{
 			Kind:      "Cluster",
 			Namespace: ns,
 			Name:      name,
 			UID:       types.UID(uid),
-		}, v1.EventTypeWarning, "ClusterUnHealth", "SuperCluster %v unhealth: %v", cluster.GetClusterName(), err.Error())
+		}, corev1.EventTypeWarning, "ClusterUnHealth", "SuperCluster %v unhealth: %v", cluster.GetClusterName(), err.Error())
 
 		// mark super cluster dirty and add to super cluster queue to resync the cache
 		key := fmt.Sprintf("%s/%s", ns, name)
@@ -98,8 +98,8 @@ func (s *Scheduler) checkSuperClusterHealth(cluster mc.ClusterInterface) {
 }
 
 func (s *Scheduler) virtualClusterHealthPatrol() {
-	var clusters []mc.ClusterInterface
 	s.virtualClusterLock.Lock()
+	clusters := make([]mc.ClusterInterface, 0, len(s.virtualClusterSet))
 	for _, c := range s.virtualClusterSet {
 		clusters = append(clusters, c)
 	}
@@ -137,12 +137,12 @@ func (s *Scheduler) checkVirtualClusterHealth(cluster mc.ClusterInterface) {
 		atomic.AddUint64(&numUnHealthVirtualCluster, 1)
 
 		ns, name, uid := cluster.GetOwnerInfo()
-		s.recorder.Eventf(&v1.ObjectReference{
+		s.recorder.Eventf(&corev1.ObjectReference{
 			Kind:      "VirtualCluster",
 			Namespace: ns,
 			Name:      name,
 			UID:       types.UID(uid),
-		}, v1.EventTypeWarning, "ClusterUnHealth", "VirtualCluster %v unhealth: %v", cluster.GetClusterName(), err.Error())
+		}, corev1.EventTypeWarning, "ClusterUnHealth", "VirtualCluster %v unhealth: %v", cluster.GetClusterName(), err.Error())
 
 		// mark virtual cluster dirty and add to virtual cluster queue to resync the cache
 		key := fmt.Sprintf("%s/%s", ns, name)
