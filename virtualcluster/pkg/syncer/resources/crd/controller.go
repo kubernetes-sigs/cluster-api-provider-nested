@@ -16,7 +16,6 @@ package crd
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	fakeapiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
@@ -85,8 +84,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	)
 	return nil
 }
-
-var mu sync.Mutex
 
 type controller struct {
 	manager.BaseResourceSyncer

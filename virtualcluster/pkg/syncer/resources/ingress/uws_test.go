@@ -21,8 +21,6 @@ import (
 	"strings"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
-	v1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,15 +30,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
 	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
-
-func applyLoadBalancerToIngress(ing *v1beta1.Ingress, ip string) *v1beta1.Ingress {
-	ing.Status.LoadBalancer.Ingress = []v1.LoadBalancerIngress{
-		{
-			IP: ip,
-		},
-	}
-	return ing
-}
 
 func TestUWIngress(t *testing.T) {
 	testTenant := &v1alpha1.VirtualCluster{

@@ -4,35 +4,35 @@ linters:
   - asciicheck
   - bodyclose
   - deadcode
-  - depguard
-  - dogsled
-  - exportloopref
-  - errcheck
-  - goconst
-  - gocritic
-  - gocyclo
-  - gofmt
-  - goimports
-  - goprintffuncname
-  - gosec
-  - gosimple
-  - govet
-  - importas
-  - ineffassign
-  - misspell
-  - nakedret
-  - nolintlint
-  - prealloc
-  - revive
-  - rowserrcheck
-  - staticcheck
-  - structcheck
-  - stylecheck
-  - typecheck
-  - unconvert
-  - unparam
-  - varcheck
-  - whitespace
+#  - depguard
+#  - dogsled
+#  - exportloopref
+#  - errcheck
+#  - goconst
+#  - gocritic
+#  - gocyclo
+#  - gofmt
+#  - goimports
+#  - goprintffuncname
+#  - gosec
+#  - gosimple
+#  - govet
+#  - importas
+#  - ineffassign
+#  - misspell
+#  - nakedret
+#  - nolintlint
+#  - prealloc
+#  - revive
+#  - rowserrcheck
+#  - staticcheck
+#  - structcheck
+#  - stylecheck
+#  - typecheck
+#  - unconvert
+#  - unparam
+#  - varcheck
+#  - whitespace
 
 linters-settings:
   staticcheck:
