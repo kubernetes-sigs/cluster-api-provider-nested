@@ -37,7 +37,7 @@ func main() {
 		Use:     "kubectl-vc",
 		Short:   "VirtualCluster Command tool",
 		Version: version.BriefVersion(),
-		Run:     runHelp,
+		RunE:    runHelp,
 	}
 
 	rootCmd.AddCommand(NewCmdCreate(f))
@@ -46,6 +46,6 @@ func main() {
 	CheckErr(rootCmd.Execute())
 }
 
-func runHelp(cmd *cobra.Command, args []string) {
-	cmd.Help()
+func runHelp(cmd *cobra.Command, args []string) error {
+	return cmd.Help()
 }

@@ -46,8 +46,12 @@ func TestSnapshotForNamespaceSched(t *testing.T) {
 	cluster1 := NewCluster(defaultCluster1, nil, defaultCapacity)
 	cluster2 := NewCluster(defaultCluster2, nil, defaultCapacity)
 
-	cache.AddCluster(cluster1)
-	cache.AddCluster(cluster2)
+	if err := cache.AddCluster(cluster1); err != nil {
+		t.Errorf("failed to add cluster %s", cluster1)
+	}
+	if err := cache.AddCluster(cluster2); err != nil {
+		t.Errorf("failed to add cluster %s", cluster2)
+	}
 
 	testcases := map[string]struct {
 		namespace    *Namespace
@@ -156,7 +160,9 @@ func TestSnapshotForNamespaceSched(t *testing.T) {
 
 	for k, tc := range testcases {
 		t.Run(k, func(t *testing.T) {
-			cache.AddNamespace(tc.namespace)
+			if err := cache.AddNamespace(tc.namespace); err != nil {
+				t.Errorf("failed to add namespace")
+			}
 			cache.clusters[defaultCluster1].provision = tc.provision[defaultCluster1]
 			cache.clusters[defaultCluster2].provision = tc.provision[defaultCluster2]
 			var s *NamespaceSchedSnapshot
@@ -178,7 +184,9 @@ func TestSnapshotForNamespaceSched(t *testing.T) {
 					t.Errorf("shadow cluster should not be in the snapshot")
 				}
 			}
-			cache.RemoveNamespace(tc.namespace)
+			if err := cache.RemoveNamespace(tc.namespace); err != nil {
+				t.Errorf("failed to remove namespace")
+			}
 			cache.clusters[defaultCluster1].provision = nil
 			cache.clusters[defaultCluster2].provision = nil
 		})

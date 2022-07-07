@@ -28,9 +28,10 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	tenancyv1alpha1 "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/secret"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func getClusterObjectKey(instance *tenancyv1alpha1.VirtualCluster, name string) client.ObjectKey {
@@ -69,8 +70,8 @@ var _ = Describe("VirtualCluster Controller", func() {
 
 			By("Adding Finalizer")
 			Eventually(func() bool {
-				cli.Get(ctx, objectKey, instance)
-				return len(instance.GetFinalizers()) == 1
+				err := cli.Get(ctx, objectKey, instance)
+				return err == nil && len(instance.GetFinalizers()) == 1
 			}, timeout, interval).Should(BeTrue())
 
 			nsObjectKey := client.ObjectKey{Name: instance.Status.ClusterNamespace}

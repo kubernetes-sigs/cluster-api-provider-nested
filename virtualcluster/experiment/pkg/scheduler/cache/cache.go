@@ -91,7 +91,7 @@ func (c *schedulerCache) RemoveTenant(n string) error {
 	var err error
 	i := -1
 	for _, each := range nsToDelete {
-		err := c.removeNamespaceWithoutLock(each)
+		err = c.removeNamespaceWithoutLock(each)
 		if err != nil {
 			break
 		}
@@ -99,7 +99,7 @@ func (c *schedulerCache) RemoveTenant(n string) error {
 	}
 	if err != nil {
 		for ; i > -1; i-- {
-			c.addNamespaceWithoutLock(nsToDelete[i])
+			_ = c.addNamespaceWithoutLock(nsToDelete[i])
 		}
 	} else {
 		delete(c.tenants, n)
@@ -258,7 +258,7 @@ func (c *schedulerCache) addNamespaceWithoutLock(namespace *Namespace) error {
 	if err != nil {
 		for ; i > -1; i-- {
 			// We don't expect any error here.
-			c.removeNamespaceFromCluster(clone.schedule[i].cluster, key)
+			_ = c.removeNamespaceFromCluster(clone.schedule[i].cluster, key)
 		}
 	} else {
 		c.namespaces[key] = clone
@@ -298,7 +298,7 @@ func (c *schedulerCache) removeNamespaceWithoutLock(namespace *Namespace) error 
 	// Rollback if any error happens.
 	if err != nil {
 		for ; i > -1; i-- {
-			c.addNamespaceToCluster(namespace.schedule[i].cluster, key, namespace.schedule[i].num, namespace.quotaSlice)
+			_ = c.addNamespaceToCluster(namespace.schedule[i].cluster, key, namespace.schedule[i].num, namespace.quotaSlice)
 		}
 	} else {
 		delete(c.namespaces, key)
@@ -319,7 +319,7 @@ func (c *schedulerCache) updateNamespaceWithoutLock(oldNamespace, newNamespace *
 
 	err = c.addNamespaceWithoutLock(newNamespace)
 	if err != nil {
-		c.addNamespaceWithoutLock(oldNamespace)
+		_ = c.addNamespaceWithoutLock(oldNamespace)
 		return err
 	}
 	return nil

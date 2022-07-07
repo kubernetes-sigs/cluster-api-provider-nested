@@ -176,7 +176,9 @@ func SyncSuperClusterState(metaClient clientset.Interface, super *v1alpha4.Clust
 		if err != nil {
 			return fmt.Errorf("fail to sync %s/%s: %v", super.Namespace, super.Name, err)
 		}
-		clusterInstance.AddProvision(key, slices)
+		if err := clusterInstance.AddProvision(key, slices); err != nil {
+			return fmt.Errorf("fail to provision %s/%s: %v", super.Namespace, super.Name, err)
+		}
 	}
 
 	klog.Infof("added cluster %s in cache", id)

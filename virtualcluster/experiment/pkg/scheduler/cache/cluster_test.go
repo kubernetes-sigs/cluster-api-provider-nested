@@ -300,9 +300,13 @@ func TestDeepCopy(t *testing.T) {
 	cluster := NewCluster(defaultCluster, map[string]string{"k": "v"}, defaultCapacity)
 	pod := NewPod("tenant", defaultNamespace, "pod-1", defaultCluster, defaultRequest)
 
-	cluster.AddPod(pod)
+	if err := cluster.AddPod(pod); err != nil {
+		t.Errorf("failed to add pod")
+	}
 	slices := []*Slice{NewSlice(defaultNamespace, defaultQuotaSlice, defaultCluster)}
-	cluster.AddNamespace(defaultNamespace, slices)
+	if err := cluster.AddNamespace(defaultNamespace, slices); err != nil {
+		t.Errorf("failed to add namespace")
+	}
 	clone := cluster.DeepCopy()
 
 	if clone.name != cluster.name ||

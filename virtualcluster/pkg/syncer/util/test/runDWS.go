@@ -132,12 +132,14 @@ func RunDownwardSync(
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	go resourceSyncer.StartDWS(stopCh)
+	go func() {
+		_ = resourceSyncer.StartDWS(stopCh)
+	}()
 
 	// add object to super informer.
 	for _, each := range existingObjectInSuper {
 		informer := superInformer.InformerFor(each, nil)
-		informer.GetStore().Add(each)
+		_ = informer.GetStore().Add(each)
 	}
 
 	// start testing

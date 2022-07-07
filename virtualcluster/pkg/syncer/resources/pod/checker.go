@@ -114,7 +114,7 @@ func (c *controller) deleteClusterVNode(cluster, nodeName string) {
 	opts := metav1.NewDeleteOptions(0)
 	opts.PropagationPolicy = &constants.DefaultDeletionPolicy
 
-	tenantClient.CoreV1().Nodes().Delete(context.TODO(), nodeName, *opts)
+	_ = tenantClient.CoreV1().Nodes().Delete(context.TODO(), nodeName, *opts)
 	// We need to double check here.
 	if _, err := tenantClient.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{}); err != nil {
 		if !errors.IsNotFound(err) {

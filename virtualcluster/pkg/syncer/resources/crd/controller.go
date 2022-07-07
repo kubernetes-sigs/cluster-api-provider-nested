@@ -56,7 +56,7 @@ var (
 
 func init() {
 	localSchemeBuilder.Register(addKnownTypes)
-	localSchemeBuilder.AddToScheme(scheme.Scheme)
+	_ = localSchemeBuilder.AddToScheme(scheme.Scheme)
 
 	plugin.SyncerResourceRegister.Register(&plugin.Registration{
 		ID: "crd",

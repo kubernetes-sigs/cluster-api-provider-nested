@@ -32,7 +32,7 @@ func ScheduleNamespaceSlices(slices SliceInfoArray, snapshot *internalcache.Name
 			slices[i].Err = err
 		} else {
 			slices[i].Result = ret
-			snapshot.AddSlices([]*internalcache.Slice{internalcache.NewSlice(each.Namespace, each.Request, ret)})
+			_ = snapshot.AddSlices([]*internalcache.Slice{internalcache.NewSlice(each.Namespace, each.Request, ret)})
 		}
 	}
 	return slices

@@ -94,7 +94,7 @@ func (s *Scheduler) checkSuperClusterHealth(cluster mc.ClusterInterface) {
 	}
 	atomic.AddUint64(&numHealthSuperCluster, 1)
 	// update scheduler cache
-	s.schedulerCache.UpdateClusterCapacity(cluster.GetClusterName(), capacity)
+	_ = s.schedulerCache.UpdateClusterCapacity(cluster.GetClusterName(), capacity)
 }
 
 func (s *Scheduler) virtualClusterHealthPatrol() {

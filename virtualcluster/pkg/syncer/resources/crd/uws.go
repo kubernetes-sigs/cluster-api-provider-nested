@@ -36,7 +36,9 @@ import (
 
 func (c *controller) StartUWS(stopCh <-chan struct{}) error {
 	if c.crdcache != nil {
-		go c.crdcache.Start(context.Background())
+		go func() {
+			_ = c.crdcache.Start(context.Background())
+		}()
 	} else {
 		klog.Errorf("crd cache is nil")
 	}

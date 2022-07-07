@@ -90,8 +90,7 @@ func (s *Scheduler) syncVirtualCluster(key string) error {
 			return err
 		}
 
-		s.removeVirtualCluster(key)
-		return nil
+		return s.removeVirtualCluster(key)
 	}
 
 	if _, ok := DirtyVirtualClusters.Load(key); ok {
@@ -196,7 +195,7 @@ func (s *Scheduler) syncVirtualClusterCache(cluster *cluster.Cluster, vc *v1alph
 
 		klog.Warningf("failed to sync cache for virtualcluster %s, retry", cluster.GetClusterName())
 		key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(vc)
-		s.removeVirtualCluster(key)
+		_ = s.removeVirtualCluster(key)
 		s.virtualClusterQueue.AddAfter(key, 5*time.Second)
 		return
 	}
@@ -297,7 +296,7 @@ func (s *Scheduler) removeSuperCluster(key string) {
 	for _, clusterChangeListener := range s.superClusterWatcher.GetListeners() {
 		clusterChangeListener.RemoveCluster(super)
 	}
-	s.schedulerCache.RemoveCluster(super.GetClusterName())
+	_ = s.schedulerCache.RemoveCluster(super.GetClusterName())
 	delete(s.superClusterSet, key)
 }
 
