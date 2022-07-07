@@ -26,7 +26,9 @@ import (
 	"net"
 
 	"k8s.io/client-go/util/cert"
+
 	tenancyv1alpha1 "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
 	pkiutil "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/pki"
 )
@@ -68,6 +70,10 @@ func NewAPIServerCrtAndKey(ca *CrtKeyPair, vc *tenancyv1alpha1.VirtualCluster, a
 			// add virtual cluster name (i.e. namespace) for vn-agent
 			vc.Name,
 		},
+	}
+
+	if externalApiserverDomain, ok := vc.Labels[constants.LabelExternalApiserverDomain]; ok {
+		altNames.DNSNames = append(altNames.DNSNames, externalApiserverDomain)
 	}
 
 	for _, ip := range apiserverIPs {

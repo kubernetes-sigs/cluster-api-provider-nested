@@ -50,6 +50,9 @@ const (
 	// LabelVCRootNS means the namespace is the rootns created by vc-manager.
 	LabelVCRootNS = "tenancy.x-k8s.io/vcrootns"
 
+	// LabelExternalApiserverDomain is the domain name for apiserver url from outside the cluster
+	LabelExternalApiserverDomain = "tenancy.x-k8s.io/external-apiserver-domain"
+
 	// LabelSecretUID is the service account token secret UID in tenant namespace.
 	LabelSecretUID = "tenancy.x-k8s.io/secret.UID"
 
