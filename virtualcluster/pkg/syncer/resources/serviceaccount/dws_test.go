@@ -20,12 +20,13 @@ import (
 	"strings"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	core "k8s.io/client-go/testing"
+
 	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
@@ -33,8 +34,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
 )
 
-func tenantServiceAccount(name, namespace, uid string) *v1.ServiceAccount {
-	return &v1.ServiceAccount{
+func tenantServiceAccount(name, namespace, uid string) *corev1.ServiceAccount {
+	return &corev1.ServiceAccount{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ServiceAccounts",
 			APIVersion: "v1",
@@ -47,8 +48,8 @@ func tenantServiceAccount(name, namespace, uid string) *v1.ServiceAccount {
 	}
 }
 
-func superServiceAccount(name, namespace, uid, clusterKey string) *v1.ServiceAccount {
-	return &v1.ServiceAccount{
+func superServiceAccount(name, namespace, uid, clusterKey string) *corev1.ServiceAccount {
+	return &corev1.ServiceAccount{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ServiceAccounts",
 			APIVersion: "v1",
@@ -152,7 +153,7 @@ func TestDWServiceAccountCreation(t *testing.T) {
 				if !action.Matches("create", "serviceaccounts") {
 					t.Errorf("%s: Unexpected action %s", k, action)
 				}
-				created := action.(core.CreateAction).GetObject().(*v1.ServiceAccount)
+				created := action.(core.CreateAction).GetObject().(*corev1.ServiceAccount)
 				fullName := created.Namespace + "/" + created.Name
 				if fullName != expectedName {
 					t.Errorf("%s: Expected %s to be created, got %s", k, expectedName, fullName)
@@ -181,7 +182,7 @@ func TestDWServiceAccountDeletion(t *testing.T) {
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
 		ExistingObjectInTenant []runtime.Object
-		EnqueueObject          *v1.ServiceAccount
+		EnqueueObject          *corev1.ServiceAccount
 		ExpectedDeletedPObject []string
 		ExpectedNoOperation    bool
 		ExpectedError          string

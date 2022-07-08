@@ -29,19 +29,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+
 	tenancyv1alpha1 "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/controllers/provisioner"
 	kubeutil "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/util/kube"
 	strutil "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/util/strings"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 var (
 	_ reconcile.Reconciler = &ReconcileCAPIVirtualCluster{}
-
-	ownerKey = ".metadata.controller"
-	apiGVStr = tenancyv1alpha1.SchemeGroupVersion.String()
 )
 
 // ReconcileCAPIVirtualCluster reconciles a VirtualCluster object

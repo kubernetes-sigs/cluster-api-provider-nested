@@ -16,16 +16,16 @@ package service
 import (
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/client-go/testing"
-	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
+	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
 
 func TestServicePatrol(t *testing.T) {
@@ -44,24 +44,24 @@ func TestServicePatrol(t *testing.T) {
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
 	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
-	spec1 := &v1.ServiceSpec{
-		Type:      v1.ServiceTypeClusterIP,
+	spec1 := &corev1.ServiceSpec{
+		Type:      corev1.ServiceTypeClusterIP,
 		ClusterIP: "1.1.1.1",
 		Selector: map[string]string{
 			"a": "b",
 		},
 	}
 
-	spec2 := &v1.ServiceSpec{
-		Type:      v1.ServiceTypeClusterIP,
+	spec2 := &corev1.ServiceSpec{
+		Type:      corev1.ServiceTypeClusterIP,
 		ClusterIP: "3.3.3.3",
 		Selector: map[string]string{
 			"b": "c",
 		},
 	}
 
-	spec3 := &v1.ServiceSpec{
-		Type:      v1.ServiceTypeClusterIP,
+	spec3 := &corev1.ServiceSpec{
+		Type:      corev1.ServiceTypeClusterIP,
 		ClusterIP: "1.1.1.1",
 		Selector: map[string]string{
 			"b": "c",
@@ -196,7 +196,7 @@ func TestServicePatrol(t *testing.T) {
 						t.Errorf("%s: Unexpected action %s", k, action)
 						continue
 					}
-					created := action.(core.CreateAction).GetObject().(*v1.Service)
+					created := action.(core.CreateAction).GetObject().(*corev1.Service)
 					fullName := created.Namespace + "/" + created.Name
 					if fullName != expectedName {
 						t.Errorf("%s: Expect to create pService %s, got %s", k, expectedName, fullName)

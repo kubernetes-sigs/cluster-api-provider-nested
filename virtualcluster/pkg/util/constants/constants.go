@@ -19,8 +19,9 @@ package constants
 import (
 	"time"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/version"
 )
 
@@ -40,9 +41,9 @@ const (
 	LabelNamespaceSlice = "scheduler.virtualcluster.io/slice"
 )
 
-var DefaultNamespaceSlice = v1.ResourceList{
-	v1.ResourceCPU:    resource.MustParse("2"),
-	v1.ResourceMemory: resource.MustParse("4Gi"),
+var DefaultNamespaceSlice = corev1.ResourceList{
+	corev1.ResourceCPU:    resource.MustParse("2"),
+	corev1.ResourceMemory: resource.MustParse("4Gi"),
 }
 
 const (

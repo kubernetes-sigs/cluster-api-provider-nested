@@ -17,7 +17,7 @@ limitations under the License.
 package endpoints
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -65,7 +65,7 @@ func NewEndpointsController(config *config.SyncerConfiguration,
 	}
 
 	var err error
-	c.MultiClusterController, err = mc.NewMCController(&v1.Endpoints{}, &v1.EndpointsList{}, c, mc.WithOptions(options.MCOptions))
+	c.MultiClusterController, err = mc.NewMCController(&corev1.Endpoints{}, &corev1.EndpointsList{}, c, mc.WithOptions(options.MCOptions))
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func NewEndpointsController(config *config.SyncerConfiguration,
 		c.endpointsSynced = informer.Core().V1().Endpoints().Informer().HasSynced
 	}
 
-	c.Patroller, err = pa.NewPatroller(&v1.Endpoints{}, c, pa.WithOptions(options.PatrolOptions))
+	c.Patroller, err = pa.NewPatroller(&corev1.Endpoints{}, c, pa.WithOptions(options.PatrolOptions))
 	if err != nil {
 		return nil, err
 	}

@@ -17,7 +17,7 @@ limitations under the License.
 package configmap
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -66,7 +66,7 @@ func NewConfigMapController(config *config.SyncerConfiguration,
 	}
 
 	var err error
-	c.MultiClusterController, err = mc.NewMCController(&v1.ConfigMap{}, &v1.ConfigMapList{}, c, mc.WithOptions(options.MCOptions))
+	c.MultiClusterController, err = mc.NewMCController(&corev1.ConfigMap{}, &corev1.ConfigMapList{}, c, mc.WithOptions(options.MCOptions))
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func NewConfigMapController(config *config.SyncerConfiguration,
 		c.configMapSynced = informer.Core().V1().ConfigMaps().Informer().HasSynced
 	}
 
-	c.Patroller, err = pa.NewPatroller(&v1.ConfigMap{}, c, pa.WithOptions(options.PatrolOptions))
+	c.Patroller, err = pa.NewPatroller(&corev1.ConfigMap{}, c, pa.WithOptions(options.PatrolOptions))
 	if err != nil {
 		return nil, err
 	}

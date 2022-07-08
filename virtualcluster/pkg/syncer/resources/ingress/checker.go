@@ -22,9 +22,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	v1beta1 "k8s.io/api/extensions/v1beta1"
+	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/equality"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
@@ -84,7 +84,7 @@ func (c *controller) PatrollerDo() {
 		shouldDelete := false
 		vIngress := &v1beta1.Ingress{}
 		err := c.MultiClusterController.Get(clusterName, vNamespace, pIngress.Name, vIngress)
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			shouldDelete = true
 		}
 		if err == nil {
@@ -119,7 +119,7 @@ func (c *controller) checkIngressesOfTenantCluster(clusterName string) {
 	for i, vIngress := range ingList.Items {
 		targetNamespace := conversion.ToSuperClusterNamespace(clusterName, vIngress.Namespace)
 		pIngress, err := c.ingressLister.Ingresses(targetNamespace).Get(vIngress.Name)
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			if err := c.MultiClusterController.RequeueObject(clusterName, &ingList.Items[i]); err != nil {
 				klog.Errorf("error requeue vingress %v/%v in cluster %s: %v", vIngress.Namespace, vIngress.Name, clusterName, err)
 			} else {

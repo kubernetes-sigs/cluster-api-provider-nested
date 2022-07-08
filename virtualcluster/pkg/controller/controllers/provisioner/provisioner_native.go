@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/util/cert"
@@ -76,7 +76,7 @@ func (mpn *ProvisionerNative) CreateVirtualCluster(ctx context.Context, vc *tena
 	if err != nil {
 		return err
 	}
-	isClusterIP := cv.Spec.APIServer.Service != nil && cv.Spec.APIServer.Service.Spec.Type == v1.ServiceTypeClusterIP
+	isClusterIP := cv.Spec.APIServer.Service != nil && cv.Spec.APIServer.Service.Spec.Type == corev1.ServiceTypeClusterIP
 	// if ClusterIP, have to create API Server ahead of time to lay it down in the PKI
 	if isClusterIP {
 		mpn.Log.Info("deploying ClusterIP Service for API component", "component", cv.Spec.APIServer.Name)
@@ -126,7 +126,7 @@ func genInitialClusterArgs(replicas int32, stsName, svcName string) (argsVal str
 		peerAddr := fmt.Sprintf("%s-%d=https://%s-%d.%s:%d",
 			stsName, i, stsName, i, svcName, DefaultETCDPeerPort)
 		if i == replicas-1 {
-			argsVal = argsVal + peerAddr
+			argsVal += peerAddr
 			break
 		}
 		argsVal = argsVal + peerAddr + ","
@@ -189,7 +189,7 @@ func (mpn *ProvisionerNative) deployComponent(vc *tenancyv1alpha1.VirtualCluster
 	}
 
 	// skip apiserver clusterIP service creation as it is already created in CreateVirtualCluster()
-	if ssBdl.Service != nil && !(ssBdl.Name == "apiserver" && ssBdl.Service.Spec.Type == v1.ServiceTypeClusterIP) {
+	if ssBdl.Service != nil && !(ssBdl.Name == "apiserver" && ssBdl.Service.Spec.Type == corev1.ServiceTypeClusterIP) {
 		mpn.Log.Info("deploying Service for control plane component", "component", ssBdl.Name)
 		err = mpn.Create(context.TODO(), ssBdl.Service)
 		if err != nil {
@@ -235,7 +235,7 @@ func (mpn *ProvisionerNative) createPKISecrets(caGroup *vcpki.ClusterCAGroup, na
 	if err != nil {
 		return err
 	}
-	secrets := []*v1.Secret{rootSrt, apiserverSrt, etcdSrt, frontProxySrt,
+	secrets := []*corev1.Secret{rootSrt, apiserverSrt, etcdSrt, frontProxySrt,
 		ctrlMgrSrt, adminSrt, svcActSrt}
 
 	// create all secrets on metacluster

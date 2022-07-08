@@ -19,7 +19,7 @@ package namespace
 import (
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,8 +33,8 @@ import (
 	utilconst "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/constants"
 )
 
-func superGCCandidate(name, uid, clusterKey, vcName, vcNamespace, vcUID, root string) *v1.Namespace {
-	return &v1.Namespace{
+func superGCCandidate(name, uid, clusterKey, vcName, vcNamespace, vcUID, root string) *corev1.Namespace {
+	return &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Annotations: map[string]string{
@@ -287,7 +287,7 @@ func TestNamespacePatrol(t *testing.T) {
 						t.Errorf("%s: Unexpected action %s", k, action)
 						continue
 					}
-					created := action.(core.CreateAction).GetObject().(*v1.Namespace)
+					created := action.(core.CreateAction).GetObject().(*corev1.Namespace)
 					fullName := created.Name
 					if fullName != expectedName {
 						t.Errorf("%s: Expect to create pNS %s, got %s", k, expectedName, fullName)

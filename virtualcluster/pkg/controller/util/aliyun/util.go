@@ -26,7 +26,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/go-logr/logr"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -38,17 +38,33 @@ const (
 	DefaultVcManagerNs = "vc-manager"
 
 	// consts used to get aliyun accesskey ID/Secret from secret
-	AliyunAkSrt        = "aliyun-accesskey"
-	AliyunAKIDName     = "accessKeyID"
+
+	// AliyunAkSrt for key name
+	AliyunAkSrt = "aliyun-accesskey"
+	// AliyunAKIDName for keyID
+	AliyunAKIDName = "accessKeyID"
+	// AliyunAKSecretName for key secret
 	AliyunAKSecretName = "accessKeySecret"
 
 	// consts used to get ask configuration from ConfigMap
-	AliyunASKConfigMap       = "aliyun-ask-config"
-	AliyunASKCfgMpRegionID   = "askRegionID"
-	AliyunASKCfgMpZoneID     = "askZoneID"
-	AliyunASKCfgMpVPCID      = "askVpcID"
-	AliyunASKCfgMpVSID       = "askVswitchID"
+
+	// AliyunASKConfigMap for ask config
+	AliyunASKConfigMap = "aliyun-ask-config"
+	// AliyunASKCfgMpRegionID for regionID
+	AliyunASKCfgMpRegionID = "askRegionID"
+	// AliyunASKCfgMpZoneID for zoneID
+	AliyunASKCfgMpZoneID = "askZoneID"
+	// AliyunASKCfgMpVPCID for VpcID
+	AliyunASKCfgMpVPCID = "askVpcID"
+	// AliyunASKCfgMpVSID for VswitchID
+	AliyunASKCfgMpVSID = "askVswitchID"
+	// AliyunASKCfgMpPrivateCfg for PrivateCfg
 	AliyunASKCfgMpPrivateCfg = "askPrivateKbCfg"
+
+	// AliyunDomain is the domain name for aliyun requests
+	AliyunDomain = "cs.aliyuncs.com"
+	// AliyunVersion is the version for aliyun requests
+	AliyunVersion = "2015-12-15"
 
 	// AnnotationClusterID is the cluster id of the remote virtualcluster control plane on the cloud
 	AnnotationClusterID = "tenancy.x-k8s.io/ask.clusterID"
@@ -58,6 +74,7 @@ const (
 	AnnotationKubeconfig = "tenancy.x-k8s.io/admin-kubeconfig"
 )
 
+// ASKConfig config for ASK
 type ASKConfig struct {
 	VPCID        string
 	VSwitchID    string
@@ -69,21 +86,22 @@ type ASKConfig struct {
 const (
 	// full list of potential API errors can be found at
 	// https://error-center.alibabacloud.com/status/product/Cos?spm=a2c69.11428812.home.7.2247bb9adTOFxm
-	OprationNotSupported    = "ErrorCheckAcl"
-	ClusterNotFound         = "ErrorClusterNotFound"
+
+	// ClusterNotFound error for not found cluster
+	ClusterNotFound = "ErrorClusterNotFound"
+	// ClusterNameAlreadyExist error for the cluster conflict
 	ClusterNameAlreadyExist = "ClusterNameAlreadyExist"
-	QueryClusterError       = "ErrorQueryCluster"
 )
 
-// GetASKPrivateKubeConfig retrieves the kubeconfig of the ASK with the given clusterID.
+// GetASKKubeConfig retrieves the kubeconfig of the ASK with the given clusterID.
 func GetASKKubeConfig(cli *sdk.Client, clusterID, regionID, privateKbCfg string) (string, error) {
 	request := requests.NewCommonRequest()
-	request.Method = "GET"
-	request.Scheme = "http"
-	request.Domain = "cs.aliyuncs.com"
-	request.Version = "2015-12-15"
+	request.Method = requests.GET
+	request.Scheme = requests.HTTP
+	request.Domain = AliyunDomain
+	request.Version = AliyunVersion
 	request.PathPattern = fmt.Sprintf("/k8s/%s/user_config", clusterID)
-	request.Headers["Content-Type"] = "application/json"
+	request.Headers["Content-Type"] = requests.Json
 	request.QueryParams["RegionId"] = regionID
 	if privateKbCfg != "" {
 		// if specified, get kubeconfig that uses private IP
@@ -93,12 +111,12 @@ func GetASKKubeConfig(cli *sdk.Client, clusterID, regionID, privateKbCfg string)
 	if err != nil {
 		return "", err
 	}
-	kbCfgJson := make(map[string]string)
-	if err := json.Unmarshal(response.GetHttpContentBytes(), &kbCfgJson); err != nil {
+	kbCfgJSON := make(map[string]string)
+	if err := json.Unmarshal(response.GetHttpContentBytes(), &kbCfgJSON); err != nil {
 		return "", err
 	}
 
-	kbCfg, exist := kbCfgJson["config"]
+	kbCfg, exist := kbCfgJSON["config"]
 	if !exist {
 		return "", fmt.Errorf("kubeconfig of cluster(%s) is not found", clusterID)
 	}
@@ -107,14 +125,14 @@ func GetASKKubeConfig(cli *sdk.Client, clusterID, regionID, privateKbCfg string)
 
 // GetASKStateAndSlbID gets the slb ID (external_loadbalncer id) and the latest
 // state of the ASK with the given clusterID
-func GetASKStateAndSlbID(cli *sdk.Client, clusterID, regionID string) (slbId, state string, err error) {
+func GetASKStateAndSlbID(cli *sdk.Client, clusterID, regionID string) (slbID, state string, err error) {
 	request := requests.NewCommonRequest()
-	request.Method = "GET"
-	request.Scheme = "http"
-	request.Domain = "cs.aliyuncs.com"
-	request.Version = "2015-12-15"
+	request.Method = requests.GET
+	request.Scheme = requests.HTTP
+	request.Domain = AliyunDomain
+	request.Version = AliyunVersion
 	request.PathPattern = fmt.Sprintf("/clusters/%s", clusterID)
-	request.Headers["Content-Type"] = "application/json"
+	request.Headers["Content-Type"] = requests.Json
 	request.QueryParams["RegionId"] = regionID
 
 	response, err := cli.ProcessCommonRequest(request)
@@ -146,13 +164,13 @@ func GetASKStateAndSlbID(cli *sdk.Client, clusterID, regionID string) (slbId, st
 		err = fmt.Errorf("fail to get 'state' of cluster(%s)", clusterID)
 		return
 	}
-	clsSlbIdInf, exist := clsInfo["external_loadbalancer_id"]
+	clsLbIDInf, exist := clsInfo["external_loadbalancer_id"]
 	if !exist {
 		err = fmt.Errorf("fail to get 'external_loadbalancer_id' of cluster(%s)", clusterID)
 		return
 	}
 
-	slbId, ok = clsSlbIdInf.(string)
+	slbID, ok = clsLbIDInf.(string)
 	if !ok {
 		err = fmt.Errorf("fail to assert cluster.external_loadbalancer_idstring")
 		return
@@ -164,18 +182,18 @@ func GetASKStateAndSlbID(cli *sdk.Client, clusterID, regionID string) (slbId, st
 		return
 	}
 
-	return
+	return slbID, state, err
 }
 
 // GetClusterIDByName returns the clusterID of the cluster with clusterName
 func GetClusterIDByName(cli *sdk.Client, clusterName, regionID string) (string, error) {
 	request := requests.NewCommonRequest()
-	request.Method = "GET"
-	request.Scheme = "http"
-	request.Domain = "cs.aliyuncs.com"
-	request.Version = "2015-12-15"
+	request.Method = requests.GET
+	request.Scheme = requests.HTTP
+	request.Domain = AliyunDomain
+	request.Version = AliyunVersion
 	request.PathPattern = "/clusters"
-	request.Headers["Content-Type"] = "application/json"
+	request.Headers["Content-Type"] = requests.Json
 	request.QueryParams["RegionId"] = regionID
 	response, err := cli.ProcessCommonRequest(request)
 	if err != nil {
@@ -233,12 +251,12 @@ func IsSDKErr(err error) bool {
 // creating a new one
 func SendCreationRequest(cli *sdk.Client, clusterName string, askCfg ASKConfig) (string, error) {
 	request := requests.NewCommonRequest()
-	request.Method = "POST"
-	request.Scheme = "http"
-	request.Domain = "cs.aliyuncs.com"
-	request.Version = "2015-12-15"
+	request.Method = requests.POST
+	request.Scheme = requests.HTTP
+	request.Domain = AliyunDomain
+	request.Version = AliyunVersion
 	request.PathPattern = "/clusters"
-	request.Headers["Content-Type"] = "application/json"
+	request.Headers["Content-Type"] = requests.Json
 	request.QueryParams["RegionId"] = askCfg.RegionID
 
 	// set vpc, if VPCID is specified
@@ -287,12 +305,12 @@ func SendCreationRequest(cli *sdk.Client, clusterName string, askCfg ASKConfig) 
 // SendDeletionRequest sends a request for deleting the ASK with the given clusterID
 func SendDeletionRequest(cli *sdk.Client, clusterID, regionID string) error {
 	request := requests.NewCommonRequest()
-	request.Method = "DELETE"
-	request.Scheme = "http"
-	request.Domain = "cs.aliyuncs.com"
-	request.Version = "2015-12-15"
+	request.Method = requests.DELETE
+	request.Scheme = requests.HTTP
+	request.Domain = AliyunDomain
+	request.Version = AliyunVersion
 	request.PathPattern = fmt.Sprintf("/clusters/%s", clusterID)
-	request.Headers["Content-Type"] = "application/json"
+	request.Headers["Content-Type"] = requests.Json
 	request.QueryParams["RegionId"] = regionID
 	_, err := cli.ProcessCommonRequest(request)
 	if err != nil {
@@ -310,7 +328,7 @@ func GetAliyunAKPair(cli client.Client, log logr.Logger) (keyID string, keySecre
 		log.Info("can't find NS from inside the pod", "err", err)
 		vcManagerNs = DefaultVcManagerNs
 	}
-	akSrt := &v1.Secret{}
+	akSrt := &corev1.Secret{}
 	if getErr := cli.Get(context.TODO(), types.NamespacedName{
 		Namespace: vcManagerNs,
 		Name:      AliyunAkSrt,
@@ -341,7 +359,7 @@ func GetASKConfigs(cli client.Client, log logr.Logger) (cfg ASKConfig, err error
 		vcManagerNs = DefaultVcManagerNs
 	}
 
-	ASKCfgMp := &v1.ConfigMap{}
+	ASKCfgMp := &corev1.ConfigMap{}
 	if getErr := cli.Get(context.TODO(), types.NamespacedName{
 		Namespace: vcManagerNs,
 		Name:      AliyunASKConfigMap,
@@ -388,5 +406,5 @@ func GetASKConfigs(cli client.Client, log logr.Logger) (cfg ASKConfig, err error
 		cfg.VSwitchID = vsID
 	}
 
-	return
+	return cfg, err
 }

@@ -17,8 +17,8 @@ limitations under the License.
 package node
 
 import (
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
@@ -34,9 +34,9 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, error) {
 	klog.V(4).Infof("reconcile node %s for cluster %s", request.Name, request.ClusterName)
 	vExists := true
-	vNode := &v1.Node{}
+	vNode := &corev1.Node{}
 	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vNode); err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return reconciler.Result{Requeue: true}, err
 		}
 		vExists = false

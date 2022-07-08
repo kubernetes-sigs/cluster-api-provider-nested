@@ -77,14 +77,14 @@ func RunDownwardSync(
 ) (actions []core.Action, reconcileError error, err error) {
 	// setup fake tenant cluster
 	tenantClientset := fake.NewSimpleClientset()
-	tenantClient := fakeClient.NewFakeClient()
+	tenantClientBuilder := fakeClient.NewClientBuilder()
 	if existingObjectInTenant != nil {
 		tenantClientset = fake.NewSimpleClientset(existingObjectInTenant...)
 		// For controller runtime client, if the informer cache is empty, the request goes to client obj tracker.
 		// Hence we don't have to populate the infomer cache.
-		tenantClient = fakeClient.NewFakeClient(existingObjectInTenant...)
+		tenantClientBuilder = tenantClientBuilder.WithRuntimeObjects(existingObjectInTenant...)
 	}
-	tenantCluster := cluster.NewFakeTenantCluster(testTenant, tenantClientset, tenantClient)
+	tenantCluster := cluster.NewFakeTenantCluster(testTenant, tenantClientset, tenantClientBuilder.Build())
 
 	// setup fake super cluster
 	superClient := fake.NewSimpleClientset()
@@ -132,12 +132,14 @@ func RunDownwardSync(
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	go resourceSyncer.StartDWS(stopCh)
+	go func() {
+		_ = resourceSyncer.StartDWS(stopCh)
+	}()
 
 	// add object to super informer.
 	for _, each := range existingObjectInSuper {
 		informer := superInformer.InformerFor(each, nil)
-		informer.GetStore().Add(each)
+		_ = informer.GetStore().Add(each)
 	}
 
 	// start testing

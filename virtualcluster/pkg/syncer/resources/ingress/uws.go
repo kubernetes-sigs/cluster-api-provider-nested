@@ -21,9 +21,9 @@ import (
 	"fmt"
 
 	pkgerr "github.com/pkg/errors"
-	v1beta1 "k8s.io/api/extensions/v1beta1"
+	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/equality"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
@@ -52,7 +52,7 @@ func (c *controller) BackPopulate(key string) error {
 
 	pIngress, err := c.ingressLister.Ingresses(pNamespace).Get(pName)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil
 		}
 		return err
@@ -66,7 +66,7 @@ func (c *controller) BackPopulate(key string) error {
 
 	vIngress := &v1beta1.Ingress{}
 	if err := c.MultiClusterController.Get(clusterName, vNamespace, pName, vIngress); err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil
 		}
 		return pkgerr.Wrapf(err, "could not find pIngress %s/%s's vIngress in controller cache", vNamespace, pName)

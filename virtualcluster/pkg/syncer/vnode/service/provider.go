@@ -20,9 +20,10 @@ import (
 	"context"
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
+
 	vnodeprovider "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode/provider"
 )
 
@@ -42,24 +43,24 @@ func NewServiceVirtualNodeProvider(vnAgentPort int32, vnAgentNamespaceName strin
 	}
 }
 
-func (p *provider) GetNodeDaemonEndpoints(node *v1.Node) (v1.NodeDaemonEndpoints, error) {
-	return v1.NodeDaemonEndpoints{
-		KubeletEndpoint: v1.DaemonEndpoint{
+func (p *provider) GetNodeDaemonEndpoints(node *corev1.Node) (corev1.NodeDaemonEndpoints, error) {
+	return corev1.NodeDaemonEndpoints{
+		KubeletEndpoint: corev1.DaemonEndpoint{
 			Port: p.vnAgentPort,
 		},
 	}, nil
 }
 
-func (p *provider) GetNodeAddress(node *v1.Node) ([]v1.NodeAddress, error) {
-	var addresses []v1.NodeAddress
+func (p *provider) GetNodeAddress(node *corev1.Node) ([]corev1.NodeAddress, error) {
+	var addresses []corev1.NodeAddress
 	namespaceName := strings.Split(p.vnAgentNamespaceName, "/")
 	svc, err := p.client.CoreV1().Services(namespaceName[0]).Get(context.TODO(), namespaceName[1], metav1.GetOptions{})
 	if err != nil {
 		return addresses, err
 	}
 
-	addresses = append(addresses, v1.NodeAddress{
-		Type:    v1.NodeInternalIP,
+	addresses = append(addresses, corev1.NodeAddress{
+		Type:    corev1.NodeInternalIP,
 		Address: svc.Spec.ClusterIP,
 	})
 	return addresses, nil

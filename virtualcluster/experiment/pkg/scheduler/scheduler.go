@@ -50,9 +50,15 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/plugin"
 )
 
-var SuperClusterResourceRegister plugin.ResourceRegister
-var VirtualClusterResourceRegister plugin.ResourceRegister
+// ResourceRegisters for easier handle of clusters
+var (
+	// SuperClusterResourceRegister for super clusters
+	SuperClusterResourceRegister plugin.ResourceRegister
+	// VirtualClusterResourceRegister for virtual clusters
+	VirtualClusterResourceRegister plugin.ResourceRegister
+)
 
+// Scheduler object
 type Scheduler struct {
 	config            *schedulerconfig.SchedulerConfiguration
 	metaClusterClient clientset.Interface
@@ -78,6 +84,7 @@ type Scheduler struct {
 	schedulerEngine engine.Engine
 }
 
+// New creates new Scheduler
 func New(
 	config *schedulerconfig.SchedulerConfiguration,
 	vcClient vcclient.Interface,
@@ -229,6 +236,7 @@ func (s *Scheduler) enqueueSuperCluster(obj interface{}) {
 	s.superClusterQueue.Add(key)
 }
 
+// Run start Scheduler
 func (s *Scheduler) Run(stopChan <-chan struct{}) {
 
 	if !cache.WaitForCacheSync(stopChan, s.virtualClusterSynced) {
@@ -282,7 +290,6 @@ func (s *Scheduler) Run(stopChan <-chan struct{}) {
 			go wait.Until(s.superClusterWorkerRun, 1*time.Second, stopChan)
 		}
 		<-stopChan
-
 	}()
 
 	go wait.Until(s.Dump, 1*time.Minute, stopChan)
@@ -290,6 +297,7 @@ func (s *Scheduler) Run(stopChan <-chan struct{}) {
 	go wait.Until(s.virtualClusterHealthPatrol, 1*time.Minute, stopChan)
 }
 
+// Dump scheduler cache.
 func (s *Scheduler) Dump() {
 	klog.Infof("Start dumping scheduler cache\n%s", s.schedulerCache.Dump())
 }
@@ -297,10 +305,14 @@ func (s *Scheduler) Dump() {
 // The dirty sets are used in bootstrap and in handling cluster offline. If a cluster was in dirty set and becomes online again,
 // the cluster state needs to be synchronized with the scheduler cache first during which the scheduler will not serve any scheduling
 // request from that cluster.
-var DirtyVirtualClusters sync.Map
-var DirtySuperClusters sync.Map
+var (
+	// DirtyVirtualClusters for virtual.
+	DirtyVirtualClusters sync.Map
+	// DirtySuperClusters for super clusters.
+	DirtySuperClusters sync.Map
+)
 
-// Bootstrap initializes the scheduler cache
+// Bootstrap initializes the scheduler cache.
 func (s *Scheduler) Bootstrap() error {
 	superList, err := s.superClusterLister.List(labels.Everything())
 	if err != nil {

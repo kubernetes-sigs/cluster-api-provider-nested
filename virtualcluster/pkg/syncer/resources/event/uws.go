@@ -21,8 +21,8 @@ import (
 	"fmt"
 
 	pkgerr "github.com/pkg/errors"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
@@ -50,7 +50,7 @@ func (c *controller) BackPopulate(key string) error {
 
 	pEvent, err := c.eventLister.Events(pNamespace).Get(pName)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil
 		}
 		return fmt.Errorf("could not find pEvent %s/%s in controller cache: %v", pNamespace, pName, err)
@@ -58,7 +58,7 @@ func (c *controller) BackPopulate(key string) error {
 
 	clusterName, tenantNS, err := conversion.GetVirtualNamespace(c.nsLister, pNamespace)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil
 		}
 		return fmt.Errorf("could not find ns %s in controller cache: %v", pNamespace, err)
@@ -81,18 +81,18 @@ func (c *controller) BackPopulate(key string) error {
 
 	vInvolvedObject := vInvolvedObjectType.DeepCopyObject().(client.Object)
 	if err := c.MultiClusterController.Get(clusterName, tenantNS, pEvent.InvolvedObject.Name, vInvolvedObject); err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			klog.Infof("back populate event: failed to find pod %s/%s in cluster %s", tenantNS, pEvent.InvolvedObject.Name, clusterName)
 			return nil
 		}
 		return err
 	}
 
-	// TODO(christopherhein): We should mutate this instead and raise errors if anything happens.
+	// TODO(christopherhein): We should mutate this instead and raise apierrors if anything happens.
 	vEvent := conversion.BuildVirtualEvent(clusterName, pEvent, vInvolvedObject)
 
-	if err = c.MultiClusterController.Get(clusterName, tenantNS, vEvent.Name, &v1.Event{}); err != nil {
-		if errors.IsNotFound(err) {
+	if err = c.MultiClusterController.Get(clusterName, tenantNS, vEvent.Name, &corev1.Event{}); err != nil {
+		if apierrors.IsNotFound(err) {
 			_, err = tenantClient.CoreV1().Events(tenantNS).Create(context.TODO(), vEvent, metav1.CreateOptions{})
 			return err
 		}

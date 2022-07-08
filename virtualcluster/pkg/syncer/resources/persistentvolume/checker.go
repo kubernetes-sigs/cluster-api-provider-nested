@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -68,7 +68,7 @@ func (c *controller) PatrollerDo() {
 
 	vSet := differ.NewDiffSet()
 	for _, cluster := range clusterNames {
-		vList := &v1.PersistentVolumeList{}
+		vList := &corev1.PersistentVolumeList{}
 		if err := c.MultiClusterController.List(cluster, vList); err != nil {
 			klog.Errorf("error listing pv from cluster %s informer cache: %v", cluster, err)
 			continue
@@ -89,8 +89,8 @@ func (c *controller) PatrollerDo() {
 		metrics.CheckerRemedyStats.WithLabelValues("RequeuedSuperControlPlanePVs").Inc()
 	}
 	d.UpdateFunc = func(pObj, vObj differ.ClusterObject) {
-		pPV := pObj.Object.(*v1.PersistentVolume)
-		vPV := vObj.Object.(*v1.PersistentVolume)
+		pPV := pObj.Object.(*corev1.PersistentVolume)
+		vPV := vObj.Object.(*corev1.PersistentVolume)
 
 		pPVC, err := c.pvcLister.PersistentVolumeClaims(pPV.Spec.ClaimRef.Namespace).Get(pPV.Spec.ClaimRef.Name)
 		if err != nil {
@@ -123,7 +123,7 @@ func (c *controller) PatrollerDo() {
 		}
 	}
 	d.DeleteFunc = func(vObj differ.ClusterObject) {
-		vPV := vObj.Object.(*v1.PersistentVolume)
+		vPV := vObj.Object.(*corev1.PersistentVolume)
 
 		// We delete any PV created by tenant.
 		// If the pv is still bound to pvc, print an error msg. Normally, the deleted PV should be in Relased phase.
@@ -158,14 +158,14 @@ func (c *controller) PatrollerDo() {
 				return true
 			}
 
-			pPV := obj.Object.(*v1.PersistentVolume)
+			pPV := obj.Object.(*corev1.PersistentVolume)
 			if !boundPersistentVolume(pPV) {
 				return false
 			}
 
 			pPVC, err := c.pvcLister.PersistentVolumeClaims(pPV.Spec.ClaimRef.Namespace).Get(pPV.Spec.ClaimRef.Name)
 			if err != nil {
-				if !errors.IsNotFound(err) {
+				if !apierrors.IsNotFound(err) {
 					klog.Errorf("fail to get pPVC %s/%s in super control plane :%v", pPVC.Namespace, pPVC.Name, err)
 				}
 				return false

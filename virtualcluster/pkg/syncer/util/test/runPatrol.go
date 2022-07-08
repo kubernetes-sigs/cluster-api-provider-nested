@@ -71,14 +71,14 @@ func RunPatrol(
 ) ([]core.Action, []core.Action, error) {
 	// setup fake tenant cluster
 	tenantClientset := fake.NewSimpleClientset()
-	tenantClient := fakeClient.NewFakeClient()
+	tenantClientBuilder := fakeClient.NewClientBuilder()
 	if existingObjectInTenant != nil {
 		tenantClientset = fake.NewSimpleClientset(existingObjectInTenant...)
 		// For controller runtime client, if the informer cache is empty, the request goes to client obj tracker.
 		// Hence we don't have to populate the infomer cache.
-		tenantClient = fakeClient.NewFakeClient(existingObjectInTenant...)
+		tenantClientBuilder = tenantClientBuilder.WithRuntimeObjects(existingObjectInTenant...)
 	}
-	tenantCluster := cluster.NewFakeTenantCluster(testTenant, tenantClientset, tenantClient)
+	tenantCluster := cluster.NewFakeTenantCluster(testTenant, tenantClientset, tenantClientBuilder.Build())
 
 	// setup fake super cluster
 	superClient := fake.NewSimpleClientset()
@@ -98,7 +98,9 @@ func RunPatrol(
 		if !ok {
 			return nil, nil, fmt.Errorf("only vc object can be added to vc informer cache: %v", each)
 		}
-		vcInformer.Informer().GetStore().Add(each)
+		if err := vcInformer.Informer().GetStore().Add(each); err != nil {
+			return nil, nil, err
+		}
 	}
 
 	// setup fake controller
@@ -153,11 +155,17 @@ func RunPatrol(
 	// add object to super informer.
 	for _, each := range existingObjectInSuper {
 		informer := superInformer.InformerFor(each, nil)
-		informer.GetStore().Add(each)
+		_ = informer.GetStore().Add(each)
 	}
-	go resourceSyncer.StartDWS(stopCh)
-	go resourceSyncer.StartUWS(stopCh)
-	go resourceSyncer.StartPatrol(stopCh)
+	go func() {
+		_ = resourceSyncer.StartDWS(stopCh)
+	}()
+	go func() {
+		_ = resourceSyncer.StartUWS(stopCh)
+	}()
+	go func() {
+		_ = resourceSyncer.StartPatrol(stopCh)
+	}()
 
 	// wait to be called
 	select {

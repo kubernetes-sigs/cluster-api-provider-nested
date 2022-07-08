@@ -273,10 +273,10 @@ func Test_mutateDNSConfig(t *testing.T) {
 		}
 	}
 	defaultOptions := []v1.PodDNSConfigOption{
-		v1.PodDNSConfigOption{
+		{
 			Name: "use-vc",
 		},
-		v1.PodDNSConfigOption{
+		{
 			Name:  "ndots",
 			Value: pointer.StringPtr("5"),
 		},
@@ -307,10 +307,10 @@ func Test_mutateDNSConfig(t *testing.T) {
 				vPod:       newPod(),
 				nameServer: "0.0.0.0",
 				dnsoptions: []v1.PodDNSConfigOption{
-					v1.PodDNSConfigOption{
+					{
 						Name: "use-vc",
 					},
-					v1.PodDNSConfigOption{
+					{
 						Name:  "ndots",
 						Value: pointer.StringPtr("5"),
 					},
@@ -327,10 +327,10 @@ func Test_mutateDNSConfig(t *testing.T) {
 				vPod:       newPod(),
 				nameServer: "0.0.0.0",
 				dnsoptions: []v1.PodDNSConfigOption{
-					v1.PodDNSConfigOption{
+					{
 						Name: "use-vc",
 					},
-					v1.PodDNSConfigOption{
+					{
 						Name:  "ndots",
 						Value: pointer.StringPtr("5"),
 					},
@@ -348,10 +348,10 @@ func Test_mutateDNSConfig(t *testing.T) {
 				vPod:       newPod(),
 				nameServer: "0.0.0.0",
 				dnsoptions: []v1.PodDNSConfigOption{
-					v1.PodDNSConfigOption{
+					{
 						Name: "use-vc",
 					},
-					v1.PodDNSConfigOption{
+					{
 						Name:  "ndots",
 						Value: pointer.StringPtr("5"),
 					},
@@ -370,10 +370,10 @@ func Test_mutateDNSConfig(t *testing.T) {
 				vPod:       newPod(),
 				nameServer: "0.0.0.0",
 				dnsoptions: []v1.PodDNSConfigOption{
-					v1.PodDNSConfigOption{
+					{
 						Name: "use-vc",
 					},
-					v1.PodDNSConfigOption{
+					{
 						Name:  "ndots",
 						Value: pointer.StringPtr("5"),
 					},
@@ -395,10 +395,10 @@ func Test_mutateDNSConfig(t *testing.T) {
 				vPod:       newPod(),
 				nameServer: "0.0.0.0",
 				dnsoptions: []v1.PodDNSConfigOption{
-					v1.PodDNSConfigOption{
+					{
 						Name: "use-vc",
 					},
-					v1.PodDNSConfigOption{
+					{
 						Name:  "ndots",
 						Value: pointer.StringPtr("5"),
 					},
@@ -417,10 +417,10 @@ func Test_mutateDNSConfig(t *testing.T) {
 				vPod:       newPod(),
 				nameServer: "0.0.0.0",
 				dnsoptions: []v1.PodDNSConfigOption{
-					v1.PodDNSConfigOption{
+					{
 						Name: "use-vc",
 					},
-					v1.PodDNSConfigOption{
+					{
 						Name:  "ndots",
 						Value: pointer.StringPtr("5"),
 					},
@@ -436,10 +436,10 @@ func Test_mutateDNSConfig(t *testing.T) {
 				vPod:       newPod(),
 				nameServer: "0.0.0.0",
 				dnsoptions: []v1.PodDNSConfigOption{
-					v1.PodDNSConfigOption{
+					{
 						Name: "use-vc",
 					},
-					v1.PodDNSConfigOption{
+					{
 						Name:  "ndots",
 						Value: pointer.StringPtr("5"),
 					},
@@ -457,10 +457,10 @@ func Test_mutateDNSConfig(t *testing.T) {
 				}),
 				nameServer: "0.0.0.0",
 				dnsoptions: []v1.PodDNSConfigOption{
-					v1.PodDNSConfigOption{
+					{
 						Name: "use-vc",
 					},
-					v1.PodDNSConfigOption{
+					{
 						Name:  "ndots",
 						Value: pointer.StringPtr("5"),
 					},
@@ -479,10 +479,10 @@ func Test_mutateDNSConfig(t *testing.T) {
 				vPod:       newPod(),
 				nameServer: "0.0.0.0",
 				dnsoptions: []v1.PodDNSConfigOption{
-					v1.PodDNSConfigOption{
+					{
 						Name: "use-vc",
 					},
-					v1.PodDNSConfigOption{
+					{
 						Name:  "ndots",
 						Value: pointer.StringPtr("5"),
 					},
@@ -500,10 +500,10 @@ func Test_mutateDNSConfig(t *testing.T) {
 				}),
 				nameServer: "0.0.0.0",
 				dnsoptions: []v1.PodDNSConfigOption{
-					v1.PodDNSConfigOption{
+					{
 						Name: "use-vc",
 					},
-					v1.PodDNSConfigOption{
+					{
 						Name:  "ndots",
 						Value: pointer.StringPtr("5"),
 					},

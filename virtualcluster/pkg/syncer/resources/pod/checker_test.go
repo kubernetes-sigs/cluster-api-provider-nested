@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,8 +46,8 @@ func TestPodPatrol(t *testing.T) {
 			Phase: v1alpha1.ClusterRunning,
 		},
 	}
-	spec1 := &v1.PodSpec{
-		Containers: []v1.Container{
+	spec1 := &corev1.PodSpec{
+		Containers: []corev1.Container{
 			{
 				Image: "ngnix",
 				Name:  "c-1",
@@ -55,8 +55,8 @@ func TestPodPatrol(t *testing.T) {
 		},
 		NodeName: "n1",
 	}
-	spec2 := &v1.PodSpec{
-		Containers: []v1.Container{
+	spec2 := &corev1.PodSpec{
+		Containers: []corev1.Container{
 			{
 				Image: "busybox",
 				Name:  "c-1",
@@ -64,21 +64,21 @@ func TestPodPatrol(t *testing.T) {
 		},
 		NodeName: "n1",
 	}
-	statusPending := &v1.PodStatus{
-		Phase: v1.PodPending,
+	statusPending := &corev1.PodStatus{
+		Phase: corev1.PodPending,
 	}
-	statusFail := &v1.PodStatus{
-		Phase: v1.PodFailed,
-		Conditions: []v1.PodCondition{
+	statusFail := &corev1.PodStatus{
+		Phase: corev1.PodFailed,
+		Conditions: []corev1.PodCondition{
 			{
 				Type:   "PodScheduled",
 				Status: "True",
 			},
 		},
 	}
-	statusReadyAndRunning := &v1.PodStatus{
-		Phase: v1.PodRunning,
-		Conditions: []v1.PodCondition{
+	statusReadyAndRunning := &corev1.PodStatus{
+		Phase: corev1.PodRunning,
+		Conditions: []corev1.PodCondition{
 			{
 				Type:   "PodScheduled",
 				Status: "True",
@@ -284,7 +284,7 @@ func TestPodPatrol(t *testing.T) {
 						t.Errorf("%s: Unexpected action %s", k, action)
 						continue
 					}
-					createdPod := action.(core.CreateAction).GetObject().(*v1.Pod)
+					createdPod := action.(core.CreateAction).GetObject().(*corev1.Pod)
 					fullName := createdPod.Namespace + "/" + createdPod.Name
 					if fullName != expectedName {
 						t.Errorf("%s: Expect to create pPod %s, got %s", k, expectedName, fullName)
@@ -343,9 +343,9 @@ func TestVNodeGC(t *testing.T) {
 	}
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
 	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
-	statusReadyAndRunning := &v1.PodStatus{
+	statusReadyAndRunning := &corev1.PodStatus{
 		Phase: "Running",
-		Conditions: []v1.PodCondition{
+		Conditions: []corev1.PodCondition{
 			{
 				Type:   "PodScheduled",
 				Status: "True",

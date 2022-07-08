@@ -17,7 +17,8 @@ limitations under the License.
 package native
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
+
 	vnodeprovider "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode/provider"
 )
 
@@ -31,20 +32,20 @@ func NewNativeVirtualNodeProvider(vnAgentPort int32) vnodeprovider.VirtualNodePr
 	return &provider{vnAgentPort: vnAgentPort}
 }
 
-func (p *provider) GetNodeDaemonEndpoints(node *v1.Node) (v1.NodeDaemonEndpoints, error) {
-	return v1.NodeDaemonEndpoints{
-		KubeletEndpoint: v1.DaemonEndpoint{
+func (p *provider) GetNodeDaemonEndpoints(node *corev1.Node) (corev1.NodeDaemonEndpoints, error) {
+	return corev1.NodeDaemonEndpoints{
+		KubeletEndpoint: corev1.DaemonEndpoint{
 			Port: p.vnAgentPort,
 		},
 	}, nil
 }
 
-func (p *provider) GetNodeAddress(node *v1.Node) ([]v1.NodeAddress, error) {
-	var addresses []v1.NodeAddress
+func (p *provider) GetNodeAddress(node *corev1.Node) ([]corev1.NodeAddress, error) {
+	var addresses []corev1.NodeAddress
 	for _, a := range node.Status.Addresses {
 		// notes: drop host name address because tenant apiserver using cluster dns.
 		// It could not find the node by hostname through this dns.
-		if a.Type != v1.NodeHostName {
+		if a.Type != corev1.NodeHostName {
 			addresses = append(addresses, a)
 		}
 	}

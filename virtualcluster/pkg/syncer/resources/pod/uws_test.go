@@ -22,22 +22,22 @@ import (
 	"testing"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	core "k8s.io/client-go/testing"
-	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
+	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
 
-func tenantAssignedPod(name, namespace, uid, nodename string) *v1.Pod {
-	return &v1.Pod{
+func tenantAssignedPod(name, namespace, uid, nodename string) *corev1.Pod {
+	return &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
@@ -47,14 +47,14 @@ func tenantAssignedPod(name, namespace, uid, nodename string) *v1.Pod {
 			Namespace: namespace,
 			UID:       types.UID(uid),
 		},
-		Spec: v1.PodSpec{
+		Spec: corev1.PodSpec{
 			NodeName: nodename,
 		},
 	}
 }
 
-func unKnownSuperPod(name, namespace string) *v1.Pod {
-	return &v1.Pod{
+func unKnownSuperPod(name, namespace string) *corev1.Pod {
+	return &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
@@ -66,8 +66,8 @@ func unKnownSuperPod(name, namespace string) *v1.Pod {
 	}
 }
 
-func superAssignedPod(name, namespace, uid, nodename, clusterKey string) *v1.Pod {
-	return &v1.Pod{
+func superAssignedPod(name, namespace, uid, nodename, clusterKey string) *corev1.Pod {
+	return &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
@@ -81,14 +81,14 @@ func superAssignedPod(name, namespace, uid, nodename, clusterKey string) *v1.Pod
 				constants.LabelNamespace: "default",
 			},
 		},
-		Spec: v1.PodSpec{
+		Spec: corev1.PodSpec{
 			NodeName: nodename,
 		},
 	}
 }
 
-func fakeNode(name string) *v1.Node {
-	return &v1.Node{
+func fakeNode(name string) *corev1.Node {
+	return &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Labels: map[string]string{
@@ -98,7 +98,7 @@ func fakeNode(name string) *v1.Node {
 	}
 }
 
-func applyLabelToPod(pod *v1.Pod, key, value string) *v1.Pod {
+func applyLabelToPod(pod *corev1.Pod, key, value string) *corev1.Pod {
 	if pod.Labels == nil {
 		pod.Labels = make(map[string]string)
 	}
@@ -106,7 +106,7 @@ func applyLabelToPod(pod *v1.Pod, key, value string) *v1.Pod {
 	return pod
 }
 
-func applyStatusToPod(pod *v1.Pod, status *v1.PodStatus) *v1.Pod {
+func applyStatusToPod(pod *corev1.Pod, status *corev1.PodStatus) *corev1.Pod {
 	pod.Status = *status.DeepCopy()
 	return pod
 }
@@ -127,11 +127,11 @@ func TestUWPodUpdate(t *testing.T) {
 		},
 	}
 
-	statusPending := &v1.PodStatus{
+	statusPending := &corev1.PodStatus{
 		Phase: "Pending",
 	}
 
-	statusRunning := &v1.PodStatus{
+	statusRunning := &corev1.PodStatus{
 		Phase: "Running",
 	}
 
@@ -220,7 +220,7 @@ func TestUWPodUpdate(t *testing.T) {
 			EnquedKey:     superDefaultNSName + "/pod-1",
 			ExpectedError: "failed to check vNode",
 		},
-		//TODO: pod not scheduled case.
+		// TODO: pod not scheduled case.
 	}
 
 	for k, tc := range testcases {
@@ -281,8 +281,8 @@ func TestUWPodDeletion(t *testing.T) {
 		},
 	}
 
-	statusRunning := &v1.PodStatus{
-		Phase: v1.PodRunning,
+	statusRunning := &corev1.PodStatus{
+		Phase: corev1.PodRunning,
 	}
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)

@@ -17,7 +17,7 @@ limitations under the License.
 package secret
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -62,7 +62,7 @@ func NewSecretController(config *config.SyncerConfiguration,
 	}
 
 	var err error
-	c.MultiClusterController, err = mc.NewMCController(&v1.Secret{}, &v1.SecretList{}, c, mc.WithOptions(options.MCOptions))
+	c.MultiClusterController, err = mc.NewMCController(&corev1.Secret{}, &corev1.SecretList{}, c, mc.WithOptions(options.MCOptions))
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func NewSecretController(config *config.SyncerConfiguration,
 		c.secretSynced = informer.Core().V1().Secrets().Informer().HasSynced
 	}
 
-	c.Patroller, err = pa.NewPatroller(&v1.Secret{}, c, pa.WithOptions(options.PatrolOptions))
+	c.Patroller, err = pa.NewPatroller(&corev1.Secret{}, c, pa.WithOptions(options.PatrolOptions))
 	if err != nil {
 		return nil, err
 	}

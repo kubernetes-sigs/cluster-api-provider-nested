@@ -25,13 +25,17 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/cmd/scheduler/app"
 )
 
-func main() {
+func mainMethod() error {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
 	stopChan := genericapiserver.SetupSignalHandler()
 
-	if err := app.NewSchedulerCommand(stopChan).Execute(); err != nil {
+	return app.NewSchedulerCommand(stopChan).Execute()
+}
+
+func main() {
+	if mainMethod() != nil {
 		os.Exit(1)
 	}
 }

@@ -47,9 +47,9 @@ func (vc *VirtualCluster) ValidateCreate() error {
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (new *VirtualCluster) ValidateUpdate(old runtime.Object) error {
-	vclog.Info("validate update", "vc-name", new.Name)
-	return new.validateVirtualClusterUpdate(old)
+func (vc *VirtualCluster) ValidateUpdate(old runtime.Object) error {
+	vclog.Info("validate update", "vc-name", vc.Name)
+	return vc.validateVirtualClusterUpdate(old)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type

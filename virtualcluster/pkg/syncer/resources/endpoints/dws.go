@@ -20,8 +20,8 @@ import (
 	"context"
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
@@ -41,9 +41,9 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 
 // The reconcile logic for tenant control plane endpoints informer
 func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, error) {
-	vService := &v1.Service{}
+	vService := &corev1.Service{}
 	err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vService)
-	if err != nil && !errors.IsNotFound(err) {
+	if err != nil && !apierrors.IsNotFound(err) {
 		return reconciler.Result{Requeue: true}, fmt.Errorf("fail to query service from tenant control plane %s", request.ClusterName)
 	}
 	if err == nil {
@@ -57,54 +57,55 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	pEndpoints, err := c.endpointsLister.Endpoints(targetNamespace).Get(request.Name)
 	pExists := true
 	if err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return reconciler.Result{Requeue: true}, err
 		}
 		pExists = false
 	}
 	vExists := true
-	vEndpoints := &v1.Endpoints{}
+	vEndpoints := &corev1.Endpoints{}
 	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vEndpoints); err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return reconciler.Result{Requeue: true}, err
 		}
 		vExists = false
 	}
 
-	if vExists && !pExists {
+	switch {
+	case vExists && !pExists:
 		err := c.reconcileEndpointsCreate(request.ClusterName, targetNamespace, request.UID, vEndpoints)
 		if err != nil {
 			klog.Errorf("failed reconcile endpoints %s/%s CREATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if !vExists && pExists {
+	case !vExists && pExists:
 		err := c.reconcileEndpointsRemove(request.ClusterName, targetNamespace, request.UID, request.Name, pEndpoints)
 		if err != nil {
 			klog.Errorf("failed reconcile endpoints %s/%s DELETE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if vExists && pExists {
+	case vExists && pExists:
 		err := c.reconcileEndpointsUpdate(request.ClusterName, targetNamespace, request.UID, pEndpoints, vEndpoints)
 		if err != nil {
 			klog.Errorf("failed reconcile endpoints %s/%s UPDATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else {
+	default:
 		// object is gone.
 	}
 	return reconciler.Result{}, nil
 }
 
-func (c *controller) reconcileEndpointsCreate(clusterName, targetNamespace, requestUID string, ep *v1.Endpoints) error {
+func (c *controller) reconcileEndpointsCreate(clusterName, targetNamespace, requestUID string, ep *corev1.Endpoints) error {
 	newObj, err := c.Conversion().BuildSuperClusterObject(clusterName, ep)
 	if err != nil {
 		return err
 	}
 
-	pEndpoints := newObj.(*v1.Endpoints)
+	pEndpoints := newObj.(*corev1.Endpoints)
 
 	pEndpoints, err = c.endpointClient.Endpoints(targetNamespace).Create(context.TODO(), pEndpoints, metav1.CreateOptions{})
-	if errors.IsAlreadyExists(err) {
+	if apierrors.IsAlreadyExists(err) {
 		if pEndpoints.Annotations[constants.LabelUID] == requestUID {
 			klog.Infof("endpoints %s/%s of cluster %s already exist in super control plane", targetNamespace, pEndpoints.Name, clusterName)
 			return nil
@@ -115,7 +116,7 @@ func (c *controller) reconcileEndpointsCreate(clusterName, targetNamespace, requ
 	return err
 }
 
-func (c *controller) reconcileEndpointsUpdate(clusterName, targetNamespace, requestUID string, pEP, vEP *v1.Endpoints) error {
+func (c *controller) reconcileEndpointsUpdate(clusterName, targetNamespace, requestUID string, pEP, vEP *corev1.Endpoints) error {
 	if pEP.Annotations[constants.LabelUID] != requestUID {
 		return fmt.Errorf("pEndpoints %s/%s delegated UID is different from updated object.", targetNamespace, pEP.Name)
 	}
@@ -125,7 +126,7 @@ func (c *controller) reconcileEndpointsUpdate(clusterName, targetNamespace, requ
 	}
 	updatedEndpoints := conversion.Equality(c.Config, vc).CheckEndpointsEquality(pEP, vEP)
 	if updatedEndpoints != nil {
-		pEP, err = c.endpointClient.Endpoints(targetNamespace).Update(context.TODO(), updatedEndpoints, metav1.UpdateOptions{})
+		_, err = c.endpointClient.Endpoints(targetNamespace).Update(context.TODO(), updatedEndpoints, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
@@ -133,7 +134,7 @@ func (c *controller) reconcileEndpointsUpdate(clusterName, targetNamespace, requ
 	return nil
 }
 
-func (c *controller) reconcileEndpointsRemove(clusterName, targetNamespace, requestUID, name string, pEP *v1.Endpoints) error {
+func (c *controller) reconcileEndpointsRemove(clusterName, targetNamespace, requestUID, name string, pEP *corev1.Endpoints) error {
 	if pEP.Annotations[constants.LabelUID] != requestUID {
 		return fmt.Errorf("To be deleted pEndpoints %s/%s delegated UID is different from deleted object.", targetNamespace, pEP.Name)
 	}
@@ -141,7 +142,7 @@ func (c *controller) reconcileEndpointsRemove(clusterName, targetNamespace, requ
 		PropagationPolicy: &constants.DefaultDeletionPolicy,
 	}
 	err := c.endpointClient.Endpoints(targetNamespace).Delete(context.TODO(), name, *opts)
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		klog.Warningf("endpoints %s/%s of %s cluster not found in super control plane", targetNamespace, name, clusterName)
 		return nil
 	}

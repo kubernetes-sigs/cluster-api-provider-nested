@@ -19,8 +19,8 @@ import (
 	"context"
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -48,7 +48,7 @@ func (c *controller) StartPatrol(stopCh <-chan struct{}) error {
 }
 
 //  shouldBeGarbageCollected checks if the owner vc object is deleted or not. If so, the namespace should be garbage collected.
-func (c *controller) shouldBeGarbageCollected(ns *v1.Namespace) bool {
+func (c *controller) shouldBeGarbageCollected(ns *corev1.Namespace) bool {
 	vcName := ns.Annotations[constants.LabelVCName]
 	vcNamespace := ns.Annotations[constants.LabelVCNamespace]
 	if vcName == "" || vcNamespace == "" {
@@ -56,10 +56,10 @@ func (c *controller) shouldBeGarbageCollected(ns *v1.Namespace) bool {
 	}
 	vc, err := c.vcLister.VirtualClusters(vcNamespace).Get(vcName)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// vc does not exist, double check against the apiserver
 			if _, apiservererr := c.vcClient.TenancyV1alpha1().VirtualClusters(vcNamespace).Get(vcName, metav1.GetOptions{}); apiservererr != nil {
-				if errors.IsNotFound(apiservererr) {
+				if apierrors.IsNotFound(apiservererr) {
 					// vc does not exist in apiserver as well
 					return true
 				}
@@ -99,7 +99,7 @@ func (c *controller) PatrollerDo() {
 	knownClusterSet := sets.NewString(clusterNames...)
 	vSet := differ.NewDiffSet()
 	for _, cluster := range clusterNames {
-		vList := &v1.NamespaceList{}
+		vList := &corev1.NamespaceList{}
 		if err := c.MultiClusterController.List(cluster, vList); err != nil {
 			klog.Errorf("error listing namespaces from cluster %s informer cache: %v", cluster, err)
 			knownClusterSet.Delete(cluster)
@@ -130,8 +130,8 @@ func (c *controller) PatrollerDo() {
 		}
 	}
 	d.UpdateFunc = func(vObj, pObj differ.ClusterObject) {
-		v := vObj.Object.(*v1.Namespace)
-		p := pObj.Object.(*v1.Namespace)
+		v := vObj.Object.(*corev1.Namespace)
+		p := pObj.Object.(*corev1.Namespace)
 
 		// if vc object is deleted, we should reach here
 		if c.shouldBeGarbageCollected(p) || p.Annotations[constants.LabelUID] != string(v.UID) {
@@ -151,7 +151,7 @@ func (c *controller) PatrollerDo() {
 		}
 	}
 	d.DeleteFunc = func(pObj differ.ClusterObject) {
-		p := pObj.Object.(*v1.Namespace)
+		p := pObj.Object.(*corev1.Namespace)
 
 		// only delete the root ns if vc is gone
 		if p.Annotations[constants.LabelVCRootNS] == "true" {
@@ -196,7 +196,7 @@ func (c *controller) PatrollerDo() {
 	})
 }
 
-func (c *controller) deleteNamespace(ns *v1.Namespace) {
+func (c *controller) deleteNamespace(ns *corev1.Namespace) {
 	deleteOptions := &metav1.DeleteOptions{}
 	deleteOptions.Preconditions = metav1.NewUIDPreconditions(string(ns.GetUID()))
 	if err := c.namespaceClient.Namespaces().Delete(context.TODO(), ns.GetName(), *deleteOptions); err != nil {

@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/scheduler/util"
 )
 
+// Engine is an interface for scheduler handler
 type Engine interface {
 	ScheduleNamespace(*internalcache.Namespace) (*internalcache.Namespace, error)
 	EnsureNamespacePlacements(*internalcache.Namespace) error
@@ -43,10 +44,12 @@ type schedulerEngine struct {
 	cache internalcache.Cache
 }
 
+// NewSchedulerEngine creates new instance of Engine with cache
 func NewSchedulerEngine(schedulerCache internalcache.Cache) Engine {
 	return &schedulerEngine{cache: schedulerCache}
 }
 
+// GetSlicesToSchedule retrieve all slices and return unscheduled
 func GetSlicesToSchedule(namespace *internalcache.Namespace, oldPlacements map[string]int) algorithm.SliceInfoArray {
 	key := namespace.GetKey()
 	slicesToSchedule := make(algorithm.SliceInfoArray, 0)
@@ -66,7 +69,7 @@ func GetSlicesToSchedule(namespace *internalcache.Namespace, oldPlacements map[s
 			oldPlacements[cluster] = val - used
 		}
 		slicesToSchedule.Repeat(mandatory, key, size, cluster, "")
-		remainingToSchedule = remainingToSchedule - mandatory
+		remainingToSchedule -= mandatory
 	}
 
 	// use old placements as hints
@@ -77,19 +80,20 @@ func GetSlicesToSchedule(namespace *internalcache.Namespace, oldPlacements map[s
 		}
 		hinted := util.Min(num, remainingToSchedule)
 		slicesToSchedule.Repeat(hinted, key, size, "", cluster)
-		remainingToSchedule = remainingToSchedule - hinted
+		remainingToSchedule -= hinted
 	}
 	slicesToSchedule.Repeat(remainingToSchedule, key, size, "", "")
 	return slicesToSchedule
 }
 
+// GetNewPlacement finds the placement for slices
 func GetNewPlacement(slices algorithm.SliceInfoArray) (map[string]int, error) {
 	newPlacement := make(map[string]int)
 	for _, each := range slices {
 		if each.Err != nil {
 			return nil, each.Err
 		}
-		newPlacement[each.Result] = newPlacement[each.Result] + 1
+		newPlacement[each.Result]++
 	}
 	return newPlacement, nil
 }
@@ -143,7 +147,7 @@ func (e *schedulerEngine) DeScheduleNamespace(key string) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if ns := e.cache.GetNamespace(key); ns != nil {
-		e.cache.RemoveNamespace(ns)
+		return e.cache.RemoveNamespace(ns)
 	} else {
 		klog.V(4).Infof("the namespace %s has been removed, deschedule is not needed", key)
 	}
@@ -195,7 +199,7 @@ func (e *schedulerEngine) DeSchedulePod(key string) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if pod := e.cache.GetPod(key); pod != nil {
-		e.cache.RemovePod(pod)
+		return e.cache.RemovePod(pod)
 	} else {
 		klog.V(4).Infof("the pod %s has been removed, deschedule is not needed", key)
 	}

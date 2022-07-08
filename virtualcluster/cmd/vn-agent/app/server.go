@@ -20,9 +20,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"k8s.io/apiserver/pkg/server/healthz"
 	"net/http"
 	"os"
+
+	"k8s.io/apiserver/pkg/server/healthz"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"

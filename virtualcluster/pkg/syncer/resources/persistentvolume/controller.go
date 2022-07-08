@@ -19,7 +19,7 @@ package persistentvolume
 import (
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
 	coreinformers "k8s.io/client-go/informers/core/v1"
@@ -74,7 +74,7 @@ func NewPVController(config *config.SyncerConfiguration,
 	}
 
 	var err error
-	c.MultiClusterController, err = mc.NewMCController(&v1.PersistentVolume{}, &v1.PersistentVolumeList{}, c, mc.WithOptions(options.MCOptions))
+	c.MultiClusterController, err = mc.NewMCController(&corev1.PersistentVolume{}, &corev1.PersistentVolumeList{}, c, mc.WithOptions(options.MCOptions))
 	if err != nil {
 		return nil, err
 	}
@@ -90,12 +90,12 @@ func NewPVController(config *config.SyncerConfiguration,
 		c.pvcSynced = c.informer.PersistentVolumeClaims().Informer().HasSynced
 	}
 
-	c.UpwardController, err = uw.NewUWController(&v1.PersistentVolume{}, c, uw.WithOptions(options.UWOptions))
+	c.UpwardController, err = uw.NewUWController(&corev1.PersistentVolume{}, c, uw.WithOptions(options.UWOptions))
 	if err != nil {
 		return nil, err
 	}
 
-	c.Patroller, err = pa.NewPatroller(&v1.PersistentVolume{}, c, pa.WithOptions(options.PatrolOptions))
+	c.Patroller, err = pa.NewPatroller(&corev1.PersistentVolume{}, c, pa.WithOptions(options.PatrolOptions))
 	if err != nil {
 		return nil, err
 	}
@@ -104,13 +104,13 @@ func NewPVController(config *config.SyncerConfiguration,
 		cache.FilteringResourceEventHandler{
 			FilterFunc: func(obj interface{}) bool {
 				switch t := obj.(type) {
-				case *v1.PersistentVolume:
+				case *corev1.PersistentVolume:
 					return boundPersistentVolume(t)
 				case cache.DeletedFinalStateUnknown:
-					if e, ok := t.Obj.(*v1.PersistentVolume); ok {
+					if e, ok := t.Obj.(*corev1.PersistentVolume); ok {
 						return boundPersistentVolume(e)
 					}
-					utilruntime.HandleError(fmt.Errorf("unable to convert object %v to *v1.PersistentVolume", obj))
+					utilruntime.HandleError(fmt.Errorf("unable to convert object %v to *corev1.PersistentVolume", obj))
 					return false
 				default:
 					utilruntime.HandleError(fmt.Errorf("unable to handle object in super control plane persistentvolume controller: %v", obj))
@@ -120,8 +120,8 @@ func NewPVController(config *config.SyncerConfiguration,
 			Handler: cache.ResourceEventHandlerFuncs{
 				AddFunc: c.enqueuePersistentVolume,
 				UpdateFunc: func(oldObj, newObj interface{}) {
-					newPV := newObj.(*v1.PersistentVolume)
-					oldPV := oldObj.(*v1.PersistentVolume)
+					newPV := newObj.(*corev1.PersistentVolume)
+					oldPV := oldObj.(*corev1.PersistentVolume)
 					if newPV.ResourceVersion != oldPV.ResourceVersion {
 						c.enqueuePersistentVolume(newObj)
 					}
@@ -133,7 +133,7 @@ func NewPVController(config *config.SyncerConfiguration,
 	return c, nil
 }
 
-func boundPersistentVolume(e *v1.PersistentVolume) bool {
+func boundPersistentVolume(e *corev1.PersistentVolume) bool {
 	return e.Spec.ClaimRef != nil
 }
 

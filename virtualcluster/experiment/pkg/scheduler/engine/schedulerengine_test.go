@@ -20,7 +20,7 @@ import (
 	"reflect"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/scheduler/algorithm"
@@ -32,11 +32,12 @@ func classifySlicesInfoArray(in algorithm.SliceInfoArray) (map[string]int, map[s
 	hint := make(map[string]int)
 	regular := 0
 	for _, each := range in {
-		if each.Mandatory != "" {
-			mandatory[each.Mandatory] = mandatory[each.Mandatory] + 1
-		} else if each.Hint != "" {
-			hint[each.Hint] = hint[each.Hint] + 1
-		} else {
+		switch {
+		case each.Mandatory != "":
+			mandatory[each.Mandatory]++
+		case each.Hint != "":
+			hint[each.Hint]++
+		default:
 			regular++
 		}
 	}
@@ -44,13 +45,12 @@ func classifySlicesInfoArray(in algorithm.SliceInfoArray) (map[string]int, map[s
 }
 
 func TestGetSlicesToSchedule(t *testing.T) {
-
-	defaultQuota := v1.ResourceList{
+	defaultQuota := corev1.ResourceList{
 		"cpu":    resource.MustParse("10"),
 		"memory": resource.MustParse("10Gi"),
 	}
 
-	defaultQuotaSlice := v1.ResourceList{
+	defaultQuotaSlice := corev1.ResourceList{
 		"cpu":    resource.MustParse("1"),
 		"memory": resource.MustParse("1Gi"),
 	}
@@ -187,5 +187,4 @@ func TestGetSlicesToSchedule(t *testing.T) {
 			}
 		})
 	}
-
 }

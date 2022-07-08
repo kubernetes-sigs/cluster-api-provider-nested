@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/version/verflag"
 )
 
+// NewSchedulerCommand is a helper for adding cli command for Scheduler
 func NewSchedulerCommand(stopChan <-chan struct{}) *cobra.Command {
 	s, err := options.NewSchedulerOptions()
 	if err != nil {
@@ -112,7 +113,7 @@ func Run(cc *schedulerappconfig.CompletedConfig, stopCh <-chan struct{}) error {
 	defer cancel()
 
 	// Prepare a reusable runCommand function.
-	run := startScheduler(ctx, scheduler, stopCh)
+	run := startScheduler(scheduler, stopCh)
 
 	go func() {
 		select {
@@ -141,7 +142,7 @@ func Run(cc *schedulerappconfig.CompletedConfig, stopCh <-chan struct{}) error {
 	return fmt.Errorf("finished without leader elect")
 }
 
-func startScheduler(ctx context.Context, s *scheduler.Scheduler, stopCh <-chan struct{}) func(context.Context) {
+func startScheduler(s *scheduler.Scheduler, stopCh <-chan struct{}) func(context.Context) {
 	return func(ctx context.Context) {
 		s.Run(stopCh)
 		go func() {

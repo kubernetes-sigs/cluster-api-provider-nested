@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
@@ -60,6 +60,7 @@ type controller struct {
 	MultiClusterController *mc.MultiClusterController
 }
 
+// NewPodController creates new Pod controller watcher
 func NewPodController(schedulerEngine engine.Engine, config *schedulerconfig.SchedulerConfiguration) (manager.ResourceWatcher, error) {
 	c := &controller{
 		SchedulerEngine: schedulerEngine,
@@ -67,7 +68,7 @@ func NewPodController(schedulerEngine engine.Engine, config *schedulerconfig.Sch
 	}
 
 	var err error
-	c.MultiClusterController, err = mc.NewMCController(&v1.Pod{}, &v1.PodList{}, c)
+	c.MultiClusterController, err = mc.NewMCController(&corev1.Pod{}, &corev1.PodList{}, c)
 	if err != nil {
 		return nil, err
 	}
@@ -99,10 +100,10 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		return reconciler.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	pod := &v1.Pod{}
+	pod := &corev1.Pod{}
 	podKey := fmt.Sprintf("%s/%s/%s", request.ClusterName, request.Namespace, request.Name)
 	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, pod); err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return reconciler.Result{}, err
 		}
 
@@ -121,12 +122,12 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	candidate := internalcache.NewPod(request.ClusterName, pod.Namespace, pod.Name, "", util.GetPodRequirements(pod))
 	ret, err := c.SchedulerEngine.SchedulePod(candidate)
 	if err != nil {
-		c.MultiClusterController.Eventf(request.ClusterName, &v1.ObjectReference{
+		c.MultiClusterController.Eventf(request.ClusterName, &corev1.ObjectReference{
 			Kind:      "Pod",
 			Name:      pod.Name,
 			Namespace: pod.Namespace,
 			UID:       pod.UID,
-		}, v1.EventTypeNormal, "Failed", "failed to schedule pod %s/%s to any cluster: %v", request.Namespace, request.Name, err)
+		}, corev1.EventTypeNormal, "Failed", "failed to schedule pod %s/%s to any cluster: %v", request.Namespace, request.Name, err)
 		return reconciler.Result{}, fmt.Errorf("failed to schedule pod %s in %s: %v", request.Name, request.ClusterName, err)
 	}
 
@@ -153,17 +154,17 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	})
 	if err == nil {
 		klog.Infof("Successfully schedule pod %s with placement %s", ret.GetKey(), ret.GetCluster())
-		err = c.MultiClusterController.Eventf(request.ClusterName, &v1.ObjectReference{
+		err = c.MultiClusterController.Eventf(request.ClusterName, &corev1.ObjectReference{
 			Kind:      "Pod",
 			Name:      pod.Name,
 			Namespace: pod.Namespace,
 			UID:       pod.UID,
-		}, v1.EventTypeNormal, "Scheduled", "Successfully schedule pod %s to cluster %s", ret.GetKey(), ret.GetCluster())
+		}, corev1.EventTypeNormal, "Scheduled", "Successfully schedule pod %s to cluster %s", ret.GetKey(), ret.GetCluster())
 	}
 	return reconciler.Result{}, err
 }
 
-func (c *controller) skipPodSchedule(pod *v1.Pod) bool {
+func (c *controller) skipPodSchedule(pod *corev1.Pod) bool {
 	if pod.DeletionTimestamp != nil {
 		klog.Infof("skip schedule deleting pod %s/%s", pod.GetNamespace(), pod.GetName())
 		return true

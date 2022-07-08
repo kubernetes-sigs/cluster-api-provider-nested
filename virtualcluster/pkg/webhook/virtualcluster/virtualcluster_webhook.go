@@ -317,7 +317,9 @@ func genCertAndKeyFile(certData, keyData []byte, certDir string) error {
 	if certBlock == nil {
 		return fmt.Errorf("invalid certificate data")
 	}
-	pem.Encode(f, certBlock)
+	if err := pem.Encode(f, certBlock); err != nil {
+		return err
+	}
 
 	keyPath := filepath.Join(certDir, VCWebhookKeyFileName)
 	kf, err := os.OpenFile(keyPath, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
@@ -329,7 +331,9 @@ func genCertAndKeyFile(certData, keyData []byte, certDir string) error {
 	if keyBlock == nil {
 		return fmt.Errorf("invalid key data")
 	}
-	pem.Encode(kf, keyBlock)
+	if err := pem.Encode(kf, keyBlock); err != nil {
+		return err
+	}
 	log.Info("successfully generate certificate and key file")
 	return nil
 }

@@ -24,7 +24,7 @@ import (
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -56,7 +56,7 @@ func GetPodNsFromInside() (string, error) {
 
 // GetSvcClusterIP gets the ClusterIP of the service 'namespace/name'
 func GetSvcClusterIP(cli client.Client, namespace, name string) (string, error) {
-	svc := &v1.Service{}
+	svc := &corev1.Service{}
 	if err := cli.Get(context.TODO(), types.NamespacedName{
 		Namespace: namespace,
 		Name:      name,
@@ -97,7 +97,7 @@ func WaitStatefulSetReady(cli client.Client, namespace, name string, timeOutSec,
 // CreateRootNS creates the root namespace for the vc
 func CreateRootNS(cli client.Client, vc *tenancyv1alpha1.VirtualCluster) (string, error) {
 	nsName := conversion.ToClusterKey(vc)
-	namespace := &v1.Namespace{
+	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: nsName,
 			Annotations: map[string]string{

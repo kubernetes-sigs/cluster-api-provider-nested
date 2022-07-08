@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
@@ -63,6 +63,7 @@ type controller struct {
 	MultiClusterController *mc.MultiClusterController
 }
 
+// NewNamespaceController creates new NamespaceController watcher
 func NewNamespaceController(schedulerEngine engine.Engine, config *schedulerconfig.SchedulerConfiguration) (manager.ResourceWatcher, error) {
 	c := &controller{
 		SchedulerEngine: schedulerEngine,
@@ -70,7 +71,7 @@ func NewNamespaceController(schedulerEngine engine.Engine, config *schedulerconf
 	}
 
 	var err error
-	c.MultiClusterController, err = mc.NewMCController(&v1.Namespace{}, &v1.NamespaceList{}, c)
+	c.MultiClusterController, err = mc.NewMCController(&corev1.Namespace{}, &corev1.NamespaceList{}, c)
 	if err != nil {
 		return nil, err
 	}
@@ -102,9 +103,9 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		return reconciler.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	namespace := &v1.Namespace{}
+	namespace := &corev1.Namespace{}
 	if err := c.MultiClusterController.Get(request.ClusterName, "", request.Name, namespace); err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return reconciler.Result{}, err
 		}
 		klog.Infof("namespace %s/%s is removed", request.ClusterName, request.Name)
@@ -115,18 +116,19 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		return reconciler.Result{}, nil
 	}
 
-	var quota v1.ResourceList
-	quotaList := &v1.ResourceQuotaList{}
+	var quota corev1.ResourceList
+	quotaList := &corev1.ResourceQuotaList{}
 	if err := c.MultiClusterController.List(request.ClusterName, quotaList, client.InNamespace(request.Name)); err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return reconciler.Result{}, fmt.Errorf("failed to get resource quota in %s/%s: %v", request.ClusterName, request.Name, err)
 		}
-		quota = v1.ResourceList{
-			v1.ResourceCPU:    resource.MustParse("0"),
-			v1.ResourceMemory: resource.MustParse("0"),
+		quota = corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("0"),
+			corev1.ResourceMemory: resource.MustParse("0"),
 		}
+	} else {
+		quota = util.GetMaxQuota(quotaList)
 	}
-	quota = util.GetMaxQuota(quotaList)
 
 	placements, quotaSlice, err := util.GetSchedulingInfo(namespace)
 	if err != nil {
@@ -143,12 +145,11 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 			return reconciler.Result{}, fmt.Errorf("failed to unreserve namespace %s in %s: %v", request.Name, request.ClusterName, err)
 		}
 		return reconciler.Result{}, nil
-
 	}
 	numSched := 0
-	var schedule []*internalcache.Placement
+	schedule := make([]*internalcache.Placement, 0, len(placements))
 	for k, v := range placements {
-		numSched = numSched + v
+		numSched += v
 		schedule = append(schedule, internalcache.NewPlacement(k, v))
 	}
 
@@ -164,12 +165,12 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	// some (or all) slices need to be scheduled/rescheduled
 	ret, err := c.SchedulerEngine.ScheduleNamespace(candidate)
 	if err != nil {
-		c.MultiClusterController.Eventf(request.ClusterName, &v1.ObjectReference{
+		c.MultiClusterController.Eventf(request.ClusterName, &corev1.ObjectReference{
 			Kind:      "Namespace",
 			Name:      namespace.Name,
 			Namespace: namespace.Name,
 			UID:       namespace.UID,
-		}, v1.EventTypeNormal, "Failed", "Failed to schedule namespace %s: %v", request.Name, err)
+		}, corev1.EventTypeNormal, "Failed", "Failed to schedule namespace %s: %v", request.Name, err)
 		return reconciler.Result{}, fmt.Errorf("failed to schedule namespace %s in %s: %v", request.Name, request.ClusterName, err)
 	}
 	// update virtualcluster namespace with the scheduling result.
@@ -178,17 +179,17 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	if err == nil {
 		updatedPlacement, _ := json.Marshal(placementMap)
 		klog.Infof("Successfully schedule namespace %s/%s with placement %s", request.ClusterName, request.Name, string(updatedPlacement))
-		err = c.MultiClusterController.Eventf(request.ClusterName, &v1.ObjectReference{
+		err = c.MultiClusterController.Eventf(request.ClusterName, &corev1.ObjectReference{
 			Kind:      "Namespace",
 			Name:      namespace.Name,
 			Namespace: namespace.Name,
 			UID:       namespace.UID,
-		}, v1.EventTypeNormal, "Scheduled", "Successfully schedule namespace %s with placement %s", request.Name, string(updatedPlacement))
+		}, corev1.EventTypeNormal, "Scheduled", "Successfully schedule namespace %s with placement %s", request.Name, string(updatedPlacement))
 	}
 	return reconciler.Result{}, err
 }
 
-func (c *controller) updateSchedulingResult(clusterName string, namespace *v1.Namespace, placementMap map[string]int) error {
+func (c *controller) updateSchedulingResult(clusterName string, namespace *corev1.Namespace, placementMap map[string]int) error {
 	vcClient, err := c.MultiClusterController.GetClusterClient(clusterName)
 	if err != nil {
 		return fmt.Errorf("failed to get vc %s's client: %v", clusterName, err)

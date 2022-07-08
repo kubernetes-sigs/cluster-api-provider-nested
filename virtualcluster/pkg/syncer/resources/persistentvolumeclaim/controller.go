@@ -17,7 +17,7 @@ limitations under the License.
 package persistentvolumeclaim
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -65,7 +65,7 @@ func NewPVCController(config *config.SyncerConfiguration,
 	}
 
 	var err error
-	c.MultiClusterController, err = mc.NewMCController(&v1.PersistentVolumeClaim{}, &v1.PersistentVolumeClaimList{}, c, mc.WithOptions(options.MCOptions))
+	c.MultiClusterController, err = mc.NewMCController(&corev1.PersistentVolumeClaim{}, &corev1.PersistentVolumeClaimList{}, c, mc.WithOptions(options.MCOptions))
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func NewPVCController(config *config.SyncerConfiguration,
 		c.pvcSynced = informer.Core().V1().PersistentVolumeClaims().Informer().HasSynced
 	}
 
-	c.Patroller, err = pa.NewPatroller(&v1.PersistentVolumeClaim{}, c, pa.WithOptions(options.PatrolOptions))
+	c.Patroller, err = pa.NewPatroller(&corev1.PersistentVolumeClaim{}, c, pa.WithOptions(options.PatrolOptions))
 	if err != nil {
 		return nil, err
 	}

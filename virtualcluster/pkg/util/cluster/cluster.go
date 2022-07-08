@@ -26,7 +26,6 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	restclient "k8s.io/client-go/rest"
 	clientgocache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
@@ -163,7 +162,7 @@ func (c *Cluster) GetClientSet() (clientset.Interface, error) {
 		return c.client, nil
 	}
 	var err error
-	c.client, err = clientset.NewForConfig(restclient.AddUserAgent(c.RestConfig, constants.ResourceSyncerUserAgent))
+	c.client, err = clientset.NewForConfig(rest.AddUserAgent(c.RestConfig, constants.ResourceSyncerUserAgent))
 	if err != nil {
 		return nil, err
 	}

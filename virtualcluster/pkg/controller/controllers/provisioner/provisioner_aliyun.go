@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,6 +34,7 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/go-logr/logr"
+
 	tenancyv1alpha1 "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/secret"
 	aliyunutil "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/util/aliyun"
@@ -61,13 +62,13 @@ func NewProvisionerAliyun(mgr manager.Manager, log logr.Logger, provisionerTimeo
 	if !kubeutil.IsObjExist(cli, types.NamespacedName{
 		Namespace: ns,
 		Name:      aliyunutil.AliyunAkSrt,
-	}, &v1.Secret{}, log) {
+	}, &corev1.Secret{}, log) {
 		return nil, fmt.Errorf("secret/%s doesnot exist", aliyunutil.AliyunAkSrt)
 	}
 	if !kubeutil.IsObjExist(cli, types.NamespacedName{
 		Namespace: ns,
 		Name:      aliyunutil.AliyunASKConfigMap,
-	}, &v1.ConfigMap{}, log) {
+	}, &corev1.ConfigMap{}, log) {
 		return nil, fmt.Errorf("configmap/%s doesnot exist", aliyunutil.AliyunASKConfigMap)
 	}
 	return &ProvisionerAliyun{
@@ -277,7 +278,7 @@ OuterLoop:
 				break OuterLoop
 			}
 		case <-deletionTimeout:
-			return fmt.Errorf("Delete ASK(%s) timeout", vc.Name)
+			return fmt.Errorf("delete ASK(%s) timeout", vc.Name)
 		}
 	}
 

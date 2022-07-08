@@ -21,21 +21,21 @@ import (
 	"strings"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	core "k8s.io/client-go/testing"
-	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
+	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
 
-func superNamespace(name, clusterKey, tenantNamespace string) *v1.Namespace {
-	ns := &v1.Namespace{
+func superNamespace(name, clusterKey, tenantNamespace string) *corev1.Namespace {
+	ns := &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Namespace",
 			APIVersion: "v1",
@@ -55,8 +55,8 @@ func superNamespace(name, clusterKey, tenantNamespace string) *v1.Namespace {
 	return ns
 }
 
-func fakeEvent(name, namespace string, involvedObject v1.ObjectReference) *v1.Event {
-	return &v1.Event{
+func fakeEvent(name, namespace string, involvedObject corev1.ObjectReference) *corev1.Event {
+	return &corev1.Event{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Event",
 			APIVersion: "v1",
@@ -70,8 +70,8 @@ func fakeEvent(name, namespace string, involvedObject v1.ObjectReference) *v1.Ev
 	}
 }
 
-func tenantPod(name, namespace, uid string) *v1.Pod {
-	return &v1.Pod{
+func tenantPod(name, namespace, uid string) *corev1.Pod {
+	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -80,8 +80,8 @@ func tenantPod(name, namespace, uid string) *v1.Pod {
 	}
 }
 
-func tenantService(name, namespace, uid string) *v1.Service {
-	return &v1.Service{
+func tenantService(name, namespace, uid string) *corev1.Service {
+	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -90,8 +90,8 @@ func tenantService(name, namespace, uid string) *v1.Service {
 	}
 }
 
-func makeObjectReference(kind, namespace, name, uid string) v1.ObjectReference {
-	return v1.ObjectReference{
+func makeObjectReference(kind, namespace, name, uid string) corev1.ObjectReference {
+	return corev1.ObjectReference{
 		Kind:      kind,
 		Namespace: namespace,
 		Name:      name,

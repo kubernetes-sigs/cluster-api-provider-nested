@@ -19,11 +19,12 @@ package algorithm
 import (
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 
 	internalcache "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/scheduler/cache"
 )
 
+// ScheduleNamespaceSlices applies ScheduleOneSlice for each slice
 func ScheduleNamespaceSlices(slices SliceInfoArray, snapshot *internalcache.NamespaceSchedSnapshot) SliceInfoArray {
 	for i, each := range slices {
 		ret, err := ScheduleOneSlice(each, snapshot)
@@ -31,12 +32,13 @@ func ScheduleNamespaceSlices(slices SliceInfoArray, snapshot *internalcache.Name
 			slices[i].Err = err
 		} else {
 			slices[i].Result = ret
-			snapshot.AddSlices([]*internalcache.Slice{internalcache.NewSlice(each.Namespace, each.Request, ret)})
+			_ = snapshot.AddSlices([]*internalcache.Slice{internalcache.NewSlice(each.Namespace, each.Request, ret)})
 		}
 	}
 	return slices
 }
 
+// ScheduleOneSlice checks snapshot and returns cluster than that fits the slice
 func ScheduleOneSlice(slice *SliceInfo, snapshot *internalcache.NamespaceSchedSnapshot) (string, error) {
 	var err error
 	if slice.Mandatory != "" {
@@ -70,7 +72,7 @@ func ScheduleOneSlice(slice *SliceInfo, snapshot *internalcache.NamespaceSchedSn
 	return "", err
 }
 
-func fitSlice(request v1.ResourceList, cluster *internalcache.ClusterUsage) error {
+func fitSlice(request corev1.ResourceList, cluster *internalcache.ClusterUsage) error {
 	used := cluster.GetMaxAlloc()
 
 	for res, avail := range cluster.GetCapacity() {
@@ -83,6 +85,7 @@ func fitSlice(request v1.ResourceList, cluster *internalcache.ClusterUsage) erro
 	return nil
 }
 
+// SchedulePod checks snapshot and returns cluster name that fits the pod
 func SchedulePod(pod *internalcache.Pod, snapshot *internalcache.PodSchedSnapshot) (string, error) {
 	var err error
 	// First fit

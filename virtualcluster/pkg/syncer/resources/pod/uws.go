@@ -21,8 +21,8 @@ import (
 	"fmt"
 
 	pkgerr "github.com/pkg/errors"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
@@ -53,7 +53,7 @@ func (c *controller) BackPopulate(key string) error {
 
 	pPod, err := c.podLister.Pods(pNamespace).Get(pName)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil
 		}
 		return err
@@ -65,9 +65,9 @@ func (c *controller) BackPopulate(key string) error {
 		return nil
 	}
 
-	vPod := &v1.Pod{}
+	vPod := &corev1.Pod{}
 	if err := c.MultiClusterController.Get(clusterName, vNamespace, pName, vPod); err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil
 		}
 		return pkgerr.Wrapf(err, "could not find pPod %s/%s's vPod in controller cache", vNamespace, pName)
@@ -93,17 +93,17 @@ func (c *controller) BackPopulate(key string) error {
 			c.Lock()
 			defer c.Unlock()
 			if !c.removeQuiescingNodeFromClusterVNodeGCMap(clusterName, pPod.Spec.NodeName) {
-				return fmt.Errorf("The bind target vNode %s is being GCed in cluster %s, retry", pPod.Spec.NodeName, clusterName)
+				return fmt.Errorf("the bind target vNode %s is being GCed in cluster %s, retry", pPod.Spec.NodeName, clusterName)
 			}
 			return nil
 		}(); err != nil {
 			return err
 		}
 
-		if err := c.MultiClusterController.Get(clusterName, "", n.GetName(), &v1.Node{}); err != nil {
+		if err := c.MultiClusterController.Get(clusterName, "", n.GetName(), &corev1.Node{}); err != nil {
 			// check if target node has already registered on the vc
 			// before creating
-			if !errors.IsNotFound(err) {
+			if !apierrors.IsNotFound(err) {
 				return err
 			}
 			vn, err := vnode.NewVirtualNode(c.vnodeProvider, n)
@@ -111,17 +111,17 @@ func (c *controller) BackPopulate(key string) error {
 				return fmt.Errorf("failed to create virtual node %s in cluster %s from provider: %v", pPod.Spec.NodeName, clusterName, err)
 			}
 			_, err = tenantClient.CoreV1().Nodes().Create(context.TODO(), vn, metav1.CreateOptions{})
-			if err != nil && !errors.IsAlreadyExists(err) {
+			if err != nil && !apierrors.IsAlreadyExists(err) {
 				return fmt.Errorf("failed to create virtual node %s in cluster %s with err: %v", pPod.Spec.NodeName, clusterName, err)
 			}
 		}
 
-		err = tenantClient.CoreV1().Pods(vPod.Namespace).Bind(context.TODO(), &v1.Binding{
+		err = tenantClient.CoreV1().Pods(vPod.Namespace).Bind(context.TODO(), &corev1.Binding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      vPod.Name,
 				Namespace: vPod.Namespace,
 			},
-			Target: v1.ObjectReference{
+			Target: corev1.ObjectReference{
 				Kind:       "Node",
 				Name:       pPod.Spec.NodeName,
 				APIVersion: "v1",
@@ -136,8 +136,8 @@ func (c *controller) BackPopulate(key string) error {
 		}
 	} else {
 		// Check if the vNode exists in Tenant control plane.
-		if err := c.MultiClusterController.Get(clusterName, "", vPod.Spec.NodeName, &v1.Node{}); err != nil {
-			if errors.IsNotFound(err) {
+		if err := c.MultiClusterController.Get(clusterName, "", vPod.Spec.NodeName, &corev1.Node{}); err != nil {
+			if apierrors.IsNotFound(err) {
 				// We have consistency issue here, do not fix for now. TODO: add to metrics
 			}
 			return fmt.Errorf("failed to check vNode %s of vPod %s in cluster %s: %v ", vPod.Spec.NodeName, vPod.Name, clusterName, err)
@@ -149,7 +149,7 @@ func (c *controller) BackPopulate(key string) error {
 		return err
 	}
 
-	var newPod *v1.Pod
+	var newPod *corev1.Pod
 	updatedMeta := conversion.Equality(c.Config, vc).CheckUWObjectMetaEquality(&pPod.ObjectMeta, &vPod.ObjectMeta)
 	if updatedMeta != nil {
 		newPod = vPod.DeepCopy()

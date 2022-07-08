@@ -19,7 +19,7 @@ package event
 import (
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
 	coreinformers "k8s.io/client-go/informers/core/v1"
@@ -76,13 +76,13 @@ func NewEventController(config *config.SyncerConfiguration,
 		client:   clientSet.CoreV1(),
 		informer: informer.Core().V1(),
 		acceptedEventObj: map[string]client.Object{
-			"Pod":     &v1.Pod{},
-			"Service": &v1.Service{},
+			"Pod":     &corev1.Pod{},
+			"Service": &corev1.Service{},
 		},
 	}
 
 	var err error
-	c.MultiClusterController, err = mc.NewMCController(&v1.Event{}, &v1.EventList{}, c, mc.WithOptions(options.MCOptions))
+	c.MultiClusterController, err = mc.NewMCController(&corev1.Event{}, &corev1.EventList{}, c, mc.WithOptions(options.MCOptions))
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func NewEventController(config *config.SyncerConfiguration,
 		c.eventSynced = func() bool { return true }
 	}
 
-	c.UpwardController, err = uw.NewUWController(&v1.Event{}, c, uw.WithOptions(options.UWOptions))
+	c.UpwardController, err = uw.NewUWController(&corev1.Event{}, c, uw.WithOptions(options.UWOptions))
 	if err != nil {
 		return nil, err
 	}
@@ -105,13 +105,13 @@ func NewEventController(config *config.SyncerConfiguration,
 		cache.FilteringResourceEventHandler{
 			FilterFunc: func(obj interface{}) bool {
 				switch t := obj.(type) {
-				case *v1.Event:
+				case *corev1.Event:
 					return c.assignAcceptedEvent(t)
 				case cache.DeletedFinalStateUnknown:
-					if e, ok := t.Obj.(*v1.Event); ok {
+					if e, ok := t.Obj.(*corev1.Event); ok {
 						return c.assignAcceptedEvent(e)
 					}
-					utilruntime.HandleError(fmt.Errorf("unable to convert object %v to *v1.Event", obj))
+					utilruntime.HandleError(fmt.Errorf("unable to convert object %v to *corev1.Event", obj))
 					return false
 				default:
 					utilruntime.HandleError(fmt.Errorf("unable to handle object in super control plane event controller: %v", obj))
@@ -126,7 +126,7 @@ func NewEventController(config *config.SyncerConfiguration,
 	return c, nil
 }
 
-func (c *controller) assignAcceptedEvent(e *v1.Event) bool {
+func (c *controller) assignAcceptedEvent(e *corev1.Event) bool {
 	_, accepted := c.acceptedEventObj[e.InvolvedObject.Kind]
 	return accepted
 }

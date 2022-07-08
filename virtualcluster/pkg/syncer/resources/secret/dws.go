@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"reflect"
 
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -45,19 +45,19 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, error) {
 	klog.V(4).Infof("reconcile secret %s/%s for cluster %s", request.Namespace, request.Name, request.ClusterName)
 	targetNamespace := conversion.ToSuperClusterNamespace(request.ClusterName, request.Namespace)
-	vSecret := &v1.Secret{}
+	vSecret := &corev1.Secret{}
 	err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vSecret)
 	if err == nil {
 
-	} else if !errors.IsNotFound(err) {
+	} else if !apierrors.IsNotFound(err) {
 		return reconciler.Result{Requeue: true}, err
 	}
 
-	var pSecret *v1.Secret
+	var pSecret *corev1.Secret
 	secretList, err := c.secretLister.Secrets(targetNamespace).List(labels.SelectorFromSet(map[string]string{
 		constants.LabelSecretUID: request.UID,
 	}))
-	if err != nil && !errors.IsNotFound(err) {
+	if err != nil && !apierrors.IsNotFound(err) {
 		return reconciler.Result{Requeue: true}, err
 	}
 	if len(secretList) != 0 {
@@ -75,58 +75,59 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		// We need to use name to search again for normal vSecret
 		pSecret, err = c.secretLister.Secrets(targetNamespace).Get(request.Name)
 		if err == nil {
-			if pSecret.Type == v1.SecretTypeServiceAccountToken {
+			if pSecret.Type == corev1.SecretTypeServiceAccountToken {
 				pSecret = nil
 			}
-		} else if !errors.IsNotFound(err) {
+		} else if !apierrors.IsNotFound(err) {
 			return reconciler.Result{Requeue: true}, err
 		}
 	}
 
-	if !reflect.DeepEqual(vSecret, &v1.Secret{}) && pSecret == nil {
+	switch {
+	case !reflect.DeepEqual(vSecret, &corev1.Secret{}) && pSecret == nil:
 		err := c.reconcileSecretCreate(request.ClusterName, targetNamespace, request.UID, vSecret)
 		if err != nil {
 			klog.Errorf("failed reconcile secret %s/%s CREATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if reflect.DeepEqual(vSecret, &v1.Secret{}) && pSecret != nil {
+	case reflect.DeepEqual(vSecret, &corev1.Secret{}) && pSecret != nil:
 		err := c.reconcileSecretRemove(request.ClusterName, targetNamespace, request.UID, request.Name, pSecret)
 		if err != nil {
 			klog.Errorf("failed reconcile secret %s/%s DELETE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if vSecret != nil && pSecret != nil {
+	case vSecret != nil && pSecret != nil:
 		err := c.reconcileSecretUpdate(request.ClusterName, targetNamespace, request.UID, pSecret, vSecret)
 		if err != nil {
 			klog.Errorf("failed reconcile secret %s/%s UPDATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else {
+	default:
 		// object is gone.
 	}
 	return reconciler.Result{}, nil
 }
 
-func (c *controller) reconcileSecretCreate(clusterName, targetNamespace, requestUID string, secret *v1.Secret) error {
+func (c *controller) reconcileSecretCreate(clusterName, targetNamespace, requestUID string, secret *corev1.Secret) error {
 	switch secret.Type {
-	case v1.SecretTypeServiceAccountToken:
+	case corev1.SecretTypeServiceAccountToken:
 		return c.reconcileServiceAccountSecretCreate(clusterName, targetNamespace, secret)
 	default:
 		return c.reconcileNormalSecretCreate(clusterName, targetNamespace, requestUID, secret)
 	}
 }
 
-func (c *controller) reconcileServiceAccountSecretCreate(clusterName, targetNamespace string, vSecret *v1.Secret) error {
+func (c *controller) reconcileServiceAccountSecretCreate(clusterName, targetNamespace string, vSecret *corev1.Secret) error {
 	newObj, err := c.Conversion().BuildSuperClusterObject(clusterName, vSecret)
 	if err != nil {
 		return err
 	}
 
-	pSecret := newObj.(*v1.Secret)
+	pSecret := newObj.(*corev1.Secret)
 	conversion.VC(c.MultiClusterController, "").ServiceAccountTokenSecret(pSecret).Mutate(vSecret, clusterName)
 
 	_, err = c.secretClient.Secrets(targetNamespace).Create(context.TODO(), pSecret, metav1.CreateOptions{})
-	if errors.IsAlreadyExists(err) {
+	if apierrors.IsAlreadyExists(err) {
 		klog.Infof("secret %s/%s of cluster %s already exist in super control plane", targetNamespace, pSecret.Name, clusterName)
 		return nil
 	}
@@ -134,7 +135,7 @@ func (c *controller) reconcileServiceAccountSecretCreate(clusterName, targetName
 	return err
 }
 
-func (c *controller) reconcileServiceAccountSecretUpdate(clusterName, targetNamespace string, pSecret, vSecret *v1.Secret) error {
+func (c *controller) reconcileServiceAccountSecretUpdate(clusterName, targetNamespace string, pSecret, vSecret *corev1.Secret) error {
 	updatedBinaryData, equal := conversion.Equality(c.Config, nil).CheckBinaryDataEquality(pSecret.Data, vSecret.Data)
 	if equal {
 		return nil
@@ -150,14 +151,14 @@ func (c *controller) reconcileServiceAccountSecretUpdate(clusterName, targetName
 	return nil
 }
 
-func (c *controller) reconcileNormalSecretCreate(clusterName, targetNamespace, requestUID string, secret *v1.Secret) error {
+func (c *controller) reconcileNormalSecretCreate(clusterName, targetNamespace, requestUID string, secret *corev1.Secret) error {
 	newObj, err := c.Conversion().BuildSuperClusterObject(clusterName, secret)
 	if err != nil {
 		return err
 	}
 
-	pSecret, err := c.secretClient.Secrets(targetNamespace).Create(context.TODO(), newObj.(*v1.Secret), metav1.CreateOptions{})
-	if errors.IsAlreadyExists(err) {
+	pSecret, err := c.secretClient.Secrets(targetNamespace).Create(context.TODO(), newObj.(*corev1.Secret), metav1.CreateOptions{})
+	if apierrors.IsAlreadyExists(err) {
 		if pSecret.Annotations[constants.LabelUID] == requestUID {
 			klog.Infof("secret %s/%s of cluster %s already exist in super control plane", targetNamespace, secret.Name, clusterName)
 			return nil
@@ -169,16 +170,16 @@ func (c *controller) reconcileNormalSecretCreate(clusterName, targetNamespace, r
 	return err
 }
 
-func (c *controller) reconcileSecretUpdate(clusterName, targetNamespace, requestUID string, pSecret, vSecret *v1.Secret) error {
+func (c *controller) reconcileSecretUpdate(clusterName, targetNamespace, requestUID string, pSecret, vSecret *corev1.Secret) error {
 	switch vSecret.Type {
-	case v1.SecretTypeServiceAccountToken:
+	case corev1.SecretTypeServiceAccountToken:
 		return c.reconcileServiceAccountSecretUpdate(clusterName, targetNamespace, pSecret, vSecret)
 	default:
 		return c.reconcileNormalSecretUpdate(clusterName, targetNamespace, requestUID, pSecret, vSecret)
 	}
 }
 
-func (c *controller) reconcileNormalSecretUpdate(clusterName, targetNamespace, requestUID string, pSecret, vSecret *v1.Secret) error {
+func (c *controller) reconcileNormalSecretUpdate(clusterName, targetNamespace, requestUID string, pSecret, vSecret *corev1.Secret) error {
 	if pSecret.Annotations[constants.LabelUID] != requestUID {
 		return fmt.Errorf("pEndpoints %s/%s delegated UID is different from updated object.", targetNamespace, pSecret.Name)
 	}
@@ -188,7 +189,7 @@ func (c *controller) reconcileNormalSecretUpdate(clusterName, targetNamespace, r
 	}
 	updatedSecret := conversion.Equality(c.Config, vc).CheckSecretEquality(pSecret, vSecret)
 	if updatedSecret != nil {
-		pSecret, err = c.secretClient.Secrets(targetNamespace).Update(context.TODO(), updatedSecret, metav1.UpdateOptions{})
+		_, err = c.secretClient.Secrets(targetNamespace).Update(context.TODO(), updatedSecret, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
@@ -197,14 +198,14 @@ func (c *controller) reconcileNormalSecretUpdate(clusterName, targetNamespace, r
 	return nil
 }
 
-func (c *controller) reconcileSecretRemove(clusterName, targetNamespace, requestUID, name string, secret *v1.Secret) error {
+func (c *controller) reconcileSecretRemove(clusterName, targetNamespace, requestUID, name string, secret *corev1.Secret) error {
 	if _, isSaSecret := secret.Labels[constants.LabelSecretUID]; isSaSecret {
 		return c.reconcileServiceAccountTokenSecretRemove(clusterName, targetNamespace, requestUID, name)
 	}
 	return c.reconcileNormalSecretRemove(clusterName, targetNamespace, requestUID, name, secret)
 }
 
-func (c *controller) reconcileNormalSecretRemove(clusterName, targetNamespace, requestUID, name string, pSecret *v1.Secret) error {
+func (c *controller) reconcileNormalSecretRemove(clusterName, targetNamespace, requestUID, name string, pSecret *corev1.Secret) error {
 	if pSecret.Annotations[constants.LabelUID] != requestUID {
 		return fmt.Errorf("To be deleted pSecret %s/%s delegated UID is different from deleted object.", targetNamespace, pSecret.Name)
 	}
@@ -212,7 +213,7 @@ func (c *controller) reconcileNormalSecretRemove(clusterName, targetNamespace, r
 		PropagationPolicy: &constants.DefaultDeletionPolicy,
 	}
 	err := c.secretClient.Secrets(targetNamespace).Delete(context.TODO(), name, *opts)
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		klog.Warningf("secret %s/%s of cluster is not found in super control plane", targetNamespace, name)
 		return nil
 	}
@@ -228,7 +229,7 @@ func (c *controller) reconcileServiceAccountTokenSecretRemove(clusterName, targe
 			constants.LabelSecretUID: requestUID,
 		}).String(),
 	})
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		klog.Warningf("secret %s/%s of cluster is not found in super control plane", targetNamespace, name)
 		return nil
 	}

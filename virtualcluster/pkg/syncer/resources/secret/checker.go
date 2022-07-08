@@ -22,8 +22,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -76,7 +76,7 @@ func (c *controller) PatrollerDo() {
 	klog.V(4).Infof("check secrets consistency in super")
 	for _, pSecret := range secretList {
 		// service account token type secret are managed by super individually.
-		if pSecret.Type == v1.SecretTypeServiceAccountToken {
+		if pSecret.Type == corev1.SecretTypeServiceAccountToken {
 			continue
 		}
 
@@ -93,9 +93,9 @@ func (c *controller) PatrollerDo() {
 			vSecretName = secretName
 		}
 		// check whether secret is exists in tenant.
-		vSecret := &v1.Secret{}
+		vSecret := &corev1.Secret{}
 		err := c.MultiClusterController.Get(clusterName, vNamespace, vSecretName, vSecret)
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			shouldDelete = true
 		}
 
@@ -121,7 +121,7 @@ func (c *controller) PatrollerDo() {
 }
 
 func (c *controller) checkSecretOfTenantCluster(clusterName string) {
-	secretList := &v1.SecretList{}
+	secretList := &corev1.SecretList{}
 	err := c.MultiClusterController.List(clusterName, secretList)
 	if err != nil {
 		klog.Errorf("error listing secrets from cluster %s informer cache: %v", clusterName, err)
@@ -132,13 +132,13 @@ func (c *controller) checkSecretOfTenantCluster(clusterName string) {
 	for i, vSecret := range secretList.Items {
 		targetNamespace := conversion.ToSuperClusterNamespace(clusterName, vSecret.Namespace)
 
-		if vSecret.Type == v1.SecretTypeServiceAccountToken {
+		if vSecret.Type == corev1.SecretTypeServiceAccountToken {
 			c.checkServiceAccountTokenTypeSecretOfTenantCluster(clusterName, targetNamespace, &secretList.Items[i])
 			continue
 		}
 
 		pSecret, err := c.secretLister.Secrets(targetNamespace).Get(vSecret.Name)
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			if err := c.MultiClusterController.RequeueObject(clusterName, &secretList.Items[i]); err != nil {
 				klog.Errorf("error requeue vSecret %v/%v in cluster %s: %v", vSecret.Namespace, vSecret.Name, clusterName, err)
 			} else {
@@ -170,11 +170,11 @@ func (c *controller) checkSecretOfTenantCluster(clusterName string) {
 	}
 }
 
-func (c *controller) checkServiceAccountTokenTypeSecretOfTenantCluster(clusterName, targetNamespace string, vSecret *v1.Secret) {
+func (c *controller) checkServiceAccountTokenTypeSecretOfTenantCluster(clusterName, targetNamespace string, vSecret *corev1.Secret) {
 	secretList, err := c.secretLister.Secrets(targetNamespace).List(labels.SelectorFromSet(map[string]string{
 		constants.LabelSecretUID: string(vSecret.UID),
 	}))
-	if errors.IsNotFound(err) || len(secretList) == 0 {
+	if apierrors.IsNotFound(err) || len(secretList) == 0 {
 		if err := c.MultiClusterController.RequeueObject(clusterName, vSecret); err != nil {
 			klog.Errorf("error requeue service account type vSecret %v/%v in cluster %s: %v", vSecret.Namespace, vSecret.Name, clusterName, err)
 		} else {

@@ -19,7 +19,7 @@ package secret
 import (
 	"crypto/rsa"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	vcpki "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/pki"
@@ -27,57 +27,64 @@ import (
 )
 
 const (
-	RootCASecretName            = "root-ca"
-	APIServerCASecretName       = "apiserver-ca"
-	ETCDCASecretName            = "etcd-ca"
-	FrontProxyCASecretName      = "front-proxy-ca"
+	// RootCASecretName is the name for RootCA secret
+	RootCASecretName = "root-ca"
+	// APIServerCASecretName name of APIServerCA secret
+	APIServerCASecretName = "apiserver-ca"
+	// ETCDCASecretName name of ETCDCa secret
+	ETCDCASecretName = "etcd-ca"
+	// FrontProxyCASecretName name of FrontProxyCA secret
+	FrontProxyCASecretName = "front-proxy-ca"
+	// ControllerManagerSecretName name of ControllerManager kubeconfig secret
 	ControllerManagerSecretName = "controller-manager-kubeconfig"
-	AdminSecretName             = "admin-kubeconfig"
-	ServiceAccountSecretName    = "serviceaccount-rsa"
+	// AdminSecretName name of secret with kubeconfig for admin
+	AdminSecretName = "admin-kubeconfig"
+	// ServiceAccountSecretName name of the secret with ServiceAccount rsa
+	ServiceAccountSecretName = "serviceaccount-rsa"
 )
 
 // RsaKeyToSecret encapsulates rsaKey into a secret object
-func RsaKeyToSecret(name, namespace string, rsaKey *rsa.PrivateKey) (*v1.Secret, error) {
+func RsaKeyToSecret(name, namespace string, rsaKey *rsa.PrivateKey) (*corev1.Secret, error) {
 	encodedPubKey, err := pkiutil.EncodePublicKeyPEM(&rsaKey.PublicKey)
 	if err != nil {
 		return nil, err
 	}
-	return &v1.Secret{
+	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Type: v1.SecretTypeTLS,
+		Type: corev1.SecretTypeTLS,
 		Data: map[string][]byte{
-			v1.TLSCertKey:       encodedPubKey,
-			v1.TLSPrivateKeyKey: vcpki.EncodePrivateKeyPEM(rsaKey),
+			corev1.TLSCertKey:       encodedPubKey,
+			corev1.TLSPrivateKeyKey: vcpki.EncodePrivateKeyPEM(rsaKey),
 		},
 	}, nil
 }
 
 // CrtKeyPairToSecret encapsulates ca/key pair ckp into a secret object
-func CrtKeyPairToSecret(name, namespace string, ckp *vcpki.CrtKeyPair) *v1.Secret {
-	return &v1.Secret{
+func CrtKeyPairToSecret(name, namespace string, ckp *vcpki.CrtKeyPair) *corev1.Secret {
+	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Type: v1.SecretTypeTLS,
+		Type: corev1.SecretTypeTLS,
 		Data: map[string][]byte{
-			v1.TLSCertKey:       pkiutil.EncodeCertPEM(ckp.Crt),
-			v1.TLSPrivateKeyKey: vcpki.EncodePrivateKeyPEM(ckp.Key),
+			corev1.TLSCertKey:       pkiutil.EncodeCertPEM(ckp.Crt),
+			corev1.TLSPrivateKeyKey: vcpki.EncodePrivateKeyPEM(ckp.Key),
 		},
 	}
 }
 
 // KubeconfigToSecret encapsulates kubeconfig cfgContent into a secret object
-func KubeconfigToSecret(name, namespace string, cfgContent string) *v1.Secret {
-	return &v1.Secret{
+func KubeconfigToSecret(name, namespace string, cfgContent string) *corev1.Secret {
+	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Type: v1.SecretTypeOpaque,
+		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
 			name: []byte(cfgContent),
 		},

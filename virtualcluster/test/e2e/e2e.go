@@ -45,8 +45,6 @@ var _ = ginkgo.SynchronizedAfterSuite(func() {
 // This function is called on each Ginkgo node in parallel mode.
 func RunE2ETests(t *testing.T) {
 	runtime.ReallyCrash = true
-	//logs.InitLogs()
-	//defer logs.FlushLogs()
 
 	gomega.RegisterFailHandler(ginkgowrapper.Fail)
 	// Disable skipped tests unless they are explicitly requested.

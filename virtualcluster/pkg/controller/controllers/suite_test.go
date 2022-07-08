@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis"
-	//+kubebuilder:scaffold:imports
+	// +kubebuilder:scaffold:imports
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -45,7 +45,6 @@ var cli client.Client
 var testEnv *envtest.Environment
 
 const timeout = time.Second * 20
-const longTimeout = time.Second * 60
 const interval = time.Millisecond * 250
 
 func TestAPIs(t *testing.T) {
@@ -72,7 +71,7 @@ var _ = BeforeSuite(func(done Done) {
 	err = apis.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	//+kubebuilder:scaffold:scheme
+	// +kubebuilder:scaffold:scheme
 
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,

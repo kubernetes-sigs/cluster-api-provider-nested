@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
@@ -91,7 +91,7 @@ func (c *schedulerCache) RemoveTenant(n string) error {
 	var err error
 	i := -1
 	for _, each := range nsToDelete {
-		err := c.removeNamespaceWithoutLock(each)
+		err = c.removeNamespaceWithoutLock(each)
 		if err != nil {
 			break
 		}
@@ -99,7 +99,7 @@ func (c *schedulerCache) RemoveTenant(n string) error {
 	}
 	if err != nil {
 		for ; i > -1; i-- {
-			c.addNamespaceWithoutLock(nsToDelete[i])
+			_ = c.addNamespaceWithoutLock(nsToDelete[i])
 		}
 	} else {
 		delete(c.tenants, n)
@@ -187,7 +187,7 @@ func (c *schedulerCache) GetNamespace(key string) *Namespace {
 	return c.namespaces[key]
 }
 
-func (c *schedulerCache) addNamespaceToCluster(cluster, key string, num int, slice v1.ResourceList) error {
+func (c *schedulerCache) addNamespaceToCluster(cluster, key string, num int, slice corev1.ResourceList) error {
 	if num == 0 {
 		return nil
 	}
@@ -240,7 +240,7 @@ func (c *schedulerCache) addNamespaceWithoutLock(namespace *Namespace) error {
 
 	sched := 0
 	for _, each := range clone.schedule {
-		sched = sched + each.num
+		sched += each.num
 	}
 	if expect != sched {
 		return fmt.Errorf("namespace %s has %d slices, but only %d have been scheduled, it cannot be added to cache", key, expect, sched)
@@ -258,7 +258,7 @@ func (c *schedulerCache) addNamespaceWithoutLock(namespace *Namespace) error {
 	if err != nil {
 		for ; i > -1; i-- {
 			// We don't expect any error here.
-			c.removeNamespaceFromCluster(clone.schedule[i].cluster, key)
+			_ = c.removeNamespaceFromCluster(clone.schedule[i].cluster, key)
 		}
 	} else {
 		c.namespaces[key] = clone
@@ -298,7 +298,7 @@ func (c *schedulerCache) removeNamespaceWithoutLock(namespace *Namespace) error 
 	// Rollback if any error happens.
 	if err != nil {
 		for ; i > -1; i-- {
-			c.addNamespaceToCluster(namespace.schedule[i].cluster, key, namespace.schedule[i].num, namespace.quotaSlice)
+			_ = c.addNamespaceToCluster(namespace.schedule[i].cluster, key, namespace.schedule[i].num, namespace.quotaSlice)
 		}
 	} else {
 		delete(c.namespaces, key)
@@ -319,7 +319,7 @@ func (c *schedulerCache) updateNamespaceWithoutLock(oldNamespace, newNamespace *
 
 	err = c.addNamespaceWithoutLock(newNamespace)
 	if err != nil {
-		c.addNamespaceWithoutLock(oldNamespace)
+		_ = c.addNamespaceWithoutLock(oldNamespace)
 		return err
 	}
 	return nil
@@ -409,7 +409,7 @@ func (c *schedulerCache) RemoveProvision(clustername, key string) error {
 	return clusterState.RemoveProvision(key)
 }
 
-func (c *schedulerCache) UpdateClusterCapacity(clustername string, newCapacity v1.ResourceList) error {
+func (c *schedulerCache) UpdateClusterCapacity(clustername string, newCapacity corev1.ResourceList) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

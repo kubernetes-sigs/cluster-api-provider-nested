@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -40,19 +40,19 @@ import (
 const testTenantServiceAccountTokenSecretName = "default-token-jbrn5"
 const testSuperServiceAccountTokenSecretName = "default-token-12345"
 
-func tenantPod(name, namespace, uid string) *v1.Pod {
-	return &v1.Pod{
+func tenantPod(name, namespace, uid string) *corev1.Pod {
+	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 			UID:       types.UID(uid),
 		},
-		Spec: v1.PodSpec{
+		Spec: corev1.PodSpec{
 			ServiceAccountName: "default",
-			Containers: []v1.Container{
+			Containers: []corev1.Container{
 				{
 					Image: "busybox",
-					VolumeMounts: []v1.VolumeMount{
+					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      testTenantServiceAccountTokenSecretName,
 							MountPath: "/var/run/secrets/kubernetes.io/serviceaccount",
@@ -64,27 +64,27 @@ func tenantPod(name, namespace, uid string) *v1.Pod {
 					},
 				},
 			},
-			Volumes: []v1.Volume{
+			Volumes: []corev1.Volume{
 				{
 					Name: testTenantServiceAccountTokenSecretName,
-					VolumeSource: v1.VolumeSource{
-						Secret: &v1.SecretVolumeSource{
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
 							SecretName: testTenantServiceAccountTokenSecretName,
 						},
 					},
 				},
 				{
 					Name: "i-want-to-mount",
-					VolumeSource: v1.VolumeSource{
-						Secret: &v1.SecretVolumeSource{
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
 							SecretName: testTenantServiceAccountTokenSecretName,
 						},
 					},
 				},
 				{
 					Name: "i-do-not-exist-optional",
-					VolumeSource: v1.VolumeSource{
-						Secret: &v1.SecretVolumeSource{
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
 							SecretName: "i-do-not-exist",
 							Optional:   pointer.Bool(true),
 						},
@@ -95,31 +95,31 @@ func tenantPod(name, namespace, uid string) *v1.Pod {
 	}
 }
 
-func tenantSecret(name, namespace, uid string) *v1.Secret {
-	return &v1.Secret{
+func tenantSecret(name, namespace, uid string) *corev1.Secret {
+	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 			UID:       types.UID(uid),
 		},
-		Type: v1.SecretTypeServiceAccountToken,
+		Type: corev1.SecretTypeServiceAccountToken,
 	}
 }
 
-func applyNodeNameToPod(vPod *v1.Pod, nodeName string) *v1.Pod {
+func applyNodeNameToPod(vPod *corev1.Pod, nodeName string) *corev1.Pod {
 	vPod.Spec.NodeName = nodeName
 	return vPod
 }
 
-func applyDeletionTimestampToPod(vPod *v1.Pod, t time.Time, gracePeriodSeconds int64) *v1.Pod {
+func applyDeletionTimestampToPod(vPod *corev1.Pod, t time.Time, gracePeriodSeconds int64) *corev1.Pod {
 	metaTime := metav1.NewTime(t)
 	vPod.DeletionTimestamp = &metaTime
 	vPod.DeletionGracePeriodSeconds = pointer.Int64Ptr(gracePeriodSeconds)
 	return vPod
 }
 
-func superPod(clusterKey, vcName, vcNamespace, name, namespace, uid string) *v1.Pod {
-	return &v1.Pod{
+func superPod(clusterKey, vcName, vcNamespace, name, namespace, uid string) *corev1.Pod {
+	return &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
@@ -141,13 +141,13 @@ func superPod(clusterKey, vcName, vcNamespace, name, namespace, uid string) *v1.
 				constants.LabelVCNamespace:     vcNamespace,
 			},
 		},
-		Spec: v1.PodSpec{
+		Spec: corev1.PodSpec{
 			ServiceAccountName:           "default",
 			AutomountServiceAccountToken: pointer.BoolPtr(false),
-			Containers: []v1.Container{
+			Containers: []corev1.Container{
 				{
 					Image: "busybox",
-					VolumeMounts: []v1.VolumeMount{
+					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      testSuperServiceAccountTokenSecretName,
 							MountPath: "/var/run/secrets/kubernetes.io/serviceaccount",
@@ -157,7 +157,7 @@ func superPod(clusterKey, vcName, vcNamespace, name, namespace, uid string) *v1.
 							MountPath: "/path",
 						},
 					},
-					Env: []v1.EnvVar{
+					Env: []corev1.EnvVar{
 						{
 							Name:  "KUBERNETES_SERVICE_HOST",
 							Value: "kubernetes",
@@ -165,34 +165,34 @@ func superPod(clusterKey, vcName, vcNamespace, name, namespace, uid string) *v1.
 					},
 				},
 			},
-			Volumes: []v1.Volume{
+			Volumes: []corev1.Volume{
 				{
 					Name: testSuperServiceAccountTokenSecretName,
-					VolumeSource: v1.VolumeSource{
-						Secret: &v1.SecretVolumeSource{
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
 							SecretName: testSuperServiceAccountTokenSecretName,
 						},
 					},
 				},
 				{
 					Name: "i-want-to-mount",
-					VolumeSource: v1.VolumeSource{
-						Secret: &v1.SecretVolumeSource{
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
 							SecretName: testSuperServiceAccountTokenSecretName,
 						},
 					},
 				},
 				{
 					Name: "i-do-not-exist-optional",
-					VolumeSource: v1.VolumeSource{
-						Secret: &v1.SecretVolumeSource{
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
 							SecretName: "i-do-not-exist",
 							Optional:   pointer.Bool(true),
 						},
 					},
 				},
 			},
-			HostAliases: []v1.HostAlias{
+			HostAliases: []corev1.HostAlias{
 				{
 					Hostnames: []string{"kubernetes", "kubernetes.default", "kubernetes.default.svc"},
 				},
@@ -201,14 +201,14 @@ func superPod(clusterKey, vcName, vcNamespace, name, namespace, uid string) *v1.
 	}
 }
 
-func tenantServiceAccount(name, namespace, uid string) *v1.ServiceAccount {
-	return &v1.ServiceAccount{
+func tenantServiceAccount(name, namespace, uid string) *corev1.ServiceAccount {
+	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 			UID:       types.UID(uid),
 		},
-		Secrets: []v1.ObjectReference{
+		Secrets: []corev1.ObjectReference{
 			{
 				Name: testTenantServiceAccountTokenSecretName,
 			},
@@ -216,8 +216,8 @@ func tenantServiceAccount(name, namespace, uid string) *v1.ServiceAccount {
 	}
 }
 
-func superService(name, namespace, uid string, clusterIP string) *v1.Service {
-	svc := &v1.Service{
+func superService(name, namespace, uid string, clusterIP string) *corev1.Service {
+	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -232,8 +232,8 @@ func superService(name, namespace, uid string, clusterIP string) *v1.Service {
 	return svc
 }
 
-func superSecret(name, namespace, uid string) *v1.Secret {
-	return &v1.Secret{
+func superSecret(name, namespace, uid string) *corev1.Secret {
+	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -264,7 +264,7 @@ func TestDWPodCreation(t *testing.T) {
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
 		ExistingObjectInTenant []runtime.Object
-		ExpectedCreatedPods    []*v1.Pod
+		ExpectedCreatedPods    []*corev1.Pod
 		ExpectedError          string
 	}{
 		"new Pod": {
@@ -277,7 +277,7 @@ func TestDWPodCreation(t *testing.T) {
 				tenantSecret(testTenantServiceAccountTokenSecretName, "default", "s12345"),
 				tenantServiceAccount("default", "default", "12345"),
 			},
-			ExpectedCreatedPods: []*v1.Pod{superPod(defaultClusterKey, defaultVCName, defaultVCNamespace, "pod-1", "default", "12345")},
+			ExpectedCreatedPods: []*corev1.Pod{superPod(defaultClusterKey, defaultVCName, defaultVCNamespace, "pod-1", "default", "12345")},
 		},
 		"load pod which under deletion": {
 			ExistingObjectInSuper: []runtime.Object{},
@@ -318,7 +318,7 @@ func TestDWPodCreation(t *testing.T) {
 				tenantSecret(testTenantServiceAccountTokenSecretName+"dup", "default", "s123456"),
 				tenantServiceAccount("default", "default", "12345"),
 			},
-			ExpectedCreatedPods: []*v1.Pod{superPod(defaultClusterKey, defaultVCName, defaultVCNamespace, "pod-1", "default", "12345")},
+			ExpectedCreatedPods: []*corev1.Pod{superPod(defaultClusterKey, defaultVCName, defaultVCNamespace, "pod-1", "default", "12345")},
 		},
 		"multi service account token secret": {
 			ExistingObjectInSuper: []runtime.Object{
@@ -332,7 +332,7 @@ func TestDWPodCreation(t *testing.T) {
 				tenantSecret(testTenantServiceAccountTokenSecretName+"dup", "default", "s123456"),
 				tenantServiceAccount("default", "default", "12345"),
 			},
-			ExpectedCreatedPods: []*v1.Pod{superPod(defaultClusterKey, defaultVCName, defaultVCNamespace, "pod-1", "default", "12345")},
+			ExpectedCreatedPods: []*corev1.Pod{superPod(defaultClusterKey, defaultVCName, defaultVCNamespace, "pod-1", "default", "12345")},
 		},
 		"without any services": {
 			ExistingObjectInSuper: []runtime.Object{
@@ -355,7 +355,7 @@ func TestDWPodCreation(t *testing.T) {
 				tenantSecret(testTenantServiceAccountTokenSecretName, "kube-system", "s12345"),
 				tenantServiceAccount("default", "kube-system", "12345"),
 			},
-			ExpectedCreatedPods: []*v1.Pod{superPod(defaultClusterKey, defaultVCName, defaultVCNamespace, "pod-1", "kube-system", "12345")},
+			ExpectedCreatedPods: []*corev1.Pod{superPod(defaultClusterKey, defaultVCName, defaultVCNamespace, "pod-1", "kube-system", "12345")},
 			ExpectedError:       "",
 		},
 		"new pod with nodeName": {
@@ -419,7 +419,7 @@ func TestDWPodCreation(t *testing.T) {
 				if !action.Matches("create", "pods") {
 					t.Errorf("%s: Unexpected action %s", k, action)
 				}
-				createdPod := action.(core.CreateAction).GetObject().(*v1.Pod)
+				createdPod := action.(core.CreateAction).GetObject().(*corev1.Pod)
 
 				bb, _ := json.Marshal(createdPod)
 				fmt.Printf("==== %s\n\n\n\n", string(bb))
@@ -456,7 +456,7 @@ func TestDWPodDeletion(t *testing.T) {
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
 		ExistingObjectInTenant []runtime.Object
-		EnqueueObject          *v1.Pod
+		EnqueueObject          *corev1.Pod
 		ExpectedDeletedPods    []string
 		ExpectedError          string
 	}{
@@ -550,7 +550,7 @@ func TestDWPodDeletion(t *testing.T) {
 	}
 }
 
-func applySpecToPod(pod *v1.Pod, spec *v1.PodSpec) *v1.Pod {
+func applySpecToPod(pod *corev1.Pod, spec *corev1.PodSpec) *corev1.Pod {
 	pod.Spec = *spec.DeepCopy()
 	return pod
 }
@@ -570,8 +570,8 @@ func TestDWPodUpdate(t *testing.T) {
 
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
 	defaultVCName, defaultVCNamespace := testTenant.Name, testTenant.Namespace
-	spec1 := &v1.PodSpec{
-		Containers: []v1.Container{
+	spec1 := &corev1.PodSpec{
+		Containers: []corev1.Container{
 			{
 				Image: "ngnix",
 				Name:  "c-1",
@@ -580,8 +580,8 @@ func TestDWPodUpdate(t *testing.T) {
 		NodeName: "i-xxx",
 	}
 
-	spec2 := &v1.PodSpec{
-		Containers: []v1.Container{
+	spec2 := &corev1.PodSpec{
+		Containers: []corev1.Container{
 			{
 				Image: "busybox",
 				Name:  "c-1",
@@ -590,8 +590,8 @@ func TestDWPodUpdate(t *testing.T) {
 		NodeName: "i-xxx",
 	}
 
-	spec3 := &v1.PodSpec{
-		Containers: []v1.Container{
+	spec3 := &corev1.PodSpec{
+		Containers: []corev1.Container{
 			{
 				Image: "ngnix",
 				Name:  "c-1",

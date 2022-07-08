@@ -46,6 +46,7 @@ func Get() Info {
 	}
 }
 
+// BriefVersion returns short version from commit
 func BriefVersion() string {
 	var commit string
 	if len(gitCommit) > 7 {

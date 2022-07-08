@@ -19,7 +19,7 @@ import (
 	"context"
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -64,7 +64,7 @@ func (c *controller) PatrollerDo() {
 	knownClusterSet := sets.NewString(clusterNames...)
 	vSet := differ.NewDiffSet()
 	for _, cluster := range clusterNames {
-		vList := &v1.ServiceAccountList{}
+		vList := &corev1.ServiceAccountList{}
 		if err := c.MultiClusterController.List(cluster, vList); err != nil {
 			klog.Errorf("error listing service accounts from cluster %s informer cache: %v", cluster, err)
 			knownClusterSet.Delete(cluster)
@@ -89,8 +89,8 @@ func (c *controller) PatrollerDo() {
 		}
 	}
 	d.UpdateFunc = func(vObj, pObj differ.ClusterObject) {
-		v := vObj.Object.(*v1.ServiceAccount)
-		p := pObj.Object.(*v1.ServiceAccount)
+		v := vObj.Object.(*corev1.ServiceAccount)
+		p := pObj.Object.(*corev1.ServiceAccount)
 
 		if p.Annotations[constants.LabelUID] != string(v.UID) {
 			klog.Warningf("Found pServiceAccount %s delegated UID is different from tenant object", pObj.Key)

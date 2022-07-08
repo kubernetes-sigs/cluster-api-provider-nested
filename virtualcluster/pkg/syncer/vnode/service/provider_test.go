@@ -20,18 +20,18 @@ import (
 	"reflect"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-func newNode() *v1.Node {
-	return &v1.Node{
-		Status: v1.NodeStatus{
-			Addresses: []v1.NodeAddress{
-				v1.NodeAddress{
-					Type:    v1.NodeInternalIP,
+func newNode() *corev1.Node {
+	return &corev1.Node{
+		Status: corev1.NodeStatus{
+			Addresses: []corev1.NodeAddress{
+				{
+					Type:    corev1.NodeInternalIP,
 					Address: "192.168.0.2",
 				},
 			},
@@ -40,12 +40,12 @@ func newNode() *v1.Node {
 }
 
 func newClient() clientset.Interface {
-	return fake.NewSimpleClientset(&v1.Service{
+	return fake.NewSimpleClientset(&corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vn-agent",
 			Namespace: "vc-manager",
 		},
-		Spec: v1.ServiceSpec{
+		Spec: corev1.ServiceSpec{
 			ClusterIP: "192.168.0.5",
 		},
 	})
@@ -58,14 +58,14 @@ func Test_provider_GetNodeAddress(t *testing.T) {
 		client               clientset.Interface
 	}
 	type args struct {
-		node *v1.Node
+		node *corev1.Node
 	}
 
 	tests := []struct {
 		name    string
 		fields  fields
 		args    args
-		want    []v1.NodeAddress
+		want    []corev1.NodeAddress
 		wantErr bool
 	}{
 		{
@@ -75,7 +75,7 @@ func Test_provider_GetNodeAddress(t *testing.T) {
 				client:               newClient(),
 			},
 			args:    args{newNode()},
-			want:    []v1.NodeAddress{},
+			want:    []corev1.NodeAddress{},
 			wantErr: true,
 		},
 		{
@@ -85,9 +85,9 @@ func Test_provider_GetNodeAddress(t *testing.T) {
 				client:               newClient(),
 			},
 			args: args{newNode()},
-			want: []v1.NodeAddress{
-				v1.NodeAddress{
-					Type:    v1.NodeInternalIP,
+			want: []corev1.NodeAddress{
+				{
+					Type:    corev1.NodeInternalIP,
 					Address: "192.168.0.5",
 				},
 			},

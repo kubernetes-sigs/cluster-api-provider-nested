@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
@@ -77,7 +77,7 @@ func WaitTimeoutForVCNotFoundInNamespace(c vcclient.Interface, vcName, namespace
 func vcNotFound(c vcclient.Interface, vcName, namespace string) wait.ConditionFunc {
 	return func() (bool, error) {
 		_, err := c.TenancyV1alpha1().VirtualClusters(namespace).Get(vcName, metav1.GetOptions{})
-		if apierrs.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return true, nil
 		}
 		if err != nil {

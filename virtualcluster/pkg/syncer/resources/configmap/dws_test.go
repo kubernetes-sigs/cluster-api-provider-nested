@@ -20,21 +20,21 @@ import (
 	"strings"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	core "k8s.io/client-go/testing"
-	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
+	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
 
-func tenantConfigMap(name, namespace, uid string) *v1.ConfigMap {
-	return &v1.ConfigMap{
+func tenantConfigMap(name, namespace, uid string) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "v1",
 			APIVersion: "configmaps",
@@ -47,8 +47,8 @@ func tenantConfigMap(name, namespace, uid string) *v1.ConfigMap {
 	}
 }
 
-func superConfigMap(name, namespace, uid, clusterKey string) *v1.ConfigMap {
-	return &v1.ConfigMap{
+func superConfigMap(name, namespace, uid, clusterKey string) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "v1",
 			APIVersion: "configmaps",
@@ -152,7 +152,7 @@ func TestDWConfigMapCreation(t *testing.T) {
 				if !action.Matches("create", "configmaps") {
 					t.Errorf("%s: Unexpected action %s", k, action)
 				}
-				created := action.(core.CreateAction).GetObject().(*v1.ConfigMap)
+				created := action.(core.CreateAction).GetObject().(*corev1.ConfigMap)
 				fullName := created.Namespace + "/" + created.Name
 				if fullName != expectedName {
 					t.Errorf("%s: Expected %s to be created, got %s", k, expectedName, fullName)
@@ -181,7 +181,7 @@ func TestDWConfigMapDeletion(t *testing.T) {
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
 		ExistingObjectInTenant []runtime.Object
-		EnqueueObject          *v1.ConfigMap
+		EnqueueObject          *corev1.ConfigMap
 		ExpectedDeletedPObject []string
 		ExpectedNoOperation    bool
 		ExpectedError          string
@@ -253,7 +253,7 @@ func TestDWConfigMapDeletion(t *testing.T) {
 	}
 }
 
-func applyDataToConfigMap(cm *v1.ConfigMap, data string) *v1.ConfigMap {
+func applyDataToConfigMap(cm *corev1.ConfigMap, data string) *corev1.ConfigMap {
 	cm.Data = map[string]string{
 		data: data,
 	}

@@ -16,7 +16,7 @@ package persistentvolume
 import (
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -24,15 +24,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	core "k8s.io/client-go/testing"
-	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
+	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
 
-func superPV(name, uid string) *v1.PersistentVolume {
-	return &v1.PersistentVolume{
+func superPV(name, uid string) *corev1.PersistentVolume {
+	return &corev1.PersistentVolume{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "PersistentVolume",
 			APIVersion: "v1",
@@ -41,17 +41,17 @@ func superPV(name, uid string) *v1.PersistentVolume {
 			Name: name,
 			UID:  types.UID(uid),
 		},
-		Spec: v1.PersistentVolumeSpec{
-			Capacity: map[v1.ResourceName]resource.Quantity{
-				v1.ResourceStorage: resource.MustParse("20Gi"),
+		Spec: corev1.PersistentVolumeSpec{
+			Capacity: map[corev1.ResourceName]resource.Quantity{
+				corev1.ResourceStorage: resource.MustParse("20Gi"),
 			},
 			StorageClassName: "storage-class-1",
 		},
 	}
 }
 
-func superPVC(name, namespace, uid, clusterKey string) *v1.PersistentVolumeClaim {
-	return &v1.PersistentVolumeClaim{
+func superPVC(name, namespace, uid, clusterKey string) *corev1.PersistentVolumeClaim {
+	return &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -64,8 +64,8 @@ func superPVC(name, namespace, uid, clusterKey string) *v1.PersistentVolumeClaim
 	}
 }
 
-func boundPV(pvc *v1.PersistentVolumeClaim, pv *v1.PersistentVolume) *v1.PersistentVolume {
-	pv.Spec.ClaimRef = &v1.ObjectReference{
+func boundPV(pvc *corev1.PersistentVolumeClaim, pv *corev1.PersistentVolume) *corev1.PersistentVolume {
+	pv.Spec.ClaimRef = &corev1.ObjectReference{
 		Kind:            "PersistentVolumeClaim",
 		Namespace:       pvc.Namespace,
 		Name:            pvc.Name,
@@ -76,8 +76,8 @@ func boundPV(pvc *v1.PersistentVolumeClaim, pv *v1.PersistentVolume) *v1.Persist
 	return pv
 }
 
-func unknownPVC(name, namespace, uid string) *v1.PersistentVolumeClaim {
-	return &v1.PersistentVolumeClaim{
+func unknownPVC(name, namespace, uid string) *corev1.PersistentVolumeClaim {
+	return &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -86,8 +86,8 @@ func unknownPVC(name, namespace, uid string) *v1.PersistentVolumeClaim {
 	}
 }
 
-func tenantPV(name, uid string) *v1.PersistentVolume {
-	return &v1.PersistentVolume{
+func tenantPV(name, uid string) *corev1.PersistentVolume {
+	return &corev1.PersistentVolume{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "PersistentVolume",
 			APIVersion: "v1",
@@ -98,17 +98,17 @@ func tenantPV(name, uid string) *v1.PersistentVolume {
 				constants.LabelUID: uid,
 			},
 		},
-		Spec: v1.PersistentVolumeSpec{
-			Capacity: map[v1.ResourceName]resource.Quantity{
-				v1.ResourceStorage: resource.MustParse("20Gi"),
+		Spec: corev1.PersistentVolumeSpec{
+			Capacity: map[corev1.ResourceName]resource.Quantity{
+				corev1.ResourceStorage: resource.MustParse("20Gi"),
 			},
 			StorageClassName: "storage-class-1",
 		},
 	}
 }
 
-func tenantPVC(name, namespace, uid string) *v1.PersistentVolumeClaim {
-	return &v1.PersistentVolumeClaim{
+func tenantPVC(name, namespace, uid string) *corev1.PersistentVolumeClaim {
+	return &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -117,7 +117,7 @@ func tenantPVC(name, namespace, uid string) *v1.PersistentVolumeClaim {
 	}
 }
 
-func applyPVSourceToPV(pv *v1.PersistentVolume, pvs *v1.PersistentVolumeSource) *v1.PersistentVolume {
+func applyPVSourceToPV(pv *corev1.PersistentVolume, pvs *corev1.PersistentVolumeSource) *corev1.PersistentVolume {
 	pv.Spec.PersistentVolumeSource = *pvs.DeepCopy()
 	return pv
 }
@@ -138,16 +138,16 @@ func TestPVPatrol(t *testing.T) {
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
 	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
-	pvSource1 := &v1.PersistentVolumeSource{
-		CSI: &v1.CSIPersistentVolumeSource{
+	pvSource1 := &corev1.PersistentVolumeSource{
+		CSI: &corev1.CSIPersistentVolumeSource{
 			Driver:       "csi-driver-1",
 			VolumeHandle: "d-volume1",
 			FSType:       "ext4",
 		},
 	}
 
-	pvSource2 := &v1.PersistentVolumeSource{
-		CSI: &v1.CSIPersistentVolumeSource{
+	pvSource2 := &corev1.PersistentVolumeSource{
+		CSI: &corev1.CSIPersistentVolumeSource{
 			Driver:       "csi-driver2",
 			VolumeHandle: "d-volume1",
 			FSType:       "ext4",
@@ -306,7 +306,7 @@ func TestPVPatrol(t *testing.T) {
 						t.Errorf("%s: Unexpected action %s", k, action)
 						continue
 					}
-					created := action.(core.CreateAction).GetObject().(*v1.PersistentVolume)
+					created := action.(core.CreateAction).GetObject().(*corev1.PersistentVolume)
 					fullName := created.Namespace + "/" + created.Name
 					if fullName != expectedName {
 						t.Errorf("%s: Expect to create pPVC %s, got %s", k, expectedName, fullName)

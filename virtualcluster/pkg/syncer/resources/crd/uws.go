@@ -23,7 +23,7 @@ import (
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiextensionclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
@@ -36,7 +36,9 @@ import (
 
 func (c *controller) StartUWS(stopCh <-chan struct{}) error {
 	if c.crdcache != nil {
-		go c.crdcache.Start(context.Background())
+		go func() {
+			_ = c.crdcache.Start(context.Background())
+		}()
 	} else {
 		klog.Errorf("crd cache is nil")
 	}
@@ -56,7 +58,7 @@ func (c *controller) BackPopulate(key string) error {
 		Name: crdName,
 	}, pCRD)
 	if err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return err
 		}
 		op = reconciler.DeleteEvent
@@ -76,7 +78,7 @@ func (c *controller) BackPopulate(key string) error {
 
 	vCRD := &v1beta1.CustomResourceDefinition{}
 	if err := c.MultiClusterController.Get(clusterName, "", crdName, vCRD); err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			if op == reconciler.AddEvent {
 				// Available in super, hence create a new in tenant control plane
 				vCRD := conversion.BuildVirtualCRD(clusterName, pCRD)

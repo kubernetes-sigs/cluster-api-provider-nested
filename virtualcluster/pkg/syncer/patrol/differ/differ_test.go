@@ -92,14 +92,14 @@ func TestDifferSetDifference(t *testing.T) {
 
 	d := HandlerFuncs{
 		AddFunc: func(obj ClusterObject) {
-			addCounter[obj.Key] = addCounter[obj.Key] + 1
+			addCounter[obj.Key]++
 		},
 		UpdateFunc: func(obj1, obj2 ClusterObject) {
-			updateCounter[obj1.Key] = updateCounter[obj1.Key] + 1
+			updateCounter[obj1.Key]++
 			updateCounter[obj2.Key] = updateCounter[obj1.Key]
 		},
 		DeleteFunc: func(obj ClusterObject) {
-			deleteCounter[obj.Key] = deleteCounter[obj.Key] + 1
+			deleteCounter[obj.Key]++
 		},
 	}
 

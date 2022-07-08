@@ -48,7 +48,7 @@ var _ = SIGDescribe("VirtualCluster", func() {
 
 	AfterEach(func() {
 		By("Deleting ClusterVersion " + ns)
-		e2ecv.DeleteCV(f.VCClientSet, cv)
+		framework.ExpectNoError(e2ecv.DeleteCV(f.VCClientSet, cv))
 	})
 
 	framework.VCDescribe("VirtualCluster LifeCycle", func() {

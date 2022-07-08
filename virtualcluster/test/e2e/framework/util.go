@@ -23,8 +23,8 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
-	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -75,7 +75,7 @@ func ExpectNoErrorWithRetries(fn func() error, maxRetries int, explain ...interf
 }
 
 // byFirstTimestamp sorts a slice of events by first timestamp, using their involvedObject's name as a tie breaker.
-type byFirstTimestamp []v1.Event
+type byFirstTimestamp []corev1.Event
 
 func (o byFirstTimestamp) Len() int      { return len(o) }
 func (o byFirstTimestamp) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
@@ -88,7 +88,7 @@ func (o byFirstTimestamp) Less(i, j int) bool {
 }
 
 // EventsLister is a func that lists events.
-type EventsLister func(opts metav1.ListOptions, ns string) (*v1.EventList, error)
+type EventsLister func(opts metav1.ListOptions, ns string) (*corev1.EventList, error)
 
 // DumpEventsInNamespace dumps events in the given namespace.
 func DumpEventsInNamespace(eventsLister EventsLister, namespace string) {
@@ -112,7 +112,7 @@ func DumpEventsInNamespace(eventsLister EventsLister, namespace string) {
 
 // DumpAllNamespaceInfo dumps events, pods and nodes information in the given namespace.
 func DumpAllNamespaceInfo(c clientset.Interface, namespace string) {
-	DumpEventsInNamespace(func(opts metav1.ListOptions, ns string) (*v1.EventList, error) {
+	DumpEventsInNamespace(func(opts metav1.ListOptions, ns string) (*corev1.EventList, error) {
 		return c.CoreV1().Events(ns).List(context.TODO(), opts)
 	}, namespace)
 
@@ -163,7 +163,7 @@ func findAvailableNamespaceName(baseName string, c clientset.Interface) (string,
 			// Already taken
 			return false, nil
 		}
-		if apierrs.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return true, nil
 		}
 		e2elog.Logf("Unexpected error while getting namespace: %v", err)
@@ -174,7 +174,7 @@ func findAvailableNamespaceName(baseName string, c clientset.Interface) (string,
 
 // CreateTestingNS should be used by every test, note that we append a common prefix to the provided test name.
 // Please see NewFramework instead of using this directly.
-func CreateTestingNS(baseName string, c clientset.Interface, labels map[string]string) (*v1.Namespace, error) {
+func CreateTestingNS(baseName string, c clientset.Interface, labels map[string]string) (*corev1.Namespace, error) {
 	if labels == nil {
 		labels = map[string]string{}
 	}
@@ -188,16 +188,16 @@ func CreateTestingNS(baseName string, c clientset.Interface, labels map[string]s
 		return nil, err
 	}
 
-	namespaceObj := &v1.Namespace{
+	namespaceObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: "",
 			Labels:    labels,
 		},
-		Status: v1.NamespaceStatus{},
+		Status: corev1.NamespaceStatus{},
 	}
 	// Be robust about making the namespace creation call.
-	var got *v1.Namespace
+	var got *corev1.Namespace
 	if err := wait.PollImmediate(Poll, 30*time.Second, func() (bool, error) {
 		var err error
 		got, err = c.CoreV1().Namespaces().Create(context.TODO(), namespaceObj, metav1.CreateOptions{})

@@ -21,7 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,8 +35,8 @@ import (
 	utilconst "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/constants"
 )
 
-func tenantNamespace(name, uid string) *v1.Namespace {
-	ns := &v1.Namespace{
+func tenantNamespace(name, uid string) *corev1.Namespace {
+	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			UID:  types.UID(uid),
@@ -50,7 +50,7 @@ func tenantNamespace(name, uid string) *v1.Namespace {
 	return ns
 }
 
-func applyAnnotationToNS(ns *v1.Namespace, k, v string) *v1.Namespace {
+func applyAnnotationToNS(ns *corev1.Namespace, k, v string) *corev1.Namespace {
 	anno := ns.GetAnnotations()
 	if anno == nil {
 		anno = make(map[string]string)
@@ -60,8 +60,8 @@ func applyAnnotationToNS(ns *v1.Namespace, k, v string) *v1.Namespace {
 	return ns
 }
 
-func superNamespace(name, uid, clusterKey string) *v1.Namespace {
-	return &v1.Namespace{
+func superNamespace(name, uid, clusterKey string) *corev1.Namespace {
+	return &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			Annotations: map[string]string{
@@ -76,14 +76,14 @@ func superNamespace(name, uid, clusterKey string) *v1.Namespace {
 	}
 }
 
-func labelledSuperNamespace(name, uid, clusterKey string) *v1.Namespace {
+func labelledSuperNamespace(name, uid, clusterKey string) *corev1.Namespace {
 	ns := superNamespace(name, uid, clusterKey)
 	ns.SetLabels(conversion.WithSuperClusterLabels(ns.GetLabels()))
 	return ns
 }
 
-func unknownNamespace(name, uid string) *v1.Namespace {
-	return &v1.Namespace{
+func unknownNamespace(name, uid string) *corev1.Namespace {
+	return &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			UID:  types.UID(uid),
@@ -110,7 +110,7 @@ func TestDWNamespaceCreation(t *testing.T) {
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
-		ExistingObjectInTenant *v1.Namespace
+		ExistingObjectInTenant *corev1.Namespace
 		IsLabellingEnabled     bool
 
 		ExpectedCreatedNamespace []string
@@ -183,7 +183,7 @@ func TestDWNamespaceCreation(t *testing.T) {
 				if !action.Matches("create", "namespaces") {
 					t.Errorf("%s: Unexpected action %s", k, action)
 				}
-				createdNS := action.(core.CreateAction).GetObject().(*v1.Namespace)
+				createdNS := action.(core.CreateAction).GetObject().(*corev1.Namespace)
 				if createdNS.Name != expectedName {
 					t.Errorf("%s: Expected %s to be created, got %s", k, expectedName, createdNS.Name)
 				}
@@ -217,7 +217,7 @@ func TestDWNamespaceDeletion(t *testing.T) {
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper []runtime.Object
-		EnqueueObject         *v1.Namespace
+		EnqueueObject         *corev1.Namespace
 
 		ExpectedDeletedNamespace []string
 		ExpectedError            string

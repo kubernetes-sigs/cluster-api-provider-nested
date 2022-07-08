@@ -10,6 +10,7 @@ jobs:
       matrix:
         working-directory:
           - ""
+          - "virtualcluster"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3

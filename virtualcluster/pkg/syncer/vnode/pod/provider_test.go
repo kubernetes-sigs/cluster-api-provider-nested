@@ -20,21 +20,21 @@ import (
 	"reflect"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-func newNode(name string) *v1.Node {
-	return &v1.Node{
+func newNode(name string) *corev1.Node {
+	return &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		Status: v1.NodeStatus{
-			Addresses: []v1.NodeAddress{
-				v1.NodeAddress{
-					Type:    v1.NodeInternalIP,
+		Status: corev1.NodeStatus{
+			Addresses: []corev1.NodeAddress{
+				{
+					Type:    corev1.NodeInternalIP,
 					Address: "192.168.0.2",
 				},
 			},
@@ -43,7 +43,7 @@ func newNode(name string) *v1.Node {
 }
 
 func newClient() clientset.Interface {
-	return fake.NewSimpleClientset(&v1.Pod{
+	return fake.NewSimpleClientset(&corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vn-agent-12345",
 			Namespace: "vc-manager",
@@ -51,10 +51,10 @@ func newClient() clientset.Interface {
 				"app": "vn-agent",
 			},
 		},
-		Spec: v1.PodSpec{
+		Spec: corev1.PodSpec{
 			NodeName: "node1",
 		},
-		Status: v1.PodStatus{
+		Status: corev1.PodStatus{
 			PodIP: "192.168.0.5",
 		},
 	})
@@ -68,14 +68,14 @@ func Test_provider_GetNodeAddress(t *testing.T) {
 		client               clientset.Interface
 	}
 	type args struct {
-		node *v1.Node
+		node *corev1.Node
 	}
 
 	tests := []struct {
 		name    string
 		fields  fields
 		args    args
-		want    []v1.NodeAddress
+		want    []corev1.NodeAddress
 		wantErr bool
 	}{
 		{
@@ -86,7 +86,7 @@ func Test_provider_GetNodeAddress(t *testing.T) {
 				client:               newClient(),
 			},
 			args:    args{newNode("node1")},
-			want:    []v1.NodeAddress{},
+			want:    []corev1.NodeAddress{},
 			wantErr: true,
 		},
 		{
@@ -97,7 +97,7 @@ func Test_provider_GetNodeAddress(t *testing.T) {
 				client:               newClient(),
 			},
 			args:    args{newNode("node2")},
-			want:    []v1.NodeAddress{},
+			want:    []corev1.NodeAddress{},
 			wantErr: true,
 		},
 		{
@@ -108,9 +108,9 @@ func Test_provider_GetNodeAddress(t *testing.T) {
 				client:               newClient(),
 			},
 			args: args{newNode("node1")},
-			want: []v1.NodeAddress{
-				v1.NodeAddress{
-					Type:    v1.NodeInternalIP,
+			want: []corev1.NodeAddress{
+				{
+					Type:    corev1.NodeInternalIP,
 					Address: "192.168.0.5",
 				},
 			},

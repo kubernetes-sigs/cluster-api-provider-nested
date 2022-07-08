@@ -19,7 +19,7 @@ package service
 import (
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
@@ -70,7 +70,7 @@ func NewServiceController(config *config.SyncerConfiguration,
 	}
 
 	var err error
-	c.MultiClusterController, err = mc.NewMCController(&v1.Service{}, &v1.ServiceList{}, c, mc.WithOptions(options.MCOptions))
+	c.MultiClusterController, err = mc.NewMCController(&corev1.Service{}, &corev1.ServiceList{}, c, mc.WithOptions(options.MCOptions))
 	if err != nil {
 		return nil, err
 	}
@@ -82,12 +82,12 @@ func NewServiceController(config *config.SyncerConfiguration,
 		c.serviceSynced = informer.Core().V1().Services().Informer().HasSynced
 	}
 
-	c.UpwardController, err = uw.NewUWController(&v1.Service{}, c, uw.WithOptions(options.UWOptions))
+	c.UpwardController, err = uw.NewUWController(&corev1.Service{}, c, uw.WithOptions(options.UWOptions))
 	if err != nil {
 		return nil, err
 	}
 
-	c.Patroller, err = pa.NewPatroller(&v1.Service{}, c, pa.WithOptions(options.PatrolOptions))
+	c.Patroller, err = pa.NewPatroller(&corev1.Service{}, c, pa.WithOptions(options.PatrolOptions))
 	if err != nil {
 		return nil, err
 	}
@@ -96,13 +96,13 @@ func NewServiceController(config *config.SyncerConfiguration,
 		cache.FilteringResourceEventHandler{
 			FilterFunc: func(obj interface{}) bool {
 				switch t := obj.(type) {
-				case *v1.Service:
+				case *corev1.Service:
 					return isBackPopulateService(t)
 				case cache.DeletedFinalStateUnknown:
-					if e, ok := t.Obj.(*v1.Service); ok {
+					if e, ok := t.Obj.(*corev1.Service); ok {
 						return isBackPopulateService(e)
 					}
-					utilruntime.HandleError(fmt.Errorf("unable to convert object %v to *v1.Service", obj))
+					utilruntime.HandleError(fmt.Errorf("unable to convert object %v to *corev1.Service", obj))
 					return false
 				default:
 					utilruntime.HandleError(fmt.Errorf("unable to handle object in super control plane service controller: %v", obj))
@@ -112,8 +112,8 @@ func NewServiceController(config *config.SyncerConfiguration,
 			Handler: cache.ResourceEventHandlerFuncs{
 				AddFunc: c.enqueueService,
 				UpdateFunc: func(oldObj, newObj interface{}) {
-					newService := newObj.(*v1.Service)
-					oldService := oldObj.(*v1.Service)
+					newService := newObj.(*corev1.Service)
+					oldService := oldObj.(*corev1.Service)
 					if newService.ResourceVersion != oldService.ResourceVersion {
 						c.enqueueService(newObj)
 					}
@@ -124,12 +124,12 @@ func NewServiceController(config *config.SyncerConfiguration,
 	return c, nil
 }
 
-func isBackPopulateService(svc *v1.Service) bool {
-	return svc.Spec.Type == v1.ServiceTypeLoadBalancer || svc.Spec.Type == v1.ServiceTypeClusterIP
+func isBackPopulateService(svc *corev1.Service) bool {
+	return svc.Spec.Type == corev1.ServiceTypeLoadBalancer || svc.Spec.Type == corev1.ServiceTypeClusterIP
 }
 
 func (c *controller) enqueueService(obj interface{}) {
-	svc, ok := obj.(*v1.Service)
+	svc, ok := obj.(*corev1.Service)
 	if !ok {
 		return
 	}

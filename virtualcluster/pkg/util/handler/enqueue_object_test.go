@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -64,14 +64,14 @@ func TestEnqueueRequestForObject(t *testing.T) {
 		t.Errorf("expected empty queue, got %v", item)
 	}
 
-	normalObject := &v1.Pod{
+	normalObject := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "n1",
 			Namespace: "ns",
 			UID:       "12345",
 		},
-		Spec: v1.PodSpec{
-			Containers: []v1.Container{
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
 				{
 					Name:  "c1",
 					Image: "image",

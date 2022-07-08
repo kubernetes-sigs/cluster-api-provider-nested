@@ -20,24 +20,24 @@ import (
 	"fmt"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 func TestGetNumSlices(t *testing.T) {
 
 	testcases := map[string]struct {
-		quota      v1.ResourceList
-		quotaSlice v1.ResourceList
+		quota      corev1.ResourceList
+		quotaSlice corev1.ResourceList
 		expect     int
 		succeed    bool
 	}{
 		"Succeed with scale": {
-			quota: v1.ResourceList{
+			quota: corev1.ResourceList{
 				"cpu":    resource.MustParse("1000M"),
 				"memory": resource.MustParse("2Gi"),
 			},
-			quotaSlice: v1.ResourceList{
+			quotaSlice: corev1.ResourceList{
 				"cpu":    resource.MustParse("500M"),
 				"memory": resource.MustParse("1Gi"),
 			},
@@ -46,11 +46,11 @@ func TestGetNumSlices(t *testing.T) {
 		},
 
 		"Succeed with memory fragmentation": {
-			quota: v1.ResourceList{
+			quota: corev1.ResourceList{
 				"cpu":    resource.MustParse("1000M"),
 				"memory": resource.MustParse("2Gi"),
 			},
-			quotaSlice: v1.ResourceList{
+			quotaSlice: corev1.ResourceList{
 				"cpu":    resource.MustParse("10M"),
 				"memory": resource.MustParse("1Gi"),
 			},
@@ -59,11 +59,11 @@ func TestGetNumSlices(t *testing.T) {
 		},
 
 		"Succeed with cpu fragmentation": {
-			quota: v1.ResourceList{
+			quota: corev1.ResourceList{
 				"cpu":    resource.MustParse("1000M"),
 				"memory": resource.MustParse("2Gi"),
 			},
-			quotaSlice: v1.ResourceList{
+			quotaSlice: corev1.ResourceList{
 				"cpu":    resource.MustParse("200M"),
 				"memory": resource.MustParse("50Mi"),
 			},
@@ -72,11 +72,11 @@ func TestGetNumSlices(t *testing.T) {
 		},
 
 		"Succeed with both fragmentations": {
-			quota: v1.ResourceList{
+			quota: corev1.ResourceList{
 				"cpu":    resource.MustParse("1000M"),
 				"memory": resource.MustParse("2Gi"),
 			},
-			quotaSlice: v1.ResourceList{
+			quotaSlice: corev1.ResourceList{
 				"cpu":    resource.MustParse("800M"),
 				"memory": resource.MustParse("800Mi"),
 			},
@@ -85,11 +85,11 @@ func TestGetNumSlices(t *testing.T) {
 		},
 
 		"Fail with big slice": {
-			quota: v1.ResourceList{
+			quota: corev1.ResourceList{
 				"cpu":    resource.MustParse("1000M"),
 				"memory": resource.MustParse("2Gi"),
 			},
-			quotaSlice: v1.ResourceList{
+			quotaSlice: corev1.ResourceList{
 				"cpu":    resource.MustParse("8000M"),
 				"memory": resource.MustParse("800Mi"),
 			},
@@ -98,11 +98,11 @@ func TestGetNumSlices(t *testing.T) {
 		},
 
 		"Fail with missing resource in slice": {
-			quota: v1.ResourceList{
+			quota: corev1.ResourceList{
 				"cpu":    resource.MustParse("1000M"),
 				"memory": resource.MustParse("2Gi"),
 			},
-			quotaSlice: v1.ResourceList{
+			quotaSlice: corev1.ResourceList{
 				"cpu": resource.MustParse("8000M"),
 			},
 			expect:  0,
@@ -110,11 +110,11 @@ func TestGetNumSlices(t *testing.T) {
 		},
 
 		"Fail with more resource in slice": {
-			quota: v1.ResourceList{
+			quota: corev1.ResourceList{
 				"cpu":    resource.MustParse("1000M"),
 				"memory": resource.MustParse("2Gi"),
 			},
-			quotaSlice: v1.ResourceList{
+			quotaSlice: corev1.ResourceList{
 				"cpu":     resource.MustParse("8000M"),
 				"memory":  resource.MustParse("800Mi"),
 				"storage": resource.MustParse("1Gi"),
@@ -144,7 +144,7 @@ func TestGetNumSlices(t *testing.T) {
 }
 
 func TestNamespaceDump(t *testing.T) {
-	fullQuota := v1.ResourceList{
+	fullQuota := corev1.ResourceList{
 		"cpu":    resource.MustParse("4000M"),
 		"memory": resource.MustParse("8Gi"),
 	}

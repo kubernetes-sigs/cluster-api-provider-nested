@@ -19,7 +19,7 @@ package resourcequota
 import (
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/scheduler"
@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/scheduler/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/experiment/pkg/scheduler/manager"
 
-	//syncerconst "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
+	// syncerconst "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/listener"
 	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/plugin"
@@ -53,6 +53,7 @@ type controller struct {
 	MultiClusterController *mc.MultiClusterController
 }
 
+// NewResourceQuotaController creates new ResourceQuota controller watcher
 func NewResourceQuotaController(mgr *manager.WatchManager, config *schedulerconfig.SchedulerConfiguration) (manager.ResourceWatcher, error) {
 	c := &controller{
 		SchedulerManager: mgr,
@@ -60,7 +61,7 @@ func NewResourceQuotaController(mgr *manager.WatchManager, config *schedulerconf
 	}
 
 	var err error
-	c.MultiClusterController, err = mc.NewMCController(&v1.ResourceQuota{}, &v1.ResourceQuotaList{}, c)
+	c.MultiClusterController, err = mc.NewMCController(&corev1.ResourceQuota{}, &corev1.ResourceQuotaList{}, c)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +89,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		panic("namespace mccontroller is necessary")
 	}
 
-	namespace := &v1.Namespace{}
+	namespace := &corev1.Namespace{}
 	if err := c.MultiClusterController.Get(request.ClusterName, "", request.Namespace, namespace); err != nil {
 		return reconciler.Result{Requeue: true}, fmt.Errorf("failed to get namespace %s in %s: %v", request.Namespace, request.ClusterName, err)
 	}

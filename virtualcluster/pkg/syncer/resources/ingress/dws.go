@@ -20,8 +20,8 @@ import (
 	"context"
 	"fmt"
 
-	v1beta1 "k8s.io/api/extensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/api/extensions/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
@@ -45,7 +45,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	pIngress, err := c.ingressLister.Ingresses(targetNamespace).Get(request.Name)
 	pExists := true
 	if err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return reconciler.Result{Requeue: true}, err
 		}
 		pExists = false
@@ -53,31 +53,32 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	vExists := true
 	vIngress := &v1beta1.Ingress{}
 	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vIngress); err != nil {
-		if !errors.IsNotFound(err) {
+		if !apierrors.IsNotFound(err) {
 			return reconciler.Result{Requeue: true}, err
 		}
 		vExists = false
 	}
 
-	if vExists && !pExists {
+	switch {
+	case vExists && !pExists:
 		err := c.reconcileIngressCreate(request.ClusterName, targetNamespace, request.UID, vIngress)
 		if err != nil {
 			klog.Errorf("failed reconcile ingress %s/%s CREATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if !vExists && pExists {
+	case !vExists && pExists:
 		err := c.reconcileIngressRemove(request.ClusterName, targetNamespace, request.UID, request.Name, pIngress)
 		if err != nil {
 			klog.Errorf("failed reconcile ingress %s/%s DELETE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else if vExists && pExists {
+	case vExists && pExists:
 		err := c.reconcileIngressUpdate(request.ClusterName, targetNamespace, request.UID, pIngress, vIngress)
 		if err != nil {
 			klog.Errorf("failed reconcile ingress %s/%s UPDATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
-	} else {
+	default:
 		// object is gone.
 	}
 	return reconciler.Result{}, nil
@@ -92,7 +93,7 @@ func (c *controller) reconcileIngressCreate(clusterName, targetNamespace, reques
 	pIngress := newObj.(*v1beta1.Ingress)
 
 	pIngress, err = c.ingressClient.Ingresses(targetNamespace).Create(context.TODO(), pIngress, metav1.CreateOptions{})
-	if errors.IsAlreadyExists(err) {
+	if apierrors.IsAlreadyExists(err) {
 		if pIngress.Annotations[constants.LabelUID] == requestUID {
 			klog.Infof("ingress %s/%s of cluster %s already exist in super control plane", targetNamespace, pIngress.Name, clusterName)
 			return nil
@@ -132,7 +133,7 @@ func (c *controller) reconcileIngressRemove(clusterName, targetNamespace, reques
 		Preconditions:     metav1.NewUIDPreconditions(string(pIngress.UID)),
 	}
 	err := c.ingressClient.Ingresses(targetNamespace).Delete(context.TODO(), name, *opts)
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		klog.Warningf("To be deleted ingress %s/%s not found in super control plane", targetNamespace, name)
 		return nil
 	}

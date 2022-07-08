@@ -21,7 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -80,7 +80,7 @@ func TestBuildSuperClusterObject(t *testing.T) {
 			OpaqueMetaPrefixes: []string{"opaque.io"},
 		},
 	}
-	mcc := MakeMultiClusterControllerWithFakeCluster(t, &v1.Pod{}, &v1.PodList{}, vc)
+	mcc := MakeMultiClusterControllerWithFakeCluster(t, &corev1.Pod{}, &corev1.PodList{}, vc)
 	ct := conversion.Convertor(syncerConfig, mcc)
 	time := metav1.Now()
 
@@ -126,7 +126,7 @@ func TestBuildSuperClusterObject(t *testing.T) {
 		{
 			name:    "cluster not found",
 			cluster: "not_found",
-			obj: &v1.Pod{
+			obj: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "n1",
 					Name:      "v1",
@@ -137,7 +137,7 @@ func TestBuildSuperClusterObject(t *testing.T) {
 		{
 			name:    "normal case",
 			cluster: clusterKey,
-			obj: &v1.Pod{
+			obj: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "n1",
 					Name:      "v1",
@@ -149,7 +149,7 @@ func TestBuildSuperClusterObject(t *testing.T) {
 					},
 				},
 			},
-			expectedObj: &v1.Pod{
+			expectedObj: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: conversion.ToSuperClusterNamespace(clusterKey, "n1"),
 					Name:      "v1",
@@ -167,7 +167,7 @@ func TestBuildSuperClusterObject(t *testing.T) {
 		{
 			name:    "non empty meta",
 			cluster: clusterKey,
-			obj: &v1.Pod{
+			obj: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "n1",
 					Name:      "v1",
@@ -191,7 +191,7 @@ func TestBuildSuperClusterObject(t *testing.T) {
 					Finalizers: []string{"f"},
 				},
 			},
-			expectedObj: &v1.Pod{
+			expectedObj: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: conversion.ToSuperClusterNamespace(clusterKey, "n1"),
 					Name:      "v1",
@@ -205,7 +205,7 @@ func TestBuildSuperClusterObject(t *testing.T) {
 		{
 			name:    "have opaqued keys",
 			cluster: clusterKey,
-			obj: &v1.Pod{
+			obj: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "n1",
 					Name:      "v1",
@@ -226,7 +226,7 @@ func TestBuildSuperClusterObject(t *testing.T) {
 					},
 				},
 			},
-			expectedObj: &v1.Pod{
+			expectedObj: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: conversion.ToSuperClusterNamespace(clusterKey, "n1"),
 					Name:      "v1",
@@ -294,7 +294,7 @@ func TestBuildSuperClusterNamespace(t *testing.T) {
 			OpaqueMetaPrefixes: []string{"opaque.io"},
 		},
 	}
-	mcc := MakeMultiClusterControllerWithFakeCluster(t, &v1.Namespace{}, &v1.NamespaceList{}, vc)
+	mcc := MakeMultiClusterControllerWithFakeCluster(t, &corev1.Namespace{}, &corev1.NamespaceList{}, vc)
 	ct := conversion.Convertor(syncerConfig, mcc)
 	time := metav1.Now()
 
@@ -329,7 +329,7 @@ func TestBuildSuperClusterNamespace(t *testing.T) {
 		{
 			name:    "cluster not found",
 			cluster: "not_found",
-			obj: &v1.Namespace{
+			obj: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "n1",
 				},
@@ -339,7 +339,7 @@ func TestBuildSuperClusterNamespace(t *testing.T) {
 		{
 			name:    "normal case",
 			cluster: clusterKey,
-			obj: &v1.Namespace{
+			obj: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "n1",
 					Labels: map[string]string{
@@ -350,7 +350,7 @@ func TestBuildSuperClusterNamespace(t *testing.T) {
 					},
 				},
 			},
-			expectedObj: &v1.Namespace{
+			expectedObj: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: conversion.ToSuperClusterNamespace(clusterKey, "n1"),
 					Labels: map[string]string{
@@ -366,7 +366,7 @@ func TestBuildSuperClusterNamespace(t *testing.T) {
 		{
 			name:    "non empty meta",
 			cluster: clusterKey,
-			obj: &v1.Namespace{
+			obj: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "n1",
 					UID:  "d64ea111-91f8-46f5-8643-c0cab32ab0cd",
@@ -389,7 +389,7 @@ func TestBuildSuperClusterNamespace(t *testing.T) {
 					Finalizers: []string{"f"},
 				},
 			},
-			expectedObj: &v1.Namespace{
+			expectedObj: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: conversion.ToSuperClusterNamespace(clusterKey, "n1"),
 					Annotations: map[string]string{
@@ -401,7 +401,7 @@ func TestBuildSuperClusterNamespace(t *testing.T) {
 		{
 			name:    "have opaqued keys",
 			cluster: clusterKey,
-			obj: &v1.Namespace{
+			obj: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "n1",
 					Labels: map[string]string{
@@ -421,7 +421,7 @@ func TestBuildSuperClusterNamespace(t *testing.T) {
 					},
 				},
 			},
-			expectedObj: &v1.Namespace{
+			expectedObj: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: conversion.ToSuperClusterNamespace(clusterKey, "n1"),
 					Labels: map[string]string{

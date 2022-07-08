@@ -62,8 +62,8 @@ var _ = Describe("ClusterVersion Controller", func() {
 			By("Adding Finalizer")
 			Eventually(func() bool {
 				i := &v1alpha1.ClusterVersion{}
-				cli.Get(ctx, objectKey, i)
-				return len(i.GetFinalizers()) == 1
+				err := cli.Get(ctx, objectKey, i)
+				return err == nil && len(i.GetFinalizers()) == 1
 			}, timeout, interval).Should(BeTrue())
 
 			By("Deleting ClusterVersion")

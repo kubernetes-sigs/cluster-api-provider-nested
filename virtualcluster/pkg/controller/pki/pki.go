@@ -37,11 +37,13 @@ const (
 	defaultClusterDomain = "cluster.local"
 )
 
+// CrtKeyPair is a pair of Cert and Key
 type CrtKeyPair struct {
 	Crt *x509.Certificate
 	Key *rsa.PrivateKey
 }
 
+// ClusterCAGroup contains all CrtKeyPair for control plane
 type ClusterCAGroup struct {
 	RootCA                   *CrtKeyPair
 	APIServer                *CrtKeyPair
@@ -52,7 +54,7 @@ type ClusterCAGroup struct {
 	ServiceAccountPrivateKey *rsa.PrivateKey
 }
 
-// NewAPIServerCertAndKey creates crt and key for apiserver using ca.
+// NewAPIServerCrtAndKey creates crt and key for apiserver using ca.
 func NewAPIServerCrtAndKey(ca *CrtKeyPair, vc *tenancyv1alpha1.VirtualCluster, apiserverDomain string, apiserverIPs ...string) (*CrtKeyPair, error) {
 	clusterDomain := defaultClusterDomain
 	if vc.Spec.ClusterDomain != "" {
@@ -158,7 +160,6 @@ func NewEtcdServerCertAndKey(ca *CrtKeyPair, etcdDomains []string) (*CrtKeyPair,
 // NewEtcdHealthcheckClientCertAndKey creates certificate for liveness probes to healthcheck etcd,
 // signed by the given ca.
 func NewEtcdHealthcheckClientCertAndKey(ca *CrtKeyPair) (*x509.Certificate, *rsa.PrivateKey, error) {
-
 	config := &pkiutil.CertConfig{
 		Config: cert.Config{
 			CommonName:   "kube-etcd-healthcheck-client",
@@ -181,7 +182,6 @@ func NewEtcdHealthcheckClientCertAndKey(ca *CrtKeyPair) (*x509.Certificate, *rsa
 
 // NewServiceAccountSigningKey creates rsa key for signing service account tokens.
 func NewServiceAccountSigningKey() (*rsa.PrivateKey, error) {
-
 	// The key does NOT exist, let's generate it now
 	saSigningKey, err := newPrivateKey()
 	if err != nil {
@@ -193,7 +193,6 @@ func NewServiceAccountSigningKey() (*rsa.PrivateKey, error) {
 
 // NewFrontProxyClientCertAndKey creates crt-key pair for proxy client using ca.
 func NewFrontProxyClientCertAndKey(ca *CrtKeyPair) (*CrtKeyPair, error) {
-
 	config := &pkiutil.CertConfig{
 		Config: cert.Config{
 			CommonName: "front-proxy-client",
