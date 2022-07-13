@@ -18,7 +18,7 @@ linters:
 #  - gosimple
   - govet
   - importas
-#  - ineffassign
+  - ineffassign
 #  - misspell
 #  - nakedret
 #  - nolintlint
