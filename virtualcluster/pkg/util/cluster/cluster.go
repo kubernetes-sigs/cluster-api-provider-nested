@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
 )
 
-// Each Cluster object represents a tenant control plane in Virtual Cluster architecture.
+// Cluster object represents a tenant control plane in Virtual Cluster architecture.
 //
 // Cluster implements the ClusterInterface used by MultiClusterController in
 // sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller/mccontroller.go.
@@ -62,7 +62,7 @@ type Cluster struct {
 	getter mccontroller.Getter
 
 	// scheme is injected by the controllerManager when controllerManager.Start is called
-	scheme *runtime.Scheme
+	scheme *runtime.Scheme // nolint:structcheck
 
 	mapper meta.RESTMapper
 
@@ -215,7 +215,7 @@ func (c *Cluster) getCache() (cache.Cache, error) {
 // and forwarding to actual delegating client.
 func (c *Cluster) GetDelegatingClient() (client.Client, error) {
 	if !c.synced {
-		return nil, fmt.Errorf("The client cache has not been synced yet.")
+		return nil, fmt.Errorf("the client cache has not been synced yet")
 	}
 
 	if c.delegatingClient != nil {

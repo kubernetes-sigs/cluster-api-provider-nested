@@ -46,7 +46,7 @@ func TestAddNamespace(t *testing.T) {
 		"memory": resource.MustParse("5Gi"),
 	}
 
-	overCpuQuotaSlice := corev1.ResourceList{
+	overCPUQuotaSlice := corev1.ResourceList{
 		"cpu":    resource.MustParse("4000M"),
 		"memory": resource.MustParse("3Gi"),
 	}
@@ -103,7 +103,7 @@ func TestAddNamespace(t *testing.T) {
 		"Fail due to exceeding cluster cpu capacity": {
 			cluster: NewCluster(defaultCluster, nil, defaultCapacity),
 			slices: []*Slice{
-				NewSlice(defaultNamespace, overCpuQuotaSlice, defaultCluster),
+				NewSlice(defaultNamespace, overCPUQuotaSlice, defaultCluster),
 			},
 			allocAfter: corev1.ResourceList{
 				"cpu":    resource.MustParse("0M"),

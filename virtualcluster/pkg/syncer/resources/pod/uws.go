@@ -74,7 +74,7 @@ func (c *controller) BackPopulate(key string) error {
 	}
 
 	if pPod.Annotations[constants.LabelUID] != string(vPod.UID) {
-		return fmt.Errorf("BackPopulated pPod %s/%s delegated UID is different from updated object.", pPod.Namespace, pPod.Name)
+		return fmt.Errorf("backPopulated pPod %s/%s delegated UID is different from updated object", pPod.Namespace, pPod.Name)
 	}
 
 	tenantClient, err := c.MultiClusterController.GetClusterClient(clusterName)

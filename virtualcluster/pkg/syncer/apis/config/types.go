@@ -79,7 +79,7 @@ type SyncerConfiguration struct {
 	// The maximum length of time to wait before giving up on a server request. A value of "" means use default.
 	Timeout string
 
-	// The DnsOptions are the DNS options in resolv.conf that is attached to pod
+	// The DNSOptions are the DNS options in resolv.conf that is attached to pod
 	DNSOptions []corev1.PodDNSConfigOption
 }
 

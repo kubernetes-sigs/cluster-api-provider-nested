@@ -67,7 +67,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 			return reconciler.Result{Requeue: true}, err
 		}
 	case !vExists && pExists:
-		err := c.reconcileIngressRemove(request.ClusterName, targetNamespace, request.UID, request.Name, pIngress)
+		err := c.reconcileIngressRemove(targetNamespace, request.UID, request.Name, pIngress)
 		if err != nil {
 			klog.Errorf("failed reconcile ingress %s/%s DELETE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
@@ -98,7 +98,7 @@ func (c *controller) reconcileIngressCreate(clusterName, targetNamespace, reques
 			klog.Infof("ingress %s/%s of cluster %s already exist in super control plane", targetNamespace, pIngress.Name, clusterName)
 			return nil
 		} else {
-			return fmt.Errorf("pIngress %s/%s exists but its delegated object UID is different.", targetNamespace, pIngress.Name)
+			return fmt.Errorf("pIngress %s/%s exists but its delegated object UID is different", targetNamespace, pIngress.Name)
 		}
 	}
 	return err
@@ -106,7 +106,7 @@ func (c *controller) reconcileIngressCreate(clusterName, targetNamespace, reques
 
 func (c *controller) reconcileIngressUpdate(clusterName, targetNamespace, requestUID string, pIngress, vIngress *v1beta1.Ingress) error {
 	if pIngress.Annotations[constants.LabelUID] != requestUID {
-		return fmt.Errorf("pIngress %s/%s delegated UID is different from updated object.", targetNamespace, pIngress.Name)
+		return fmt.Errorf("pIngress %s/%s delegated UID is different from updated object", targetNamespace, pIngress.Name)
 	}
 
 	vc, err := util.GetVirtualClusterObject(c.MultiClusterController, clusterName)
@@ -123,9 +123,9 @@ func (c *controller) reconcileIngressUpdate(clusterName, targetNamespace, reques
 	return nil
 }
 
-func (c *controller) reconcileIngressRemove(clusterName, targetNamespace, requestUID, name string, pIngress *v1beta1.Ingress) error {
+func (c *controller) reconcileIngressRemove(targetNamespace, requestUID, name string, pIngress *v1beta1.Ingress) error {
 	if pIngress.Annotations[constants.LabelUID] != requestUID {
-		return fmt.Errorf("To be deleted pIngress %s/%s delegated UID is different from deleted object.", targetNamespace, name)
+		return fmt.Errorf("to be deleted pIngress %s/%s delegated UID is different from deleted object", targetNamespace, name)
 	}
 
 	opts := &metav1.DeleteOptions{

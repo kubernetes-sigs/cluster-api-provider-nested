@@ -36,7 +36,7 @@ type Controllers struct {
 	ProvisionerTimeout      time.Duration
 }
 
-// AddToManager adds all Controllers to the Manager
+// SetupWithManager adds all Controllers to the Manager
 func (c *Controllers) SetupWithManager(mgr ctrl.Manager) error {
 	opts := controller.Options{
 		MaxConcurrentReconciles: c.MaxConcurrentReconciles,

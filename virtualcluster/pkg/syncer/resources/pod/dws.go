@@ -238,7 +238,7 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 			klog.Infof("pod %s/%s of cluster %s already exist in super control plane", targetNamespace, pPod.Name, clusterName)
 			return nil
 		} else {
-			return fmt.Errorf("pPod %s/%s exists but the UID is different from tenant control plane.", targetNamespace, pPod.Name)
+			return fmt.Errorf("pPod %s/%s exists but the UID is different from tenant control plane", targetNamespace, pPod.Name)
 		}
 	}
 
@@ -337,7 +337,7 @@ func (c *controller) getPodRelatedServices(cluster string, pPod *corev1.Pod) ([]
 
 func (c *controller) reconcilePodUpdate(clusterName, targetNamespace, requestUID string, pPod, vPod *corev1.Pod) error {
 	if pPod.Annotations[constants.LabelUID] != requestUID {
-		return fmt.Errorf("pPod %s/%s delegated UID is different from updated object.", targetNamespace, pPod.Name)
+		return fmt.Errorf("pPod %s/%s delegated UID is different from updated object", targetNamespace, pPod.Name)
 	}
 
 	if vPod.DeletionTimestamp != nil {
@@ -378,7 +378,7 @@ func (c *controller) reconcilePodUpdate(clusterName, targetNamespace, requestUID
 
 func (c *controller) reconcilePodRemove(clusterName, targetNamespace, requestUID, name string, pPod *corev1.Pod) error {
 	if pPod.Annotations[constants.LabelUID] != requestUID {
-		return fmt.Errorf("To be deleted pPod %s/%s delegated UID is different from deleted object.", targetNamespace, name)
+		return fmt.Errorf("to be deleted pPod %s/%s delegated UID is different from deleted object", targetNamespace, name)
 	}
 
 	opts := &metav1.DeleteOptions{

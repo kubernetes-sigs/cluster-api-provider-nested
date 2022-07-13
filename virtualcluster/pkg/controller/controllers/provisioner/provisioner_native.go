@@ -61,7 +61,7 @@ func NewProvisionerNative(mgr manager.Manager, log logr.Logger, provisionerTimeo
 	}, nil
 }
 
-// Create sets up the control plane for vc on meta k8s
+// CreateVirtualCluster sets up the control plane for vc on meta k8s
 func (mpn *ProvisionerNative) CreateVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error {
 	cvObjectKey := client.ObjectKey{Name: vc.Spec.ClusterVersionName}
 	cv := &tenancyv1alpha1.ClusterVersion{}
@@ -118,7 +118,7 @@ func (mpn *ProvisionerNative) CreateVirtualCluster(ctx context.Context, vc *tena
 	return nil
 }
 
-// genInitialClusterArgs generates the values for `--inital-cluster` option of etcd based on the number of
+// genInitialClusterArgs generates the values for `--initial-cluster` option of etcd based on the number of
 // replicas specified in etcd StatefulSet
 func genInitialClusterArgs(replicas int32, stsName, svcName string) (argsVal string) {
 	for i := int32(0); i < replicas; i++ {

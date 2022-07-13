@@ -37,7 +37,7 @@ import (
 	strutil "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/util/strings"
 )
 
-// newReconciler returns a new reconcile.Reconciler
+// GetProvisioner returns a new provisioner.Provisioner by ProvisionerName
 func (r *ReconcileVirtualCluster) GetProvisioner(mgr ctrl.Manager, log logr.Logger, provisionerTimeout time.Duration) (provisioner.Provisioner, error) {
 	switch r.ProvisionerName {
 	case "aliyun":

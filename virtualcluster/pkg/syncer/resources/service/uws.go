@@ -87,7 +87,7 @@ func (c *controller) BackPopulate(key string) error {
 	}
 
 	if pService.Annotations[constants.LabelUID] != string(vService.UID) {
-		return fmt.Errorf("BackPopulated pService %s/%s delegated UID is different from updated object.", pService.Namespace, pService.Name)
+		return fmt.Errorf("backPopulated pService %s/%s delegated UID is different from updated object", pService.Namespace, pService.Name)
 	}
 
 	tenantClient, err := c.MultiClusterController.GetClusterClient(clusterName)

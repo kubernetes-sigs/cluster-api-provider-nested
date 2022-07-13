@@ -69,7 +69,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 			}
 		}
 		if pSecret == nil {
-			return reconciler.Result{Requeue: true}, fmt.Errorf("There are pSecrets that represent vSerect %s/%s but the UID is unmatched.", request.Namespace, request.Name)
+			return reconciler.Result{Requeue: true}, fmt.Errorf("there are pSecrets that represent vSerect %s/%s but the UID is unmatched", request.Namespace, request.Name)
 		}
 	} else {
 		// We need to use name to search again for normal vSecret
@@ -91,7 +91,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 			return reconciler.Result{Requeue: true}, err
 		}
 	case reflect.DeepEqual(vSecret, &corev1.Secret{}) && pSecret != nil:
-		err := c.reconcileSecretRemove(request.ClusterName, targetNamespace, request.UID, request.Name, pSecret)
+		err := c.reconcileSecretRemove(targetNamespace, request.UID, request.Name, pSecret)
 		if err != nil {
 			klog.Errorf("failed reconcile secret %s/%s DELETE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
@@ -135,7 +135,7 @@ func (c *controller) reconcileServiceAccountSecretCreate(clusterName, targetName
 	return err
 }
 
-func (c *controller) reconcileServiceAccountSecretUpdate(clusterName, targetNamespace string, pSecret, vSecret *corev1.Secret) error {
+func (c *controller) reconcileServiceAccountSecretUpdate(targetNamespace string, pSecret, vSecret *corev1.Secret) error {
 	updatedBinaryData, equal := conversion.Equality(c.Config, nil).CheckBinaryDataEquality(pSecret.Data, vSecret.Data)
 	if equal {
 		return nil
@@ -163,7 +163,7 @@ func (c *controller) reconcileNormalSecretCreate(clusterName, targetNamespace, r
 			klog.Infof("secret %s/%s of cluster %s already exist in super control plane", targetNamespace, secret.Name, clusterName)
 			return nil
 		} else {
-			return fmt.Errorf("pSecret %s/%s exists but its delegated object UID is different.", targetNamespace, pSecret.Name)
+			return fmt.Errorf("pSecret %s/%s exists but its delegated object UID is different", targetNamespace, pSecret.Name)
 		}
 	}
 
@@ -173,7 +173,7 @@ func (c *controller) reconcileNormalSecretCreate(clusterName, targetNamespace, r
 func (c *controller) reconcileSecretUpdate(clusterName, targetNamespace, requestUID string, pSecret, vSecret *corev1.Secret) error {
 	switch vSecret.Type {
 	case corev1.SecretTypeServiceAccountToken:
-		return c.reconcileServiceAccountSecretUpdate(clusterName, targetNamespace, pSecret, vSecret)
+		return c.reconcileServiceAccountSecretUpdate(targetNamespace, pSecret, vSecret)
 	default:
 		return c.reconcileNormalSecretUpdate(clusterName, targetNamespace, requestUID, pSecret, vSecret)
 	}
@@ -181,7 +181,7 @@ func (c *controller) reconcileSecretUpdate(clusterName, targetNamespace, request
 
 func (c *controller) reconcileNormalSecretUpdate(clusterName, targetNamespace, requestUID string, pSecret, vSecret *corev1.Secret) error {
 	if pSecret.Annotations[constants.LabelUID] != requestUID {
-		return fmt.Errorf("pEndpoints %s/%s delegated UID is different from updated object.", targetNamespace, pSecret.Name)
+		return fmt.Errorf("pEndpoints %s/%s delegated UID is different from updated object", targetNamespace, pSecret.Name)
 	}
 	vc, err := util.GetVirtualClusterObject(c.MultiClusterController, clusterName)
 	if err != nil {
@@ -198,16 +198,16 @@ func (c *controller) reconcileNormalSecretUpdate(clusterName, targetNamespace, r
 	return nil
 }
 
-func (c *controller) reconcileSecretRemove(clusterName, targetNamespace, requestUID, name string, secret *corev1.Secret) error {
+func (c *controller) reconcileSecretRemove(targetNamespace, requestUID, name string, secret *corev1.Secret) error {
 	if _, isSaSecret := secret.Labels[constants.LabelSecretUID]; isSaSecret {
-		return c.reconcileServiceAccountTokenSecretRemove(clusterName, targetNamespace, requestUID, name)
+		return c.reconcileServiceAccountTokenSecretRemove(targetNamespace, requestUID, name)
 	}
-	return c.reconcileNormalSecretRemove(clusterName, targetNamespace, requestUID, name, secret)
+	return c.reconcileNormalSecretRemove(targetNamespace, requestUID, name, secret)
 }
 
-func (c *controller) reconcileNormalSecretRemove(clusterName, targetNamespace, requestUID, name string, pSecret *corev1.Secret) error {
+func (c *controller) reconcileNormalSecretRemove(targetNamespace, requestUID, name string, pSecret *corev1.Secret) error {
 	if pSecret.Annotations[constants.LabelUID] != requestUID {
-		return fmt.Errorf("To be deleted pSecret %s/%s delegated UID is different from deleted object.", targetNamespace, pSecret.Name)
+		return fmt.Errorf("to be deleted pSecret %s/%s delegated UID is different from deleted object", targetNamespace, pSecret.Name)
 	}
 	opts := &metav1.DeleteOptions{
 		PropagationPolicy: &constants.DefaultDeletionPolicy,
@@ -220,7 +220,7 @@ func (c *controller) reconcileNormalSecretRemove(clusterName, targetNamespace, r
 	return err
 }
 
-func (c *controller) reconcileServiceAccountTokenSecretRemove(clusterName, targetNamespace, requestUID, name string) error {
+func (c *controller) reconcileServiceAccountTokenSecretRemove(targetNamespace, requestUID, name string) error {
 	opts := &metav1.DeleteOptions{
 		PropagationPolicy: &constants.DefaultDeletionPolicy,
 	}

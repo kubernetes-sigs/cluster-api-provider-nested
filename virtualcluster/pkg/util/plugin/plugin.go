@@ -86,9 +86,9 @@ func (reg *ResourceRegister) Register(r *Registration) {
 
 // List returns the list of registered plugins for initialization.
 func (reg *ResourceRegister) List() []*Registration {
-	var r []*Registration
 	reg.RLock()
 	defer reg.RUnlock()
+	r := make([]*Registration, 0, len(reg.resources))
 	for id := range reg.resources {
 		r = append(r, reg.resources[id])
 	}

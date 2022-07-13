@@ -86,7 +86,7 @@ func TestBuildSuperClusterObject(t *testing.T) {
 
 	clusterKey := conversion.ToClusterKey(vc)
 
-	attachVCMeta := func(obj client.Object) error {
+	attachVCMeta := func(obj client.Object) {
 		var tenantScopeMetaInAnnotation = map[string]string{
 			constants.LabelCluster:     clusterKey,
 			constants.LabelNamespace:   "n1",
@@ -113,7 +113,6 @@ func TestBuildSuperClusterObject(t *testing.T) {
 			labels[k] = v
 		}
 		obj.SetLabels(labels)
-		return nil
 	}
 
 	tests := []struct {
@@ -265,11 +264,7 @@ func TestBuildSuperClusterObject(t *testing.T) {
 				return
 			}
 
-			err = attachVCMeta(tt.expectedObj)
-			if err != nil {
-				t.Errorf("unexpected error when attach vc meta: %v", err)
-				return
-			}
+			attachVCMeta(tt.expectedObj)
 			if !equality.Semantic.DeepEqual(got, tt.expectedObj) {
 				g, _ := json.MarshalIndent(got, "", "\t")
 				e, _ := json.MarshalIndent(tt.expectedObj, "", "\t")
@@ -300,7 +295,7 @@ func TestBuildSuperClusterNamespace(t *testing.T) {
 
 	clusterKey := conversion.ToClusterKey(vc)
 
-	attachVCMeta := func(obj client.Object) error {
+	attachVCMeta := func(obj client.Object) {
 		var tenantScopeMetaInAnnotation = map[string]string{
 			constants.LabelCluster:     clusterKey,
 			constants.LabelNamespace:   "n1",
@@ -316,7 +311,6 @@ func TestBuildSuperClusterNamespace(t *testing.T) {
 			anno[k] = v
 		}
 		obj.SetAnnotations(anno)
-		return nil
 	}
 
 	tests := []struct {
@@ -458,11 +452,7 @@ func TestBuildSuperClusterNamespace(t *testing.T) {
 				return
 			}
 
-			err = attachVCMeta(tt.expectedObj)
-			if err != nil {
-				t.Errorf("unexpected error when attach vc meta: %v", err)
-				return
-			}
+			attachVCMeta(tt.expectedObj)
 			if !equality.Semantic.DeepEqual(got, tt.expectedObj) {
 				g, _ := json.MarshalIndent(got, "", "\t")
 				e, _ := json.MarshalIndent(tt.expectedObj, "", "\t")

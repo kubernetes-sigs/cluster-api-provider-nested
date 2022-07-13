@@ -85,6 +85,7 @@ type ClusterNetwork struct {
 // ANCHOR_END: ClusterNetwork
 
 // ANCHOR: NetworkRanges
+
 // NetworkRanges represents ranges of network addresses.
 type NetworkRanges struct {
 	CIDRBlocks []string `json:"cidrBlocks"`

@@ -63,7 +63,7 @@ func NewCmdCreate(f Factory) *cobra.Command {
 		Use:   "create",
 		Short: "Create a new VirtualCluster",
 		Run: func(cmd *cobra.Command, args []string) {
-			CheckErr(o.Complete(f, cmd))
+			CheckErr(o.Complete(f))
 			CheckErr(o.Validate(cmd))
 			CheckErr(o.Run())
 		},
@@ -75,7 +75,7 @@ func NewCmdCreate(f Factory) *cobra.Command {
 	return cmd
 }
 
-func (o *CreateOptions) Complete(f Factory, cmd *cobra.Command) error {
+func (o *CreateOptions) Complete(f Factory) error {
 	var err error
 	o.vcclient, err = f.VirtualClusterClientSet()
 	if err != nil {
@@ -171,7 +171,7 @@ func createVirtualCluster(cli client.Client, vccli vcclient.Interface, vc *tenan
 	return genKubeConfig(cli, vc, cv)
 }
 
-// getAPISvcPort gets the apiserver service port if not specifed
+// getAPISvcPort gets the apiserver service port if not specified
 func getAPISvcPort(svc *corev1.Service) (int, error) {
 	if len(svc.Spec.Ports) == 0 {
 		return 0, errors.New("no port is specified for apiserver service ")
@@ -254,7 +254,7 @@ func genKubeConfig(cli client.Client, vc *tenancyv1alpha1.VirtualCluster, cv *te
 }
 
 // replaceServerAddr replace api server IP with the minikube gateway IP, and
-// disable TLS varification by removing the server CA
+// disable TLS verification by removing the server CA
 func replaceServerAddr(kubecfg clientcmd.ClientConfig, cli client.Client, clusterNamespace string, svcType corev1.ServiceType, apiSvcPort int) (clientcmd.ClientConfig, error) {
 	var newStr string
 	switch svcType {

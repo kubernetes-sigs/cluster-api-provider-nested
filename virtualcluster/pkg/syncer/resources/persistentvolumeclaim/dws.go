@@ -100,7 +100,7 @@ func (c *controller) reconcilePVCCreate(clusterName, targetNamespace, requestUID
 			klog.Infof("pvc %s/%s of cluster %s already exist in super control plane", targetNamespace, pPVC.Name, clusterName)
 			return nil
 		} else {
-			return fmt.Errorf("pPVC %s/%s exists but its delegated object UID is different.", targetNamespace, pPVC.Name)
+			return fmt.Errorf("pPVC %s/%s exists but its delegated object UID is different", targetNamespace, pPVC.Name)
 		}
 	}
 	return err
@@ -108,7 +108,7 @@ func (c *controller) reconcilePVCCreate(clusterName, targetNamespace, requestUID
 
 func (c *controller) reconcilePVCUpdate(clusterName, targetNamespace, requestUID string, pPVC, vPVC *corev1.PersistentVolumeClaim) error {
 	if pPVC.Annotations[constants.LabelUID] != requestUID {
-		return fmt.Errorf("pPVC %s/%s delegated UID is different from updated object.", targetNamespace, pPVC.Name)
+		return fmt.Errorf("pPVC %s/%s delegated UID is different from updated object", targetNamespace, pPVC.Name)
 	}
 	vc, err := util.GetVirtualClusterObject(c.MultiClusterController, clusterName)
 	if err != nil {
@@ -126,7 +126,7 @@ func (c *controller) reconcilePVCUpdate(clusterName, targetNamespace, requestUID
 
 func (c *controller) reconcilePVCRemove(clusterName, targetNamespace, requestUID, name string, pPVC *corev1.PersistentVolumeClaim) error {
 	if pPVC.Annotations[constants.LabelUID] != requestUID {
-		return fmt.Errorf("To be deleted pPVC %s/%s delegated UID is different from deleted object.", targetNamespace, pPVC.Name)
+		return fmt.Errorf("to be deleted pPVC %s/%s delegated UID is different from deleted object", targetNamespace, pPVC.Name)
 	}
 	opts := &metav1.DeleteOptions{
 		PropagationPolicy: &constants.DefaultDeletionPolicy,

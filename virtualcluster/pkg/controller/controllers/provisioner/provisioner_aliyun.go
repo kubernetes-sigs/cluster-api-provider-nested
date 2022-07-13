@@ -79,7 +79,7 @@ func NewProvisionerAliyun(mgr manager.Manager, log logr.Logger, provisionerTimeo
 	}, nil
 }
 
-// Create creates a new ASK on aliyun for given VirtualCluster
+// CreateVirtualCluster creates a new ASK on aliyun for given VirtualCluster
 func (mpa *ProvisionerAliyun) CreateVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error {
 	mpa.Log.Info("setting up control plane for the VirtualCluster", "VirtualCluster", vc.Name)
 	// 1. load aliyun accessKeyID/accessKeySecret from secret
@@ -103,7 +103,7 @@ func (mpa *ProvisionerAliyun) CreateVirtualCluster(ctx context.Context, vc *tena
 	var (
 		clsID    string
 		clsState string
-		clsSlbId string
+		clsSlbID string
 	)
 	creationTimeout := time.After(mpa.ProvisionerTimeout)
 	clsID, err = aliyunutil.SendCreationRequest(cli, vc.Name, askCfg)
@@ -121,7 +121,7 @@ func (mpa *ProvisionerAliyun) CreateVirtualCluster(ctx context.Context, vc *tena
 				return getClsIDErr
 			}
 			var getStErr error
-			clsSlbId, clsState, getStErr = aliyunutil.GetASKStateAndSlbID(cli, clsID, askCfg.RegionID)
+			clsSlbID, clsState, getStErr = aliyunutil.GetASKStateAndSlbID(cli, clsID, askCfg.RegionID)
 			if getStErr != nil {
 				return getStErr
 			}
@@ -145,7 +145,7 @@ PollASK:
 				break PollASK
 			}
 			var getStErr error
-			clsSlbId, clsState, getStErr = aliyunutil.GetASKStateAndSlbID(cli, clsID, askCfg.RegionID)
+			clsSlbID, clsState, getStErr = aliyunutil.GetASKStateAndSlbID(cli, clsID, askCfg.RegionID)
 			if getStErr != nil {
 				return getStErr
 			}
@@ -184,11 +184,11 @@ PollASK:
 	// tenancy.x-k8s.io/ask.slbID,
 	// tenancy.x-k8s.io/cluster,
 	// tenancy.x-k8s.io/admin-kubeconfig
-	err = kubeutil.AnnotateVC(mpa, vc, aliyunutil.AnnotationSlbID, clsSlbId, mpa.Log)
+	err = kubeutil.AnnotateVC(mpa, vc, aliyunutil.AnnotationSlbID, clsSlbID, mpa.Log)
 	if err != nil {
 		return err
 	}
-	mpa.Log.Info("slb id has been added to vc as an annotation", "vc", vc.GetName(), "id", clsSlbId)
+	mpa.Log.Info("slb id has been added to vc as an annotation", "vc", vc.GetName(), "id", clsSlbID)
 	err = kubeutil.AnnotateVC(mpa, vc, aliyunutil.AnnotationClusterID, clsID, mpa.Log)
 	if err != nil {
 		return err
@@ -226,7 +226,7 @@ PollASK:
 	return nil
 }
 
-// Delete deletes the ASK cluster corresponding to the given VirtualCluster
+// DeleteVirtualCluster deletes the ASK cluster corresponding to the given VirtualCluster
 // NOTE Delete only sends the deletion request to Aliyun and do not promise
 // the ASK will be deleted
 func (mpa *ProvisionerAliyun) DeleteVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error {

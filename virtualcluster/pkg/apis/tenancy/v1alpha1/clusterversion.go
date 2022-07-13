@@ -37,7 +37,7 @@ func (cv *ClusterVersion) GetEtcdServers() (etcdServers []string) {
 	return etcdServers
 }
 
-// GetApiserverDomain returns the dns of the apiserver service
+// GetAPIServerDomain returns the dns of the apiserver service
 //
 // TODO support NodePort and ClusterIP for accessing apiserver from
 // outside the cluster

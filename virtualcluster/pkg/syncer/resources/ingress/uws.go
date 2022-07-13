@@ -72,7 +72,7 @@ func (c *controller) BackPopulate(key string) error {
 		return pkgerr.Wrapf(err, "could not find pIngress %s/%s's vIngress in controller cache", vNamespace, pName)
 	}
 	if pIngress.Annotations[constants.LabelUID] != string(vIngress.UID) {
-		return fmt.Errorf("BackPopulated pIngress %s/%s delegated UID is different from updated object.", pIngress.Namespace, pIngress.Name)
+		return fmt.Errorf("backPopulated pIngress %s/%s delegated UID is different from updated object", pIngress.Namespace, pIngress.Name)
 	}
 
 	tenantClient, err := c.MultiClusterController.GetClusterClient(clusterName)

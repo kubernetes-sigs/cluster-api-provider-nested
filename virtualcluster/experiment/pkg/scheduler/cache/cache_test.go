@@ -158,7 +158,7 @@ func TestAddRemoveNamespace(t *testing.T) {
 			succeed: false,
 		},
 
-		"Succeeed to add one namespace with full quota": {
+		"Succeed to add one namespace with full quota": {
 			namespace: NewNamespace(defaultTenant, defaultNamespace, nil, fullQuota, defaultQuotaSlice,
 				[]*Placement{
 					NewPlacement(defaultCluster1, 4),

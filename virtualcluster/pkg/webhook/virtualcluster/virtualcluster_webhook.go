@@ -77,7 +77,7 @@ func Add(mgr manager.Manager, certDir string) error {
 	}
 
 	// 2. generate the serving certificate for the webhook server
-	caPEM, genCrtErr := genCertificate(mgr, certDir)
+	caPEM, genCrtErr := genCertificate(certDir)
 	if genCrtErr != nil {
 		return fmt.Errorf("fail to generate certificates for webhook server: %s", genCrtErr)
 	}
@@ -195,7 +195,7 @@ func createValidatingWebhookConfiguration(client client.Client, caPEM []byte) er
 }
 
 // genCertificate generates the serving cerficiate for the webhook server
-func genCertificate(mgr manager.Manager, certDir string) ([]byte, error) {
+func genCertificate(certDir string) ([]byte, error) {
 	caPEM, certPEM, keyPEM, err := genSelfSignedCert()
 	if err != nil {
 		log.Error(err, "fail to generate self-signed certificate")
@@ -295,7 +295,7 @@ func genSelfSignedCert() (caPEMByte, certPEMByte, keyPEMByte []byte, err error) 
 	})
 	keyPEMByte = certPrvKeyPEM.Bytes()
 
-	return
+	return caPEMByte, certPEMByte, keyPEMByte, nil
 }
 
 // genCertAndKeyFile creates the serving certificate/key files for the webhook server
