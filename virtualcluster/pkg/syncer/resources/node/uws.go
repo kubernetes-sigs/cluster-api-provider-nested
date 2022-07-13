@@ -53,7 +53,7 @@ func (c *controller) BackPopulate(nodeName string) error {
 	}
 	klog.V(4).Infof("back populate node %s/%s", node.Namespace, node.Name)
 	c.Lock()
-	var clusterList []string
+	clusterList := make([]string, 0, len(c.nodeNameToCluster[node.Name]))
 	for clusterName := range c.nodeNameToCluster[node.Name] {
 		clusterList = append(clusterList, clusterName)
 	}

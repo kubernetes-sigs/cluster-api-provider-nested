@@ -21,8 +21,8 @@ linters:
   - ineffassign
   - misspell
   - nakedret
-#  - nolintlint
-#  - prealloc
+  - nolintlint
+  - prealloc
 #  - revive
 #  - rowserrcheck
 #  - staticcheck

@@ -309,9 +309,9 @@ func (c *MultiClusterController) GetOwnerInfo(clusterName string) (string, strin
 func (c *MultiClusterController) GetClusterNames() []string {
 	c.Lock()
 	defer c.Unlock()
-	var names []string
-	for _, cluster := range c.clusters {
-		names = append(names, cluster.GetClusterName())
+	names := make([]string, 0, len(c.clusters))
+	for clusterName := range c.clusters {
+		names = append(names, clusterName)
 	}
 	return names
 }
