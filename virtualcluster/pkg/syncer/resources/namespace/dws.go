@@ -62,7 +62,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	}
 	switch {
 	case vExists && !pExists:
-		err := c.reconcileNamespaceCreate(request.ClusterName, targetNamespace, request.UID, vNamespace)
+		err := c.reconcileNamespaceCreate(request.ClusterName, targetNamespace, vNamespace)
 		if err != nil {
 			klog.Errorf("failed reconcile namespace %s CREATE of cluster %s %v", request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
@@ -85,7 +85,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	return reconciler.Result{}, nil
 }
 
-func (c *controller) reconcileNamespaceCreate(clusterName, targetNamespace, requestUID string, vNamespace *corev1.Namespace) error {
+func (c *controller) reconcileNamespaceCreate(clusterName, targetNamespace string, vNamespace *corev1.Namespace) error {
 	newObj, err := c.Conversion().BuildSuperClusterNamespace(clusterName, vNamespace)
 	if err != nil {
 		return err

@@ -63,7 +63,7 @@ func NewCmdCreate(f Factory) *cobra.Command {
 		Use:   "create",
 		Short: "Create a new VirtualCluster",
 		Run: func(cmd *cobra.Command, args []string) {
-			CheckErr(o.Complete(f, cmd))
+			CheckErr(o.Complete(f))
 			CheckErr(o.Validate(cmd))
 			CheckErr(o.Run())
 		},
@@ -75,7 +75,7 @@ func NewCmdCreate(f Factory) *cobra.Command {
 	return cmd
 }
 
-func (o *CreateOptions) Complete(f Factory, cmd *cobra.Command) error {
+func (o *CreateOptions) Complete(f Factory) error {
 	var err error
 	o.vcclient, err = f.VirtualClusterClientSet()
 	if err != nil {

@@ -67,7 +67,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 			return reconciler.Result{Requeue: true}, err
 		}
 	case !vExists && pExists:
-		err := c.reconcileIngressRemove(request.ClusterName, targetNamespace, request.UID, request.Name, pIngress)
+		err := c.reconcileIngressRemove(targetNamespace, request.UID, request.Name, pIngress)
 		if err != nil {
 			klog.Errorf("failed reconcile ingress %s/%s DELETE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
@@ -123,7 +123,7 @@ func (c *controller) reconcileIngressUpdate(clusterName, targetNamespace, reques
 	return nil
 }
 
-func (c *controller) reconcileIngressRemove(clusterName, targetNamespace, requestUID, name string, pIngress *v1beta1.Ingress) error {
+func (c *controller) reconcileIngressRemove(targetNamespace, requestUID, name string, pIngress *v1beta1.Ingress) error {
 	if pIngress.Annotations[constants.LabelUID] != requestUID {
 		return fmt.Errorf("to be deleted pIngress %s/%s delegated UID is different from deleted object", targetNamespace, name)
 	}

@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/types"
+
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/reconciler"
 )
 
@@ -69,7 +70,7 @@ func TestBasicAndFair(t *testing.T) {
 	consumerWG := sync.WaitGroup{}
 	consumerWG.Add(consumers)
 	for i := 0; i < consumers; i++ {
-		go func(i int) {
+		go func() {
 			defer consumerWG.Done()
 			for {
 				item, quit := q.Get()
@@ -92,7 +93,7 @@ func TestBasicAndFair(t *testing.T) {
 				scheduleCounter[v.ClusterName] += 1
 				mu.Unlock()
 			}
-		}(i)
+		}()
 	}
 
 	producerWG.Wait()

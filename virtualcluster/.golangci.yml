@@ -28,9 +28,9 @@ linters:
   - staticcheck
   - structcheck
   - stylecheck
-#  - typecheck
-#  - unconvert
-#  - unparam
+  - typecheck
+  - unconvert
+  - unparam
 #  - varcheck
 #  - whitespace
 

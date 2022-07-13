@@ -66,7 +66,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 			return reconciler.Result{Requeue: true}, err
 		}
 	case !vExists && pExists:
-		err := c.reconcileServiceRemove(request.ClusterName, targetNamespace, request.UID, request.Name, pService)
+		err := c.reconcileServiceRemove(targetNamespace, request.UID, request.Name, pService)
 		if err != nil {
 			klog.Errorf("failed reconcile service %s/%s DELETE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
@@ -123,7 +123,7 @@ func (c *controller) reconcileServiceUpdate(clusterName, targetNamespace, reques
 	return nil
 }
 
-func (c *controller) reconcileServiceRemove(clusterName, targetNamespace, requestUID, name string, pService *corev1.Service) error {
+func (c *controller) reconcileServiceRemove(targetNamespace, requestUID, name string, pService *corev1.Service) error {
 	if pService.Annotations[constants.LabelUID] != requestUID {
 		return fmt.Errorf("to be deleted pService %s/%s delegated UID is different from deleted object", targetNamespace, name)
 	}
