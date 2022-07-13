@@ -79,12 +79,21 @@ func NewServer(cfg *config.Config, serverOption *options.ServerOption) (*Server,
 				return nil, errors.Wrapf(err, "failed to get in cluster config")
 			}
 			caCrtPool, err = certutil.NewPool(restConfig.TLSClientConfig.CAFile)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to get cert pool")
+			}
 		} else {
 			// This creates a client, first loading any specified kubeconfig\
 			restConfig, err = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 				&clientcmd.ClientConfigLoadingRules{ExplicitPath: serverOption.Kubeconfig},
 				&clientcmd.ConfigOverrides{}).ClientConfig()
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to construct client config")
+			}
 			caCrtPool, err = certutil.NewPoolFromBytes(restConfig.TLSClientConfig.CAData)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to get cert pool")
+			}
 		}
 		server.restConfig = restConfig
 		superHttpsUrl, err := url.Parse(restConfig.Host)
