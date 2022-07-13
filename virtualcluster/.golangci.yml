@@ -20,7 +20,7 @@ linters:
   - importas
   - ineffassign
   - misspell
-#  - nakedret
+  - nakedret
 #  - nolintlint
 #  - prealloc
 #  - revive

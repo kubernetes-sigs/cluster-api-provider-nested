@@ -295,7 +295,7 @@ func genSelfSignedCert() (caPEMByte, certPEMByte, keyPEMByte []byte, err error) 
 	})
 	keyPEMByte = certPrvKeyPEM.Bytes()
 
-	return
+	return caPEMByte, certPEMByte, keyPEMByte, nil
 }
 
 // genCertAndKeyFile creates the serving certificate/key files for the webhook server
