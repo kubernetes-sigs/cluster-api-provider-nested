@@ -118,7 +118,7 @@ func (mpn *ProvisionerNative) CreateVirtualCluster(ctx context.Context, vc *tena
 	return nil
 }
 
-// genInitialClusterArgs generates the values for `--inital-cluster` option of etcd based on the number of
+// genInitialClusterArgs generates the values for `--initial-cluster` option of etcd based on the number of
 // replicas specified in etcd StatefulSet
 func genInitialClusterArgs(replicas int32, stsName, svcName string) (argsVal string) {
 	for i := int32(0); i < replicas; i++ {

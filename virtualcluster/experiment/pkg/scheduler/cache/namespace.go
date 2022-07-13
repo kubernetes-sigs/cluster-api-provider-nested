@@ -183,7 +183,7 @@ func GetLeastFitSliceNum(quota, quotaSlice corev1.ResourceList) (int, error) {
 		q, ok := quota[k]
 
 		if !ok {
-			return 0, fmt.Errorf("quota slice resouce %v is missing from quota", k)
+			return 0, fmt.Errorf("quota slice resource %v is missing from quota", k)
 		}
 		if v.Value() == 0 {
 			return 0, fmt.Errorf("quota slice resource %v has value of 0", k)
