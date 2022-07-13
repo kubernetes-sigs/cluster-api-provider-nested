@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
 )
 
-// Each Cluster object represents a tenant control plane in Virtual Cluster architecture.
+// Cluster object represents a tenant control plane in Virtual Cluster architecture.
 //
 // Cluster implements the ClusterInterface used by MultiClusterController in
 // sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller/mccontroller.go.
@@ -62,7 +62,7 @@ type Cluster struct {
 	getter mccontroller.Getter
 
 	// scheme is injected by the controllerManager when controllerManager.Start is called
-	scheme *runtime.Scheme
+	scheme *runtime.Scheme // nolint:structcheck
 
 	mapper meta.RESTMapper
 

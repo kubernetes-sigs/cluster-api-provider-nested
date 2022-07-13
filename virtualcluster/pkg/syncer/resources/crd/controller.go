@@ -18,8 +18,6 @@ import (
 	"fmt"
 
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	fakeapiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	apiextensionclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -91,12 +89,10 @@ type controller struct {
 	crdSynced cache.InformerSynced
 	vcSynced  cache.InformerSynced
 	// Super cluster restful config
-	restConfig          *restclient.Config
-	superClient         dclient.Client
-	crdcache            rinformer.Cache
-	informer            rinformer.Informer
-	tenantClientSet     apiextensionclientset.CustomResourceDefinitionsGetter
-	tenantFakeClientSet *fakeapiextensionsclientset.Clientset
+	restConfig  *restclient.Config
+	superClient dclient.Client
+	crdcache    rinformer.Cache
+	informer    rinformer.Informer
 }
 
 func NewCrdController(config *config.SyncerConfiguration,

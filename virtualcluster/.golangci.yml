@@ -24,9 +24,9 @@ linters:
   - nolintlint
   - prealloc
 #  - revive
-#  - rowserrcheck
-#  - staticcheck
-#  - structcheck
+  - rowserrcheck
+  - staticcheck
+  - structcheck
 #  - stylecheck
 #  - typecheck
 #  - unconvert
