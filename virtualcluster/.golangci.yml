@@ -19,7 +19,7 @@ linters:
   - govet
   - importas
   - ineffassign
-#  - misspell
+  - misspell
 #  - nakedret
 #  - nolintlint
 #  - prealloc
