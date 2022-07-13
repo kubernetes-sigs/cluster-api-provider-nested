@@ -110,7 +110,7 @@ func (c *controller) reconcileEndpointsCreate(clusterName, targetNamespace, requ
 			klog.Infof("endpoints %s/%s of cluster %s already exist in super control plane", targetNamespace, pEndpoints.Name, clusterName)
 			return nil
 		} else {
-			return fmt.Errorf("pEndpoints %s/%s exists but its delegated object UID is different.", targetNamespace, pEndpoints.Name)
+			return fmt.Errorf("pEndpoints %s/%s exists but its delegated object UID is different", targetNamespace, pEndpoints.Name)
 		}
 	}
 	return err
@@ -118,7 +118,7 @@ func (c *controller) reconcileEndpointsCreate(clusterName, targetNamespace, requ
 
 func (c *controller) reconcileEndpointsUpdate(clusterName, targetNamespace, requestUID string, pEP, vEP *corev1.Endpoints) error {
 	if pEP.Annotations[constants.LabelUID] != requestUID {
-		return fmt.Errorf("pEndpoints %s/%s delegated UID is different from updated object.", targetNamespace, pEP.Name)
+		return fmt.Errorf("pEndpoints %s/%s delegated UID is different from updated object", targetNamespace, pEP.Name)
 	}
 	vc, err := util.GetVirtualClusterObject(c.MultiClusterController, clusterName)
 	if err != nil {
@@ -136,7 +136,7 @@ func (c *controller) reconcileEndpointsUpdate(clusterName, targetNamespace, requ
 
 func (c *controller) reconcileEndpointsRemove(clusterName, targetNamespace, requestUID, name string, pEP *corev1.Endpoints) error {
 	if pEP.Annotations[constants.LabelUID] != requestUID {
-		return fmt.Errorf("To be deleted pEndpoints %s/%s delegated UID is different from deleted object.", targetNamespace, pEP.Name)
+		return fmt.Errorf("to be deleted pEndpoints %s/%s delegated UID is different from deleted object", targetNamespace, pEP.Name)
 	}
 	opts := &metav1.DeleteOptions{
 		PropagationPolicy: &constants.DefaultDeletionPolicy,

@@ -69,7 +69,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 			}
 		}
 		if pSecret == nil {
-			return reconciler.Result{Requeue: true}, fmt.Errorf("There are pSecrets that represent vSerect %s/%s but the UID is unmatched.", request.Namespace, request.Name)
+			return reconciler.Result{Requeue: true}, fmt.Errorf("there are pSecrets that represent vSerect %s/%s but the UID is unmatched", request.Namespace, request.Name)
 		}
 	} else {
 		// We need to use name to search again for normal vSecret
@@ -163,7 +163,7 @@ func (c *controller) reconcileNormalSecretCreate(clusterName, targetNamespace, r
 			klog.Infof("secret %s/%s of cluster %s already exist in super control plane", targetNamespace, secret.Name, clusterName)
 			return nil
 		} else {
-			return fmt.Errorf("pSecret %s/%s exists but its delegated object UID is different.", targetNamespace, pSecret.Name)
+			return fmt.Errorf("pSecret %s/%s exists but its delegated object UID is different", targetNamespace, pSecret.Name)
 		}
 	}
 
@@ -181,7 +181,7 @@ func (c *controller) reconcileSecretUpdate(clusterName, targetNamespace, request
 
 func (c *controller) reconcileNormalSecretUpdate(clusterName, targetNamespace, requestUID string, pSecret, vSecret *corev1.Secret) error {
 	if pSecret.Annotations[constants.LabelUID] != requestUID {
-		return fmt.Errorf("pEndpoints %s/%s delegated UID is different from updated object.", targetNamespace, pSecret.Name)
+		return fmt.Errorf("pEndpoints %s/%s delegated UID is different from updated object", targetNamespace, pSecret.Name)
 	}
 	vc, err := util.GetVirtualClusterObject(c.MultiClusterController, clusterName)
 	if err != nil {
@@ -207,7 +207,7 @@ func (c *controller) reconcileSecretRemove(clusterName, targetNamespace, request
 
 func (c *controller) reconcileNormalSecretRemove(clusterName, targetNamespace, requestUID, name string, pSecret *corev1.Secret) error {
 	if pSecret.Annotations[constants.LabelUID] != requestUID {
-		return fmt.Errorf("To be deleted pSecret %s/%s delegated UID is different from deleted object.", targetNamespace, pSecret.Name)
+		return fmt.Errorf("to be deleted pSecret %s/%s delegated UID is different from deleted object", targetNamespace, pSecret.Name)
 	}
 	opts := &metav1.DeleteOptions{
 		PropagationPolicy: &constants.DefaultDeletionPolicy,

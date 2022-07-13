@@ -465,7 +465,7 @@ func (f *Framework) WaitForVCRunning(vcName string) error {
 	return e2evc.WaitForVCRunningInNamespace(f.VCClientSet, vcName, f.Namespace.Name)
 }
 
-// WaitForVCRunning waits for the vc to be deleted in the namespace.
+// WaitForVCNotFound waits for the vc to be deleted in the namespace.
 func (f *Framework) WaitForVCNotFound(vcName string) error {
 	return e2evc.WaitForVCNotFoundInNamespace(f.VCClientSet, vcName, f.Namespace.Name)
 }

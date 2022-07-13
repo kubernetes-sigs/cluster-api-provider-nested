@@ -61,7 +61,7 @@ func NewProvisionerNative(mgr manager.Manager, log logr.Logger, provisionerTimeo
 	}, nil
 }
 
-// Create sets up the control plane for vc on meta k8s
+// CreateVirtualCluster sets up the control plane for vc on meta k8s
 func (mpn *ProvisionerNative) CreateVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error {
 	cvObjectKey := client.ObjectKey{Name: vc.Spec.ClusterVersionName}
 	cv := &tenancyv1alpha1.ClusterVersion{}

@@ -98,7 +98,7 @@ func (c *controller) reconcileConfigMapCreate(clusterName, targetNamespace, requ
 			klog.Infof("configmap %s/%s of cluster %s already exist in super control plane", targetNamespace, configMap.Name, clusterName)
 			return nil
 		} else {
-			return fmt.Errorf("pConfigMap %s/%s exists but its delegated object UID is different.", targetNamespace, pConfigMap.Name)
+			return fmt.Errorf("pConfigMap %s/%s exists but its delegated object UID is different", targetNamespace, pConfigMap.Name)
 		}
 	}
 	return err
@@ -106,7 +106,7 @@ func (c *controller) reconcileConfigMapCreate(clusterName, targetNamespace, requ
 
 func (c *controller) reconcileConfigMapUpdate(clusterName, targetNamespace, requestUID string, pConfigMap, vConfigMap *corev1.ConfigMap) error {
 	if pConfigMap.Annotations[constants.LabelUID] != requestUID {
-		return fmt.Errorf("pConfigMap %s/%s delegated UID is different from updated object.", targetNamespace, pConfigMap.Name)
+		return fmt.Errorf("pConfigMap %s/%s delegated UID is different from updated object", targetNamespace, pConfigMap.Name)
 	}
 	vc, err := util.GetVirtualClusterObject(c.MultiClusterController, clusterName)
 	if err != nil {
@@ -124,7 +124,7 @@ func (c *controller) reconcileConfigMapUpdate(clusterName, targetNamespace, requ
 
 func (c *controller) reconcileConfigMapRemove(clusterName, targetNamespace, requestUID, name string, pConfigMap *corev1.ConfigMap) error {
 	if pConfigMap.Annotations[constants.LabelUID] != requestUID {
-		return fmt.Errorf("To be deleted pConfigMap %s/%s delegated UID is different from deleted object.", targetNamespace, name)
+		return fmt.Errorf("to be deleted pConfigMap %s/%s delegated UID is different from deleted object", targetNamespace, name)
 	}
 	opts := &metav1.DeleteOptions{
 		PropagationPolicy: &constants.DefaultDeletionPolicy,

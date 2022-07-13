@@ -58,7 +58,7 @@ type Cache interface {
 	Stop()
 }
 
-// Lister interface is used to get the CRD object that abstracts the cluster.
+// Getter interface is used to get the CRD object that abstracts the cluster.
 type Getter interface {
 	GetObject(string, string) (client.Object, error)
 }

@@ -67,7 +67,7 @@ type ResourceSyncerOptions struct {
 	Port                string
 	CertFile            string
 	KeyFile             string
-	DnsOptions          map[string]string
+	DNSOptions          map[string]string
 }
 
 // NewResourceSyncerOptions creates a new resource syncer with a default config.
@@ -103,7 +103,7 @@ func NewResourceSyncerOptions() (*ResourceSyncerOptions, error) {
 		Port:       "80",
 		CertFile:   "",
 		KeyFile:    "",
-		DnsOptions: map[string]string{
+		DNSOptions: map[string]string{
 			"ndots": "5",
 		},
 	}, nil
@@ -127,7 +127,7 @@ func (o *ResourceSyncerOptions) Flags() cliflag.NamedFlagSets {
 	fs.Var(cliflag.NewMapStringBool(&o.ComponentConfig.FeatureGates), "feature-gates", "A set of key=value pairs that describe featuregate gates for various features.")
 	fs.Int32Var(&o.ComponentConfig.VNAgentPort, "vn-agent-port", 10550, "Port the vn-agent listens on")
 	fs.StringVar(&o.ComponentConfig.VNAgentNamespacedName, "vn-agent-namespace-name", "vc-manager/vn-agent", "Namespace/Name of the vn-agent running in cluster, used for VNodeProviderService")
-	fs.Var(cliflag.NewMapStringString(&o.DnsOptions), "dns-options", "DnsOptions is the default DNS options attached to each pod")
+	fs.Var(cliflag.NewMapStringString(&o.DNSOptions), "dns-options", "DNSOptions is the default DNS options attached to each pod")
 	fs.StringVar(&o.ComponentConfig.VNAgentLabelSelector, "vn-agent-label-selector", "app=vn-agent", "Label key=value of the vn-agent running in cluster, used for VNodeProviderPodIP")
 
 	serverFlags := fss.FlagSet("metricsServer")
@@ -243,7 +243,7 @@ func (o *ResourceSyncerOptions) Config() (*syncerappconfig.Config, error) {
 		return nil, err
 	}
 	c.ComponentConfig.RestConfig = superRestConfig
-	c.ComponentConfig.DNSOptions = dnsOptionsConvert(o.DnsOptions)
+	c.ComponentConfig.DNSOptions = dnsOptionsConvert(o.DNSOptions)
 	c.VirtualClusterClient = virtualClusterClient
 	c.VirtualClusterInformer = vcinformers.NewSharedInformerFactory(virtualClusterClient, 0).Tenancy().V1alpha1().VirtualClusters()
 	c.MetaClusterClient = metaClusterClient
@@ -372,9 +372,9 @@ func getClientConfig(config componentbaseconfig.ClientConnectionConfiguration, s
 }
 
 func dnsOptionsConvert(dnsoptions map[string]string) []corev1.PodDNSConfigOption {
-	podDnsOptions := []corev1.PodDNSConfigOption{}
+	podDNSOptions := []corev1.PodDNSConfigOption{}
 	for k, v := range dnsoptions {
-		podDnsOptions = append(podDnsOptions, corev1.PodDNSConfigOption{Name: k, Value: pointer.StringPtr(v)})
+		podDNSOptions = append(podDNSOptions, corev1.PodDNSConfigOption{Name: k, Value: pointer.StringPtr(v)})
 	}
-	return podDnsOptions
+	return podDNSOptions
 }

@@ -69,7 +69,7 @@ func WaitForVCNotFoundInNamespace(c vcclient.Interface, vcName, namespace string
 	return WaitTimeoutForVCNotFoundInNamespace(c, vcName, namespace, vcDeletionTimeout)
 }
 
-// WaitTimeoutForVCRunningInNamespace waits the given timeout duration for the specified vc to become running.
+// WaitTimeoutForVCNotFoundInNamespace waits the given timeout duration for the specified vc to become running.
 func WaitTimeoutForVCNotFoundInNamespace(c vcclient.Interface, vcName, namespace string, timeout time.Duration) error {
 	return wait.PollImmediate(poll, timeout, vcNotFound(c, vcName, namespace))
 }

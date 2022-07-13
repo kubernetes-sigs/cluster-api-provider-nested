@@ -98,7 +98,7 @@ func (c *controller) reconcileServiceCreate(clusterName, targetNamespace, reques
 			klog.Infof("service %s/%s of cluster %s already exist in super control plane", targetNamespace, pService.Name, clusterName)
 			return nil
 		} else {
-			return fmt.Errorf("pService %s/%s exists but its delegated object UID is different.", targetNamespace, pService.Name)
+			return fmt.Errorf("pService %s/%s exists but its delegated object UID is different", targetNamespace, pService.Name)
 		}
 	}
 	return err
@@ -106,7 +106,7 @@ func (c *controller) reconcileServiceCreate(clusterName, targetNamespace, reques
 
 func (c *controller) reconcileServiceUpdate(clusterName, targetNamespace, requestUID string, pService, vService *corev1.Service) error {
 	if pService.Annotations[constants.LabelUID] != requestUID {
-		return fmt.Errorf("pService %s/%s delegated UID is different from updated object.", targetNamespace, pService.Name)
+		return fmt.Errorf("pService %s/%s delegated UID is different from updated object", targetNamespace, pService.Name)
 	}
 
 	vc, err := util.GetVirtualClusterObject(c.MultiClusterController, clusterName)
@@ -125,7 +125,7 @@ func (c *controller) reconcileServiceUpdate(clusterName, targetNamespace, reques
 
 func (c *controller) reconcileServiceRemove(clusterName, targetNamespace, requestUID, name string, pService *corev1.Service) error {
 	if pService.Annotations[constants.LabelUID] != requestUID {
-		return fmt.Errorf("To be deleted pService %s/%s delegated UID is different from deleted object.", targetNamespace, name)
+		return fmt.Errorf("to be deleted pService %s/%s delegated UID is different from deleted object", targetNamespace, name)
 	}
 
 	opts := &metav1.DeleteOptions{

@@ -215,7 +215,7 @@ func (c *Cluster) getCache() (cache.Cache, error) {
 // and forwarding to actual delegating client.
 func (c *Cluster) GetDelegatingClient() (client.Client, error) {
 	if !c.synced {
-		return nil, fmt.Errorf("The client cache has not been synced yet.")
+		return nil, fmt.Errorf("the client cache has not been synced yet")
 	}
 
 	if c.delegatingClient != nil {

@@ -132,7 +132,7 @@ func (c *controller) reconcileServiceAccountUpdate(clusterName, targetNamespace,
 
 func (c *controller) reconcileServiceAccountRemove(clusterName, targetNamespace, requestUID, name string, pSa *corev1.ServiceAccount) error {
 	if pSa.Annotations[constants.LabelUID] != requestUID {
-		return fmt.Errorf("To be deleted pServiceAccount %s/%s delegated UID is different from deleted object.", targetNamespace, pSa.Name)
+		return fmt.Errorf("to be deleted pServiceAccount %s/%s delegated UID is different from deleted object", targetNamespace, pSa.Name)
 	}
 	opts := &metav1.DeleteOptions{
 		PropagationPolicy: &constants.DefaultDeletionPolicy,

@@ -64,7 +64,7 @@ type ServerOption struct {
 	FeatureGates map[string]bool
 }
 
-// Subset of the full options exposed in k8s.io/kubernetes/pkg/kubelet/client.KubeletClientConfig
+// KubeletClientConfig is a subset of the full options exposed in k8s.io/kubernetes/pkg/kubelet/client.KubeletClientConfig
 type KubeletClientConfig struct {
 	// Port specifies the default port - used if no information about Kubelet port can be found in Node.NodeStatus.DaemonEndpoints.
 	Port uint

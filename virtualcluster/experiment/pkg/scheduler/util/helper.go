@@ -120,7 +120,7 @@ func GetSuperClusterCapacity(client clientset.Interface) (corev1.ResourceList, e
 	return getTotalNodeCapacity(nodelist), nil
 }
 
-func GetProvisionedSlices(namespace *corev1.Namespace, clusterId, key string) ([]*internalcache.Slice, error) {
+func GetProvisionedSlices(namespace *corev1.Namespace, clusterID, key string) ([]*internalcache.Slice, error) {
 	placements, quotaSlice, err := GetSchedulingInfo(namespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get scheduling info in %s: %v", namespace.Name, err)
@@ -129,14 +129,14 @@ func GetProvisionedSlices(namespace *corev1.Namespace, clusterId, key string) ([
 	if placements == nil {
 		return nil, fmt.Errorf("synced namespace does not have placement result %s", namespace.Name)
 	}
-	num, ok := placements[clusterId]
+	num, ok := placements[clusterID]
 	if !ok {
 		return nil, fmt.Errorf("synced namespace is in wrong cluster %s", namespace.Name)
 	}
 
 	var slices []*internalcache.Slice
 	for i := 0; i < num; i++ {
-		slices = append(slices, internalcache.NewSlice(key, quotaSlice, clusterId))
+		slices = append(slices, internalcache.NewSlice(key, quotaSlice, clusterID))
 	}
 	return slices, nil
 }

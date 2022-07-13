@@ -96,11 +96,11 @@ func NewServer(cfg *config.Config, serverOption *options.ServerOption) (*Server,
 			}
 		}
 		server.restConfig = restConfig
-		superHttpsUrl, err := url.Parse(restConfig.Host)
+		superHTTPSURL, err := url.Parse(restConfig.Host)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to parse apiserver address")
 		}
-		server.superAPIServerAddress = superHttpsUrl
+		server.superAPIServerAddress = superHTTPSURL
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to parse ca file")
 		}
