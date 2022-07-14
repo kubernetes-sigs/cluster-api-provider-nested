@@ -31,8 +31,8 @@ linters:
   - typecheck
   - unconvert
   - unparam
-#  - varcheck
-#  - whitespace
+  - varcheck
+  - whitespace
 
 linters-settings:
   staticcheck:

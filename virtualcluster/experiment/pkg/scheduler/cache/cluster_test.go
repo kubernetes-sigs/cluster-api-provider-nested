@@ -278,9 +278,7 @@ func TestRemoveNamespace(t *testing.T) {
 				t.Errorf("the alloc is not expected. Exp: %v, Got %v", tc.allocAfter, tc.cluster.alloc)
 			}
 		})
-
 	}
-
 }
 
 func TestDeepCopy(t *testing.T) {

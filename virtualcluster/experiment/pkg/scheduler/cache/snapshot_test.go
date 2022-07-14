@@ -190,7 +190,5 @@ func TestSnapshotForNamespaceSched(t *testing.T) {
 			cache.clusters[defaultCluster1].provision = nil
 			cache.clusters[defaultCluster2].provision = nil
 		})
-
 	}
-
 }

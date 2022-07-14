@@ -25,7 +25,6 @@ import (
 )
 
 func TestGetNumSlices(t *testing.T) {
-
 	testcases := map[string]struct {
 		quota      corev1.ResourceList
 		quotaSlice corev1.ResourceList
@@ -138,7 +137,6 @@ func TestGetNumSlices(t *testing.T) {
 			if num != tc.expect {
 				t.Errorf("The num is not expected. Exp: %v, Got %v", tc.expect, num)
 			}
-
 		})
 	}
 }

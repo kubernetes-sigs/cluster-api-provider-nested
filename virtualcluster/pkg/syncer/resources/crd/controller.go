@@ -101,7 +101,6 @@ func NewCrdController(config *config.SyncerConfiguration,
 	vcClient vcclient.Interface,
 	vcInformer vcinformers.VirtualClusterInformer,
 	options manager.ResourceSyncerOptions) (manager.ResourceSyncer, error) {
-
 	var err error
 	var sc dclient.Client
 

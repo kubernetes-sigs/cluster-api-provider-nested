@@ -124,7 +124,6 @@ func (r *ReconcileCAPIVirtualCluster) Reconcile(ctx context.Context, request ctr
 			if err := kubeutil.RetryUpdateVCStatusOnConflict(ctx, r, vc, r.Log); err != nil {
 				return ctrl.Result{}, err
 			}
-
 		}
 		return ctrl.Result{}, nil
 	}

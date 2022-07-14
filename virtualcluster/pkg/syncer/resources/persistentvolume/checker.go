@@ -181,5 +181,4 @@ func (c *controller) PatrollerDo() {
 
 	metrics.CheckerMissMatchStats.WithLabelValues("ClaimMissMatchedPVs").Set(float64(numClaimMissMatchedPVs))
 	metrics.CheckerMissMatchStats.WithLabelValues("SpecMissMatchedPVs").Set(float64(numSpecMissMatchedPVs))
-
 }

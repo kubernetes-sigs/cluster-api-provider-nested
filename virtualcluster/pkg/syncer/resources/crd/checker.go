@@ -75,7 +75,6 @@ func (c *controller) PatrollerDo() {
 			continue
 		}
 		for _, clusterName := range clusterNames {
-
 			if err := c.MultiClusterController.Get(clusterName, "", pCRD.Name, &v1beta1.CustomResourceDefinition{}); err != nil {
 				if apierrors.IsNotFound(err) {
 					metrics.CheckerRemedyStats.WithLabelValues("RequeuedSuperControlPlaneCRD").Inc()

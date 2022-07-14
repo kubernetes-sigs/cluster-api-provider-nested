@@ -59,7 +59,6 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 			delete(c.nodeNameToCluster[request.Name], request.ClusterName)
 		}
 		c.Unlock()
-
 	}
 	return reconciler.Result{}, nil
 }

@@ -293,7 +293,6 @@ func (c *Cluster) GetInformer(objectType client.Object) (cache.Informer, error) 
 // Start starts the Cluster's cache and blocks,
 // until context for the cache is cancelled.
 func (c *Cluster) Start() error {
-
 	ctx, cancel := context.WithCancel(c.context)
 	c.cancelContext = cancel
 
@@ -325,6 +324,5 @@ func (c *Cluster) SetKey(k string) {
 
 // Stop cancel/close the cache to terminate informers.
 func (c *Cluster) Stop() {
-
 	c.cancelContext()
 }

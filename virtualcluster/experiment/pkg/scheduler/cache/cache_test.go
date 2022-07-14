@@ -195,9 +195,7 @@ func TestAddRemoveNamespace(t *testing.T) {
 			}
 			cache.RemoveNamespace(tc.namespace)
 		})
-
 	}
-
 }
 
 func TestUpdateNamespace(t *testing.T) {
@@ -330,7 +328,6 @@ func TestUpdateNamespace(t *testing.T) {
 			cache.RemoveNamespace(tc.newNamespace)
 		})
 	}
-
 }
 
 func TestShadowCluster(t *testing.T) {
@@ -399,7 +396,6 @@ func TestShadowCluster(t *testing.T) {
 			}
 			if !Equals(tc.allocAfter[defaultCluster1], cache.clusters[defaultCluster1].alloc) {
 				t.Errorf("The alloc of cluster 1 is not expected. Exp: %v, Got %v", tc.allocAfter[defaultCluster1], cache.clusters[defaultCluster1].alloc)
-
 			}
 			if !Equals(tc.allocAfter[defaultCluster2], cache.clusters[defaultCluster2].alloc) {
 				t.Errorf("The alloc of cluster 2 is not expected. Exp: %v, Got %v", tc.allocAfter[defaultCluster2], cache.clusters[defaultCluster2].alloc)
