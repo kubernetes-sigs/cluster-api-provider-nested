@@ -83,9 +83,7 @@ func (c *fakeCluster) WaitForCacheSync() bool {
 	return true
 }
 
-func (c *fakeCluster) Stop() {
-	return
-}
+func (c *fakeCluster) Stop() {}
 
 // GetRestConfig returns restful configuration of virtual cluster client
 func (c *fakeCluster) GetRestConfig() *rest.Config {

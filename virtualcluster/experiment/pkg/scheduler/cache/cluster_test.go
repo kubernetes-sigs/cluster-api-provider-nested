@@ -261,10 +261,7 @@ func TestRemoveNamespace(t *testing.T) {
 	for k, tc := range testcases {
 		t.Run(k, func(t *testing.T) {
 			tc.cluster.alloc = tc.curAlloc
-			for _, each := range tc.curSlices {
-				tc.cluster.allocItems[defaultNamespace] = append(tc.cluster.allocItems[defaultNamespace], each)
-			}
-
+			tc.cluster.allocItems[defaultNamespace] = append(tc.cluster.allocItems[defaultNamespace], tc.curSlices...)
 			err := tc.cluster.RemoveNamespace(defaultNamespace)
 			if tc.succeed && err != nil {
 				t.Errorf("test %s should succeed but fails with err %v", k, err)

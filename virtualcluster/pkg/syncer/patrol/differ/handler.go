@@ -90,10 +90,7 @@ func DefaultDifferFilter(knownClusterSet sets.String) func(obj ClusterObject) bo
 	return func(obj ClusterObject) bool {
 		// vObj
 		if obj.OwnerCluster != "" {
-			if knownClusterSet.Has(obj.OwnerCluster) {
-				return true
-			}
-			return false
+			return knownClusterSet.Has(obj.OwnerCluster)
 		}
 
 		// pObj

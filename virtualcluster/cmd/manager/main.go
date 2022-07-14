@@ -165,7 +165,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if enableWebhook == true {
+	if enableWebhook {
 		log.Info("setting up webhooks")
 		if err := webhook.AddToManager(mgr, mgrOpt.CertDir); err != nil {
 			log.Error(err, "unable to register webhooks to the manager")

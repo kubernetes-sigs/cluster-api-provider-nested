@@ -292,8 +292,7 @@ func GetSchedulingInfo(namespace *corev1.Namespace) (map[string]int, corev1.Reso
 }
 
 func GetPodSchedulingInfo(pod *corev1.Pod) string {
-	cluster, _ := pod.GetAnnotations()[utilconst.LabelScheduledCluster]
-	return cluster
+	return pod.GetAnnotations()[utilconst.LabelScheduledCluster]
 }
 
 func SyncVirtualClusterState(metaClient clientset.Interface, vc *v1alpha1.VirtualCluster, cache internalcache.Cache) error {

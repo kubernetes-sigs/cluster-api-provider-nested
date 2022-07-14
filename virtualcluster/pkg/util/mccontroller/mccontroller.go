@@ -222,10 +222,8 @@ func (c *MultiClusterController) Start(stop <-chan struct{}) error {
 		go wait.Until(c.worker, c.JitterPeriod, stop)
 	}
 
-	select {
-	case <-stop:
-		return nil
-	}
+	<-stop
+	return nil
 }
 
 // GetControllerName get the mccontroller name, is used to uniquely identify the Controller in tracing, logging and monitoring.

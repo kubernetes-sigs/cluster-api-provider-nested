@@ -117,5 +117,4 @@ func (c *controller) updateClusterNodeStatus(clusterName string, node *corev1.No
 	if err := vnode.UpdateNodeStatus(tenantClient.CoreV1().Nodes(), vNode, newVNode); err != nil {
 		klog.Errorf("failed to update node %s/%s's heartbeats: %v", clusterName, node.Name, err)
 	}
-	return
 }

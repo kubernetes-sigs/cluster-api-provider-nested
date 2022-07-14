@@ -99,9 +99,7 @@ func (b *BaseResourceSyncer) BackPopulate(s string) error {
 	return nil
 }
 
-func (b *BaseResourceSyncer) PatrollerDo() {
-	return
-}
+func (b *BaseResourceSyncer) PatrollerDo() {}
 
 func (b *BaseResourceSyncer) GetListener() listener.ClusterChangeListener {
 	return listener.NewMCControllerListener(b.MultiClusterController, mc.WatchOptions{AttachUID: true})
