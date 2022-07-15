@@ -233,6 +233,23 @@ func (s *Syncer) Run(stopChan <-chan struct{}) {
 		}
 	}()
 	go wait.Until(s.healthPatrol, 1*time.Minute, stopChan)
+	go func() {
+		defer utilruntime.HandleCrash()
+		defer s.queue.ShutDown()
+
+		klog.Infof("starting virtual cluster controller")
+		defer klog.Infof("shutting down virtual cluster controller")
+
+		if !cache.WaitForCacheSync(stopChan, s.virtualClusterSynced) {
+			return
+		}
+
+		klog.V(5).Infof("starting workers")
+		for i := 0; i < s.workers; i++ {
+			go wait.Until(s.run, 1*time.Second, stopChan)
+		}
+		<-stopChan
+	}()
 }
 
 // ListenAndServe initializes a server to respond to HTTP network requests on the syncer.
