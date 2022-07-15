@@ -166,13 +166,13 @@ func SyncSuperClusterState(metaClient clientset.Interface, super *v1alpha4.Clust
 	if err != nil {
 		return fmt.Errorf("failed to get namespaces from super cluster %s/%s: %v", super.Namespace, super.Name, err)
 	}
-	for _, each := range nslist.Items {
+	for nsIndex, each := range nslist.Items {
 		if _, ok := each.GetAnnotations()[syncerconst.LabelCluster]; !ok {
 			// this is not a namespace created by the syncer
 			continue
 		}
 		key := fmt.Sprintf("%s/%s", id, each.Name)
-		slices, err := GetProvisionedSlices(&each, id, key)
+		slices, err := GetProvisionedSlices(&nslist.Items[nsIndex], id, key)
 		if err != nil {
 			return fmt.Errorf("fail to sync %s/%s: %v", super.Namespace, super.Name, err)
 		}
@@ -307,7 +307,7 @@ func SyncVirtualClusterState(metaClient clientset.Interface, vc *v1alpha1.Virtua
 	if err != nil {
 		return fmt.Errorf("failed to get namespaces from virtual cluster %s/%s: %v", vc.Namespace, vc.Name, err)
 	}
-	for _, each := range nslist.Items {
+	for nsIndex, each := range nslist.Items {
 		klog.Infof("attempt to add namespace %s in cache", each.Name)
 
 		quota, err := GetNamespaceQuota(client, each.Name)
@@ -318,7 +318,7 @@ func SyncVirtualClusterState(metaClient clientset.Interface, vc *v1alpha1.Virtua
 		mem := quota[corev1.ResourceMemory]
 		var placements map[string]int
 		var quotaSlice corev1.ResourceList
-		placements, quotaSlice, err = GetSchedulingInfo(&each)
+		placements, quotaSlice, err = GetSchedulingInfo(&nslist.Items[nsIndex])
 		if err != nil {
 			return fmt.Errorf("failed to get scheduling info in %s/%s: %v", vc.Namespace, vc.Name, err)
 		}
@@ -364,7 +364,7 @@ func SyncVirtualClusterState(metaClient clientset.Interface, vc *v1alpha1.Virtua
 		if err != nil {
 			return fmt.Errorf("failed to list pods in namespace %s in cluster %s with error %v", each.Name, clustername, err)
 		}
-		for _, pod := range podlist.Items {
+		for podIndex, pod := range podlist.Items {
 			supercluster, ok := pod.GetAnnotations()[utilconst.LabelScheduledCluster]
 			if !ok {
 				continue
@@ -373,7 +373,7 @@ func SyncVirtualClusterState(metaClient clientset.Interface, vc *v1alpha1.Virtua
 				// TODO: Pod scheduling result is inconsistent, we need to delete the Pod or send warnings.
 				continue
 			}
-			cPod := internalcache.NewPod(clustername, each.Name, pod.Name, supercluster, GetPodRequirements(&pod))
+			cPod := internalcache.NewPod(clustername, each.Name, pod.Name, supercluster, GetPodRequirements(&podlist.Items[podIndex]))
 			// If the pod already exists, AddPod will update the cache with latest schedule.
 			if err := cache.AddPod(cPod); err != nil {
 				return fmt.Errorf("failed to add pod to cache: %s/%s/%s with error %v", clustername, each.Name, pod.Name, err)

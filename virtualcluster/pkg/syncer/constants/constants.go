@@ -36,11 +36,11 @@ const (
 	// LabelClusterIP is the cluster ip of the corresponding service in tenant namespace.
 	LabelClusterIP = "tenancy.x-k8s.io/clusterIP"
 	// LabelSecretName is the service account token secret name in tenant namespace.
-	LabelSecretName = "tenancy.x-k8s.io/secret.name"
+	LabelSecretName = "tenancy.x-k8s.io/secret.name" // #nosec G101 -- This is a label key
 	// LabelAdminKubeConfig is the kubeconfig in base64 format for tenant control plane.
 	LabelAdminKubeConfig = "tenancy.x-k8s.io/admin-kubeconfig"
 	// LabelSecretAdminKubeConfig is the kubeconfig secret name for the tenant control plane.
-	LabelSecretAdminKubeConfig = "tenancy.x-k8s.io/secret.admin-kubeconfig"
+	LabelSecretAdminKubeConfig = "tenancy.x-k8s.io/secret.admin-kubeconfig" // #nosec G101 -- This is a label key
 	// LabelVCName is the name of the VC CR that owns the object.
 	LabelVCName = "tenancy.x-k8s.io/vcname"
 	// LabelVCNamespace is the namespace of the VC CR that owns the object.
@@ -54,7 +54,7 @@ const (
 	LabelExternalApiserverDomain = "tenancy.x-k8s.io/external-apiserver-domain"
 
 	// LabelSecretUID is the service account token secret UID in tenant namespace.
-	LabelSecretUID = "tenancy.x-k8s.io/secret.UID"
+	LabelSecretUID = "tenancy.x-k8s.io/secret.UID" // #nosec G101 -- This is a label key
 
 	// UwsControllerWorkersHigh is the quantity of the worker routine for a resource that generates high number of uws requests.
 	UwsControllerWorkerHigh = 10
@@ -88,7 +88,7 @@ const (
 	// LabelSuperClusterIP is used to inform the tenant service about the cluster IP used in super control plane.
 	LabelSuperClusterIP = "transparency.tenancy.x-k8s.io/clusterIP"
 
-	KubeconfigAdminSecretName = "admin-kubeconfig"
+	KubeconfigAdminSecretName = "admin-kubeconfig" // #nosec G101 -- This is a secret name
 )
 
 const (

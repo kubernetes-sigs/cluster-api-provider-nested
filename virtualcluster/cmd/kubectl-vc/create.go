@@ -118,7 +118,7 @@ func (o *CreateOptions) Run() error {
 	}
 
 	// write tenant kubeconfig to outputPath.
-	if err := ioutil.WriteFile(o.outputPath, kubecfgBytes, 0644); err != nil {
+	if err := ioutil.WriteFile(o.outputPath, kubecfgBytes, 0600); err != nil {
 		return err
 	}
 

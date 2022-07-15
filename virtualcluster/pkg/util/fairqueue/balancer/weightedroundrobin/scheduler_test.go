@@ -91,7 +91,7 @@ func Benchmark_WRR_10_Next(b *testing.B) {
 	rand.Seed(time.Now().UnixNano())
 	wrr := NewWeightedRR()
 	for i := 0; i < 10; i++ {
-		wrr.Add("n"+strconv.Itoa(i), rand.Intn(100))
+		wrr.Add("n"+strconv.Itoa(i), rand.Intn(100)) // #nosec G404 - this is  a test benchmark
 	}
 
 	b.ResetTimer()
@@ -105,7 +105,7 @@ func Benchmark_WRR_100_Next(b *testing.B) {
 	rand.Seed(time.Now().UnixNano())
 	wrr := NewWeightedRR()
 	for i := 0; i < 100; i++ {
-		wrr.Add("n"+strconv.Itoa(i), rand.Intn(100))
+		wrr.Add("n"+strconv.Itoa(i), rand.Intn(100)) // #nosec G404 - this is  a test benchmark
 	}
 
 	b.ResetTimer()

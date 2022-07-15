@@ -70,8 +70,8 @@ func (c *controller) PatrollerDo() {
 		klog.Errorf("error listing crd from super control plane informer cache: %v", err)
 		return
 	}
-	for _, pCRD := range pCRDList.Items {
-		if !publicCRD(&pCRD) {
+	for i, pCRD := range pCRDList.Items {
+		if !publicCRD(&pCRDList.Items[i]) {
 			continue
 		}
 		for _, clusterName := range clusterNames {
@@ -109,7 +109,7 @@ func (c *controller) checkCRDOfTenantCluster(clusterName string) {
 	vcapiextensionsClient = vcc.ApiextensionsV1beta1()
 
 	for i, vCRD := range crdList.Items {
-		if !publicCRD(&vCRD) {
+		if !publicCRD(&crdList.Items[i]) {
 			continue
 		}
 		pCRD := &v1beta1.CustomResourceDefinition{}

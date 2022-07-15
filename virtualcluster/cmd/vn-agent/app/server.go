@@ -102,6 +102,7 @@ func Run(c *config.Config, serverOption *options.ServerOption, stopCh <-chan str
 		Handler: handler,
 		TLSConfig: &tls.Config{
 			ClientAuth: tls.RequestClientCert,
+			MinVersion: tls.VersionTLS12,
 		},
 	}
 

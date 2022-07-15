@@ -130,7 +130,7 @@ func (o *ExecOption) placeVCKubeconfig(ns, name string) (string, error) {
 	}
 
 	kbFilePath := filepath.Join(o.kubeFileDir, conversion.ToClusterKey(vc)+".kubeconfig")
-	err = ioutil.WriteFile(kbFilePath, kbBytes, 0644)
+	err = ioutil.WriteFile(kbFilePath, kbBytes, 0600)
 
 	return kbFilePath, err
 }
@@ -144,7 +144,7 @@ func enterVCShell(kbFilePath, ns, name string) error {
 	fmt.Printf("%s use regular kubectl commands to operate vc in this temporary workspace\n", warningPrompt)
 	fmt.Printf("%s type 'exit' to exit\n", warningPrompt)
 
-	c := exec.Command(os.Getenv("SHELL"))
+	c := exec.Command(os.Getenv("SHELL")) // #nosec G204 yes, we trust ourselves
 	c.Env = append(os.Environ(),
 		fmt.Sprintf("KUBECONFIG=%v", kbFilePath),
 		fmt.Sprintf("PS1=[\\u@vc:\\[\033[01;32m\\]%s/%s\\[\033[00m\\] \\W]\\$ ", ns, name),
