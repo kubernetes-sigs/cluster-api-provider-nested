@@ -38,7 +38,7 @@ const (
 	// ControllerManagerSecretName name of ControllerManager kubeconfig secret
 	ControllerManagerSecretName = "controller-manager-kubeconfig"
 	// AdminSecretName name of secret with kubeconfig for admin
-	AdminSecretName = "admin-kubeconfig"
+	AdminSecretName = "admin-kubeconfig" // #nosec G101 -- This is a path to secrets
 	// ServiceAccountSecretName name of the secret with ServiceAccount rsa
 	ServiceAccountSecretName = "serviceaccount-rsa"
 )

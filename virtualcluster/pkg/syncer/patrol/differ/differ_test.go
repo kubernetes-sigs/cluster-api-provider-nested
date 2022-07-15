@@ -161,7 +161,7 @@ func Benchmark_Difference_1000(b *testing.B) {
 			// workload
 			time.Sleep(time.Millisecond)
 			mu.Lock()
-			counter[obj1.Key] += 1
+			counter[obj1.Key]++
 			mu.Unlock()
 		},
 	})

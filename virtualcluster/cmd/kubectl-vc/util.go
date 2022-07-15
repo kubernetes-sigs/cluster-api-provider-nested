@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -87,7 +88,7 @@ func CheckErr(err error) {
 func readFromFileOrURL(path string) ([]byte, error) {
 	if isURL(path) {
 		// read from an URL
-		resp, err := http.Get(path)
+		resp, err := http.Get(path) // #nosec G107 we are trusting an operator input
 		if err != nil {
 			return nil, err
 		}
@@ -100,7 +101,7 @@ func readFromFileOrURL(path string) ([]byte, error) {
 		return yamlContent, nil
 	}
 	// read from a file
-	content, err := ioutil.ReadFile(path)
+	content, err := ioutil.ReadFile(filepath.Clean(path))
 	return content, err
 }
 

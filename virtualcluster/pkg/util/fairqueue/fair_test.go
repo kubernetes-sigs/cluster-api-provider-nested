@@ -90,7 +90,7 @@ func TestBasicAndFair(t *testing.T) {
 				q.Done(item)
 
 				mu.Lock()
-				scheduleCounter[v.ClusterName] += 1
+				scheduleCounter[v.ClusterName]++
 				mu.Unlock()
 			}
 		}()

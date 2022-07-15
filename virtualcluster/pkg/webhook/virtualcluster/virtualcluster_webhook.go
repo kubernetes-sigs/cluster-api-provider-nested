@@ -308,7 +308,7 @@ func genCertAndKeyFile(certData, keyData []byte, certDir string) error {
 		return fmt.Errorf("could not create directory %q to store certificates: %v", certDir, err)
 	}
 	certPath := filepath.Join(certDir, VCWebhookCertFileName)
-	f, err := os.OpenFile(certPath, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
+	f, err := os.OpenFile(filepath.Clean(certPath), os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
 	if err != nil {
 		return fmt.Errorf("could not open %q: %v", certPath, err)
 	}
@@ -322,7 +322,7 @@ func genCertAndKeyFile(certData, keyData []byte, certDir string) error {
 	}
 
 	keyPath := filepath.Join(certDir, VCWebhookKeyFileName)
-	kf, err := os.OpenFile(keyPath, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
+	kf, err := os.OpenFile(filepath.Clean(keyPath), os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
 	if err != nil {
 		return fmt.Errorf("could not open %q: %v", keyPath, err)
 	}

@@ -222,7 +222,7 @@ func (s *Syncer) Run(stopChan <-chan struct{}) {
 			os.Exit(1)
 		}
 		var ok bool
-		if utilconst.SuperClusterID, ok = cfg.Data[utilconst.SuperClusterIDKey]; ok == false {
+		if utilconst.SuperClusterID, ok = cfg.Data[utilconst.SuperClusterIDKey]; !ok {
 			klog.Infof("Fail to get ID value from configmap kube-system/%v. Quit!", utilconst.SuperClusterInfoCfgMap)
 			os.Exit(1)
 		}
@@ -233,25 +233,6 @@ func (s *Syncer) Run(stopChan <-chan struct{}) {
 		}
 	}()
 	go wait.Until(s.healthPatrol, 1*time.Minute, stopChan)
-	go func() {
-		defer utilruntime.HandleCrash()
-		defer s.queue.ShutDown()
-
-		klog.Infof("starting virtual cluster controller")
-		defer klog.Infof("shutting down virtual cluster controller")
-
-		if !cache.WaitForCacheSync(stopChan, s.virtualClusterSynced) {
-			return
-		}
-
-		klog.V(5).Infof("starting workers")
-		for i := 0; i < s.workers; i++ {
-			go wait.Until(s.run, 1*time.Second, stopChan)
-		}
-		<-stopChan
-	}()
-
-	return
 }
 
 // ListenAndServe initializes a server to respond to HTTP network requests on the syncer.

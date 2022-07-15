@@ -72,23 +72,23 @@ func (v *versionValue) Type() string {
 	return "version"
 }
 
-func VersionVar(p *versionValue, name string, value versionValue, usage string) {
+func versionVar(p *versionValue, name string, value versionValue, usage string) {
 	*p = value
 	flag.Var(p, name, usage)
 	// "--version" will be treated as "--version=true"
 	flag.Lookup(name).NoOptDefVal = "true"
 }
 
-func Version(name string, value versionValue, usage string) *versionValue {
+func newVersionValue(name string, value versionValue, usage string) *versionValue {
 	p := new(versionValue)
-	VersionVar(p, name, value, usage)
+	versionVar(p, name, value, usage)
 	return p
 }
 
 const versionFlagName = "version"
 
 var (
-	versionFlag = Version(versionFlagName, VersionFalse, "Print version information and quit")
+	versionFlag = newVersionValue(versionFlagName, VersionFalse, "Print version information and quit")
 )
 
 // AddFlags registers this package's flags on arbitrary FlagSets, such that they point to the

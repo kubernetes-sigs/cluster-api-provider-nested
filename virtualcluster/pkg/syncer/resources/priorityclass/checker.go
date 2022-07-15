@@ -96,7 +96,7 @@ func (c *controller) checkPriorityClassOfTenantCluster(clusterName string) {
 	}
 
 	for i, vPriorityClass := range scList.Items {
-		if !publicPriorityClass(&vPriorityClass) {
+		if !publicPriorityClass(&scList.Items[i]) {
 			continue
 		}
 		pPriorityClass, err := c.priorityclassLister.Get(vPriorityClass.Name)

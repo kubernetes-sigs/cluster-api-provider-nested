@@ -430,7 +430,6 @@ func TestDWPodCreation(t *testing.T) {
 				if !equality.Semantic.DeepEqual(createdPod, tc.ExpectedCreatedPods[i]) {
 					t.Errorf("%s: Expected %+v to be created, got %+v", k, tc.ExpectedCreatedPods, createdPod)
 				}
-
 			}
 		})
 	}

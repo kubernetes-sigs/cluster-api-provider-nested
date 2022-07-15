@@ -169,20 +169,20 @@ func RunPatrol(
 
 	// wait to be called
 	select {
-	case _ = <-syncPatrol:
+	case <-syncPatrol:
 	case <-time.After(10 * time.Second):
 		return nil, nil, fmt.Errorf("timeout waiting for syncPatrol")
 	}
 	if waitDWS {
 		select {
-		case _ = <-syncDWS:
+		case <-syncDWS:
 		case <-time.After(10 * time.Second):
 			return nil, nil, fmt.Errorf("timeout waiting for syncDWS")
 		}
 	}
 	if waitUWS {
 		select {
-		case _ = <-syncUWS:
+		case <-syncUWS:
 		case <-time.After(10 * time.Second):
 			return nil, nil, fmt.Errorf("timeout waiting for syncUWS")
 		}

@@ -169,6 +169,5 @@ func (c *controller) checkIngressesOfTenantCluster(clusterName string) {
 		if enqueue {
 			c.enqueueIngress(pIngress)
 		}
-
 	}
 }

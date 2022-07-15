@@ -76,7 +76,7 @@ type controller struct {
 	vNodeGCGracePeriod time.Duration
 	// vnodeProvider manages vnode object.
 	vnodeProvider provider.VirtualNodeProvider
-	plugin        validationplugin.ValidationPluginInterface
+	plugin        validationplugin.Interface
 }
 
 type VirtulNodeDeletionPhase string
@@ -125,10 +125,9 @@ func NewPodController(config *config.SyncerConfiguration,
 			if err != nil {
 				klog.Errorf("initialize validation plugin with err %v", err)
 				return nil, err
-			} else {
-				c.plugin = quotaplugin.(validationplugin.ValidationPluginInterface)
-				c.plugin.ContextInit(c.MultiClusterController, options.IsFake)
 			}
+			c.plugin = quotaplugin.(validationplugin.Interface)
+			c.plugin.ContextInit(c.MultiClusterController, options.IsFake)
 		}
 	}
 
@@ -231,9 +230,8 @@ func (c *controller) removeQuiescingNodeFromClusterVNodeGCMap(cluster string, no
 			if c.clusterVNodeGCMap[cluster][nodeName].Phase == VNodeQuiescing {
 				delete(c.clusterVNodeGCMap[cluster], nodeName)
 				return true
-			} else {
-				return false
 			}
+			return false
 		}
 	}
 	return true

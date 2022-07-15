@@ -16,12 +16,13 @@ package validationplugin
 import (
 	"sync"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	mc "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/mccontroller"
 	uplugin "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/plugin"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type ValidationPluginInterface interface {
+type Interface interface {
 	Validation(client.Object, string) bool
 	GetTenantLocker(string) *Tenant
 	Enabled() bool

@@ -66,7 +66,7 @@ func NewServer(cfg *config.Config, serverOption *options.ServerOption) (*Server,
 	if server.config.KubeletClientCert != nil {
 		server.transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
+				InsecureSkipVerify: true, //nolint:gosec
 				Certificates:       []tls.Certificate{*server.config.KubeletClientCert},
 			},
 		}
@@ -106,7 +106,8 @@ func NewServer(cfg *config.Config, serverOption *options.ServerOption) (*Server,
 		}
 		server.transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
-				RootCAs: caCrtPool,
+				RootCAs:    caCrtPool,
+				MinVersion: tls.VersionTLS12,
 			},
 		}
 	}

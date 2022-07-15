@@ -137,7 +137,6 @@ func (n *Namespace) DeepCopy() *Namespace {
 		labelCopy[k] = v
 	}
 	return NewNamespace(n.owner, n.name, labelCopy, n.quota.DeepCopy(), n.quotaSlice.DeepCopy(), schedCopy)
-
 }
 
 func (n *Namespace) GetKey() string {

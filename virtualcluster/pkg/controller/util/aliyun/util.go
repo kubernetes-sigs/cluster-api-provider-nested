@@ -286,7 +286,6 @@ func SendCreationRequest(cli *sdk.Client, clusterName string, askCfg ASKConfig) 
 	request.Content = []byte(body)
 	response, err := cli.ProcessCommonRequest(request)
 	if err != nil {
-
 		return "", err
 	}
 

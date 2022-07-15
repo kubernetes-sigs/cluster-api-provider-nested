@@ -57,7 +57,6 @@ func NewConfigMapController(config *config.SyncerConfiguration,
 	vcClient vcclient.Interface,
 	vcInformer vcinformers.VirtualClusterInformer,
 	options manager.ResourceSyncerOptions) (manager.ResourceSyncer, error) {
-
 	c := &controller{
 		BaseResourceSyncer: manager.BaseResourceSyncer{
 			Config: config,

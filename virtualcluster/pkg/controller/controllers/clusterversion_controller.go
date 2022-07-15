@@ -70,7 +70,7 @@ func (r *ReconcileClusterVersion) Reconcile(ctx context.Context, request reconci
 
 	if cv.ObjectMeta.DeletionTimestamp.IsZero() {
 		// the object has not been deleted yet, registers the finalizers
-		if strutil.ContainString(cv.ObjectMeta.Finalizers, cvf) == false {
+		if !strutil.ContainString(cv.ObjectMeta.Finalizers, cvf) {
 			cv.ObjectMeta.Finalizers = append(cv.ObjectMeta.Finalizers, cvf)
 			r.Log.Info("register finalizer for ClusterVersion", "finalizer", cvf)
 			if err := r.Update(context.Background(), cv); err != nil {
@@ -79,7 +79,7 @@ func (r *ReconcileClusterVersion) Reconcile(ctx context.Context, request reconci
 		}
 	} else {
 		// the object is being deleted, star the finalizer
-		if strutil.ContainString(cv.ObjectMeta.Finalizers, cvf) == true {
+		if strutil.ContainString(cv.ObjectMeta.Finalizers, cvf) {
 			// the finalizer logic
 			r.Log.Info("a ClusterVersion object is deleted", "ClusterVersion", cv.Name)
 

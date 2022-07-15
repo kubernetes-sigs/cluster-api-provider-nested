@@ -16,7 +16,9 @@ limitations under the License.
 
 package fairqueue
 
-import "time"
+import (
+	"time"
+)
 
 type empty struct{}
 type t interface{}
@@ -35,7 +37,7 @@ func (s set) delete(item t) {
 	delete(s, item)
 }
 
-type fifoQueue struct {
+type FifoQueue struct {
 	// queue defines the order in which we will work on items. Every
 	// element of queue should be in the dirty set and not in the
 	// processing set.
@@ -45,19 +47,19 @@ type fifoQueue struct {
 	lastActiveTime time.Time
 }
 
-func NewFIFOQueue() *fifoQueue {
-	return &fifoQueue{
+func NewFifoQueue() *FifoQueue {
+	return &FifoQueue{
 		lastActiveTime: time.Now(),
 	}
 }
 
-func (q *fifoQueue) Add(item interface{}) {
+func (q *FifoQueue) Add(item interface{}) {
 	q.queue = append(q.queue, item)
 	q.lastActiveTime = time.Now()
 }
 
 // Get pop the queue head. indicate whether the queue is empty.
-func (q *fifoQueue) Get() (item interface{}, empty bool) {
+func (q *FifoQueue) Get() (item interface{}, empty bool) {
 	if len(q.queue) == 0 {
 		return nil, true
 	}
@@ -69,10 +71,10 @@ func (q *fifoQueue) Get() (item interface{}, empty bool) {
 	return item, false
 }
 
-func (q *fifoQueue) Len() int {
+func (q *FifoQueue) Len() int {
 	return len(q.queue)
 }
 
-func (q *fifoQueue) LastActiveTime() time.Time {
+func (q *FifoQueue) LastActiveTime() time.Time {
 	return q.lastActiveTime
 }

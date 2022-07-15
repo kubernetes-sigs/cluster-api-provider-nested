@@ -15,8 +15,9 @@ package framework
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"sort"
 	"strconv"
 	"time"
@@ -44,7 +45,11 @@ const (
 
 // RandomSuffix provides a random string to append to pods,services,rcs.
 func RandomSuffix() string {
-	return strconv.Itoa(rand.Intn(10000))
+	n, err := rand.Int(rand.Reader, big.NewInt(10000))
+	if err != nil {
+		return "0"
+	}
+	return strconv.FormatInt(n.Int64(), 10)
 }
 
 // ExpectNoError checks if "err" is set

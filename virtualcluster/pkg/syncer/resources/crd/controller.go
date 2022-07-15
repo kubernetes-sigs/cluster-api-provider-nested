@@ -101,7 +101,6 @@ func NewCrdController(config *config.SyncerConfiguration,
 	vcClient vcclient.Interface,
 	vcInformer vcinformers.VirtualClusterInformer,
 	options manager.ResourceSyncerOptions) (manager.ResourceSyncer, error) {
-
 	var err error
 	var sc dclient.Client
 
@@ -116,13 +115,12 @@ func NewCrdController(config *config.SyncerConfiguration,
 
 	if config.RestConfig == nil {
 		return nil, fmt.Errorf("cannot get super control plane restful config")
-	} else {
-		sc, err = dclient.New(config.RestConfig, dclient.Options{})
-		if err != nil {
-			return nil, err
-		}
-		c.superClient = sc
 	}
+	sc, err = dclient.New(config.RestConfig, dclient.Options{})
+	if err != nil {
+		return nil, err
+	}
+	c.superClient = sc
 
 	if config.RestConfig == nil {
 		return nil, fmt.Errorf("cannot get super control plane restful config")

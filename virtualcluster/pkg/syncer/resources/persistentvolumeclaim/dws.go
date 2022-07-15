@@ -99,9 +99,8 @@ func (c *controller) reconcilePVCCreate(clusterName, targetNamespace, requestUID
 		if pPVC.Annotations[constants.LabelUID] == requestUID {
 			klog.Infof("pvc %s/%s of cluster %s already exist in super control plane", targetNamespace, pPVC.Name, clusterName)
 			return nil
-		} else {
-			return fmt.Errorf("pPVC %s/%s exists but its delegated object UID is different", targetNamespace, pPVC.Name)
 		}
+		return fmt.Errorf("pPVC %s/%s exists but its delegated object UID is different", targetNamespace, pPVC.Name)
 	}
 	return err
 }

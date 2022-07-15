@@ -99,9 +99,8 @@ func (c *controller) reconcileServiceAccountCreate(clusterName, targetNamespace,
 		if pServiceAccount.Annotations[constants.LabelUID] == requestUID {
 			klog.Infof("service account %s/%s of cluster %s already exist in super control plane", targetNamespace, pServiceAccount.Name, clusterName)
 			return nil
-		} else {
-			return fmt.Errorf("pServiceAccount %s/%s exists but its delegated UID is different", targetNamespace, pServiceAccount.Name)
 		}
+		return fmt.Errorf("pServiceAccount %s/%s exists but its delegated UID is different", targetNamespace, pServiceAccount.Name)
 	}
 	return err
 }

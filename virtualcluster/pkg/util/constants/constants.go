@@ -37,7 +37,7 @@ const (
 	// LabelScheduledPlacements is the scheduled placements the namespace schedules to.
 	LabelScheduledPlacements = "scheduler.virtualcluster.io/placements"
 
-	// LabelScheduledSlice is the scheduled slice size of the namespace.
+	// LabelNamespaceSlice is the scheduled slice size of the namespace.
 	LabelNamespaceSlice = "scheduler.virtualcluster.io/slice"
 )
 
@@ -48,6 +48,7 @@ var DefaultNamespaceSlice = corev1.ResourceList{
 
 const (
 	// Override the client-go default 5 qps and 10 burst, which are too small for mccontroller .
+
 	DefaultSyncerClientQPS   = 1000
 	DefaultSyncerClientBurst = 2000
 
@@ -55,12 +56,13 @@ const (
 	// timeout of the HTTP request, including reading the response body.
 	DefaultRequestTimeout = 30 * time.Second
 
-	// If reconcile request keeps failing, stop retrying after MaxReconcileRetryAttempts.
+	// MaxReconcileRetryAttempts is the limit to stop reconcile request if it keeps failing.
 	// According to controller workqueue default rate limiter algorithm, retry 16 times takes around 180 seconds.
 	MaxReconcileRetryAttempts = 16
 
 	// StatusCode represents the status of every syncer operations.
 	// TODO: more detailed error code
+
 	StatusCodeOK                     = "OK"
 	StatusCodeExceedMaxRetryAttempts = "ExceedMaxRetryAttempts"
 	StatusCodeError                  = "Error"

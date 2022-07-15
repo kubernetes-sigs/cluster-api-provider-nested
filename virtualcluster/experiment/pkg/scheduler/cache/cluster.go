@@ -155,7 +155,7 @@ func (c *Cluster) removeItem(key string, items map[string][]*Slice, alloc corev1
 	}
 	for _, s := range slices {
 		for k, v := range s.unit {
-			each, _ := allocCopy[k]
+			each := allocCopy[k]
 			if each.Cmp(v) == -1 {
 				// this usually means the cache is messed up
 				return nil, fmt.Errorf("cluster %s's resource %s is < 0 after removing %s's slices ", c.name, k, key)

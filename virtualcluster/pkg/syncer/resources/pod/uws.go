@@ -25,6 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 
@@ -84,51 +85,8 @@ func (c *controller) BackPopulate(key string) error {
 
 	// If tenant Pod has not been assigned, bind to virtual Node.
 	if vPod.Spec.NodeName == "" {
-		n, err := c.client.Nodes().Get(context.TODO(), pPod.Spec.NodeName, metav1.GetOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to get node %s from super control plane: %v", pPod.Spec.NodeName, err)
-		}
-		// We need to handle the race with vNodeGC thread here.
-		if err = func() error {
-			c.Lock()
-			defer c.Unlock()
-			if !c.removeQuiescingNodeFromClusterVNodeGCMap(clusterName, pPod.Spec.NodeName) {
-				return fmt.Errorf("the bind target vNode %s is being GCed in cluster %s, retry", pPod.Spec.NodeName, clusterName)
-			}
-			return nil
-		}(); err != nil {
+		if err := c.bindPodToNode(pPod, clusterName, tenantClient, vPod); err != nil {
 			return err
-		}
-
-		if err := c.MultiClusterController.Get(clusterName, "", n.GetName(), &corev1.Node{}); err != nil {
-			// check if target node has already registered on the vc
-			// before creating
-			if !apierrors.IsNotFound(err) {
-				return err
-			}
-			vn, err := vnode.NewVirtualNode(c.vnodeProvider, n)
-			if err != nil {
-				return fmt.Errorf("failed to create virtual node %s in cluster %s from provider: %v", pPod.Spec.NodeName, clusterName, err)
-			}
-			_, err = tenantClient.CoreV1().Nodes().Create(context.TODO(), vn, metav1.CreateOptions{})
-			if err != nil && !apierrors.IsAlreadyExists(err) {
-				return fmt.Errorf("failed to create virtual node %s in cluster %s with err: %v", pPod.Spec.NodeName, clusterName, err)
-			}
-		}
-
-		err = tenantClient.CoreV1().Pods(vPod.Namespace).Bind(context.TODO(), &corev1.Binding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      vPod.Name,
-				Namespace: vPod.Namespace,
-			},
-			Target: corev1.ObjectReference{
-				Kind:       "Node",
-				Name:       pPod.Spec.NodeName,
-				APIVersion: "v1",
-			},
-		}, metav1.CreateOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to bind vPod %s/%s to node %s %v", vPod.Namespace, vPod.Name, pPod.Spec.NodeName, err)
 		}
 		// virtual pod has been updated, refetch the latest version
 		if vPod, err = tenantClient.CoreV1().Pods(vPod.Namespace).Get(context.TODO(), vPod.Name, metav1.GetOptions{}); err != nil {
@@ -199,5 +157,55 @@ func (c *controller) BackPopulate(key string) error {
 		}
 	}
 
+	return nil
+}
+
+func (c *controller) bindPodToNode(pPod *corev1.Pod, clusterName string, tenantClient clientset.Interface, vPod *corev1.Pod) error {
+	n, err := c.client.Nodes().Get(context.TODO(), pPod.Spec.NodeName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get node %s from super control plane: %v", pPod.Spec.NodeName, err)
+	}
+	// We need to handle the race with vNodeGC thread here.
+	if err = func() error {
+		c.Lock()
+		defer c.Unlock()
+		if !c.removeQuiescingNodeFromClusterVNodeGCMap(clusterName, pPod.Spec.NodeName) {
+			return fmt.Errorf("the bind target vNode %s is being GCed in cluster %s, retry", pPod.Spec.NodeName, clusterName)
+		}
+		return nil
+	}(); err != nil {
+		return err
+	}
+
+	if err := c.MultiClusterController.Get(clusterName, "", n.GetName(), &corev1.Node{}); err != nil {
+		// check if target node has already registered on the vc
+		// before creating
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+		vn, err := vnode.NewVirtualNode(c.vnodeProvider, n)
+		if err != nil {
+			return fmt.Errorf("failed to create virtual node %s in cluster %s from provider: %v", pPod.Spec.NodeName, clusterName, err)
+		}
+		_, err = tenantClient.CoreV1().Nodes().Create(context.TODO(), vn, metav1.CreateOptions{})
+		if err != nil && !apierrors.IsAlreadyExists(err) {
+			return fmt.Errorf("failed to create virtual node %s in cluster %s with err: %v", pPod.Spec.NodeName, clusterName, err)
+		}
+	}
+
+	err = tenantClient.CoreV1().Pods(vPod.Namespace).Bind(context.TODO(), &corev1.Binding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      vPod.Name,
+			Namespace: vPod.Namespace,
+		},
+		Target: corev1.ObjectReference{
+			Kind:       "Node",
+			Name:       pPod.Spec.NodeName,
+			APIVersion: "v1",
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to bind vPod %s/%s to node %s %v", vPod.Namespace, vPod.Name, pPod.Spec.NodeName, err)
+	}
 	return nil
 }

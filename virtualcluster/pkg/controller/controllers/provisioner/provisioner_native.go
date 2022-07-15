@@ -45,15 +45,15 @@ const (
 	ComponentPollPeriodSec = 2
 )
 
-type ProvisionerNative struct {
+type Native struct {
 	client.Client
 	scheme             *runtime.Scheme
 	Log                logr.Logger
 	ProvisionerTimeout time.Duration
 }
 
-func NewProvisionerNative(mgr manager.Manager, log logr.Logger, provisionerTimeout time.Duration) (*ProvisionerNative, error) {
-	return &ProvisionerNative{
+func NewProvisionerNative(mgr manager.Manager, log logr.Logger, provisionerTimeout time.Duration) (*Native, error) {
+	return &Native{
 		Client:             mgr.GetClient(),
 		scheme:             mgr.GetScheme(),
 		Log:                log.WithName("Native"),
@@ -62,7 +62,7 @@ func NewProvisionerNative(mgr manager.Manager, log logr.Logger, provisionerTimeo
 }
 
 // CreateVirtualCluster sets up the control plane for vc on meta k8s
-func (mpn *ProvisionerNative) CreateVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error {
+func (mpn *Native) CreateVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error {
 	cvObjectKey := client.ObjectKey{Name: vc.Spec.ClusterVersionName}
 	cv := &tenancyv1alpha1.ClusterVersion{}
 	if err := mpn.Get(context.Background(), cvObjectKey, cv); err != nil {
@@ -162,7 +162,7 @@ func complementCtrlMgrTemplate(vcns string, ctrlMgrBdl *tenancyv1alpha1.Stateful
 
 // deployComponent deploys control plane component in namespace vcName based on the given StatefulSet
 // and Service Bundle ssBdl
-func (mpn *ProvisionerNative) deployComponent(vc *tenancyv1alpha1.VirtualCluster, ssBdl *tenancyv1alpha1.StatefulSetSvcBundle) error {
+func (mpn *Native) deployComponent(vc *tenancyv1alpha1.VirtualCluster, ssBdl *tenancyv1alpha1.StatefulSetSvcBundle) error {
 	mpn.Log.Info("deploying StatefulSet for control plane component", "component", ssBdl.Name)
 
 	ns := conversion.ToClusterKey(vc)
@@ -211,7 +211,7 @@ func (mpn *ProvisionerNative) deployComponent(vc *tenancyv1alpha1.VirtualCluster
 
 // createPKISecrets creates secrets to store crt/key pairs and kubeconfigs
 // for control plane components of the virtual cluster
-func (mpn *ProvisionerNative) createPKISecrets(caGroup *vcpki.ClusterCAGroup, namespace string) error {
+func (mpn *Native) createPKISecrets(caGroup *vcpki.ClusterCAGroup, namespace string) error {
 	// create secret for root crt/key pair
 	rootSrt := secret.CrtKeyPairToSecret(secret.RootCASecretName, namespace, caGroup.RootCA)
 	// create secret for apiserver crt/key pair
@@ -258,7 +258,7 @@ func (mpn *ProvisionerNative) createPKISecrets(caGroup *vcpki.ClusterCAGroup, na
 
 // createPKI constructs the PKI (all crt/key pair and kubeconfig) for the
 // virtual clusters, and store them as secrets in the meta cluster
-func (mpn *ProvisionerNative) createPKI(vc *tenancyv1alpha1.VirtualCluster, cv *tenancyv1alpha1.ClusterVersion, isClusterIP bool) error {
+func (mpn *Native) createPKI(vc *tenancyv1alpha1.VirtualCluster, cv *tenancyv1alpha1.ClusterVersion, isClusterIP bool) error {
 	ns := conversion.ToClusterKey(vc)
 	caGroup := &vcpki.ClusterCAGroup{}
 	// create root ca, all components will share a single root ca
@@ -354,10 +354,10 @@ func (mpn *ProvisionerNative) createPKI(vc *tenancyv1alpha1.VirtualCluster, cv *
 	return nil
 }
 
-func (mpn *ProvisionerNative) DeleteVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error {
+func (mpn *Native) DeleteVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error {
 	return nil
 }
 
-func (mpn *ProvisionerNative) GetProvisioner() string {
+func (mpn *Native) GetProvisioner() string {
 	return "native"
 }

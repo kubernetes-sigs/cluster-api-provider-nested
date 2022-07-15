@@ -110,9 +110,7 @@ func TestGetTotalNodeCapacity(t *testing.T) {
 
 	for k, tc := range testcases {
 		t.Run(k, func(t *testing.T) {
-
 			total := getTotalNodeCapacity(tc.nodelist)
-
 			if !Equals(tc.expect, total) {
 				t.Errorf("the total capacity is not expected. Exp: %v, Got %v", tc.expect, total)
 			}

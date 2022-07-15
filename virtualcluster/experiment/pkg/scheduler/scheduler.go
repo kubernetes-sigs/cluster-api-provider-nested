@@ -238,7 +238,6 @@ func (s *Scheduler) enqueueSuperCluster(obj interface{}) {
 
 // Run start Scheduler
 func (s *Scheduler) Run(stopChan <-chan struct{}) {
-
 	if !cache.WaitForCacheSync(stopChan, s.virtualClusterSynced) {
 		klog.Errorf("fail to sync virtualclustr informer cache")
 		return

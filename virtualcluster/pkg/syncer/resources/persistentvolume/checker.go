@@ -171,15 +171,10 @@ func (c *controller) PatrollerDo() {
 				return false
 			}
 			clusterName, _ := conversion.GetVirtualOwner(pPVC)
-			if clusterName == "" {
-				// Bound PVC does not belong to any tenant.
-				return false
-			}
-			return true
+			return clusterName != ""
 		},
 	})
 
 	metrics.CheckerMissMatchStats.WithLabelValues("ClaimMissMatchedPVs").Set(float64(numClaimMissMatchedPVs))
 	metrics.CheckerMissMatchStats.WithLabelValues("SpecMissMatchedPVs").Set(float64(numSpecMissMatchedPVs))
-
 }

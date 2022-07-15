@@ -10,12 +10,12 @@ linters:
   - errcheck
   - goconst
   - gocritic
-#  - gocyclo
+  - gocyclo
   - gofmt
   - goimports
   - goprintffuncname
-#  - gosec
-#  - gosimple
+  - gosec
+  - gosimple
   - govet
   - importas
   - ineffassign
@@ -23,7 +23,7 @@ linters:
   - nakedret
   - nolintlint
   - prealloc
-#  - revive
+  - revive
   - rowserrcheck
   - staticcheck
   - structcheck
@@ -31,8 +31,8 @@ linters:
   - typecheck
   - unconvert
   - unparam
-#  - varcheck
-#  - whitespace
+  - varcheck
+  - whitespace
 
 linters-settings:
   staticcheck:
@@ -77,6 +77,10 @@ issues:
   - "SA9003: empty branch"
   - "Error return value of `(c.MultiClusterController.Eventf|resp.ResponseWriter.Write)` is not checked"
   - "Error return value of `cache.(AddCluster|AddNamespace|RemoveCluster|RemoveNamespace)` is not checked"
+  # EXC0012 revive: Annoying issue about not having a comment. The rare codebase has such comments
+  - exported (.+) should have comment( \(or a comment on this block\))? or be unexported
+  # EXC0013 revive: Annoying issue about not having a comment. The rare codebase has such comments
+  - package comment should be of the form "(.+)...
   exclude-rules:
   # With Go 1.16, the new embed directive can be used with an un-named import,
   # revive (previously, golint) only allows these to be imported in a main.go, which wouldn't work for us.

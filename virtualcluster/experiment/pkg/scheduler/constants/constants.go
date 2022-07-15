@@ -49,7 +49,7 @@ const (
 	SuperClusterWorker = 3
 
 	// KubeconfigAdminSecretName name of secret with kubeconfig for admin
-	KubeconfigAdminSecretName = "admin-kubeconfig"
+	KubeconfigAdminSecretName = "admin-kubeconfig" // #nosec G101 -- This is a secret name
 
 	// InternalSchedulerCache name of the context key with cache settings
 	InternalSchedulerCache SchedulerContextKey = "tenancy.x-k8s.io/schedulercache"
