@@ -148,9 +148,8 @@ func (e *schedulerEngine) DeScheduleNamespace(key string) error {
 	defer e.mu.Unlock()
 	if ns := e.cache.GetNamespace(key); ns != nil {
 		return e.cache.RemoveNamespace(ns)
-	} else {
-		klog.V(4).Infof("the namespace %s has been removed, deschedule is not needed", key)
 	}
+	klog.V(4).Infof("the namespace %s has been removed, deschedule is not needed", key)
 	return nil
 }
 
@@ -200,8 +199,7 @@ func (e *schedulerEngine) DeSchedulePod(key string) error {
 	defer e.mu.Unlock()
 	if pod := e.cache.GetPod(key); pod != nil {
 		return e.cache.RemovePod(pod)
-	} else {
-		klog.V(4).Infof("the pod %s has been removed, deschedule is not needed", key)
 	}
+	klog.V(4).Infof("the pod %s has been removed, deschedule is not needed", key)
 	return nil
 }

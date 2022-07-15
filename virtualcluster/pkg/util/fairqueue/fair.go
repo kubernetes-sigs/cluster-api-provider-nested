@@ -37,7 +37,7 @@ type fairQueue struct {
 	// balancer choose which queue to go.
 	balancer balancer.Scheduler
 	// queueGroup group each queue by a unique key.
-	queueGroup map[string]*fifoQueue
+	queueGroup map[string]*FifoQueue
 
 	// length is the sum of queues size.
 	length int
@@ -72,7 +72,7 @@ func NewRateLimitingFairQueue(opts ...OptConfig) workqueue.RateLimitingInterface
 	ret := &fairQueue{
 		option:          o,
 		balancer:        weightedroundrobin.NewWeightedRR(),
-		queueGroup:      make(map[string]*fifoQueue),
+		queueGroup:      make(map[string]*FifoQueue),
 		dirty:           make(set),
 		processing:      make(set),
 		cond:            sync.NewCond(&sync.Mutex{}),
@@ -109,7 +109,7 @@ func (q *fairQueue) Add(obj interface{}) {
 	group := item.GroupName()
 	fifo, exists := q.queueGroup[group]
 	if !exists {
-		fifo = NewFIFOQueue()
+		fifo = NewFifoQueue()
 		q.queueGroup[group] = fifo
 		// TODO(zhuangqh): weight aware fair queue after introducing priority to vc crd.
 		// filled in `1` here and weightroundrobin will downgrade to roundrobin.
@@ -175,7 +175,7 @@ func (q *fairQueue) Done(obj interface{}) {
 	fifo, exists := q.queueGroup[item.GroupName()]
 	if !exists {
 		if q.dirty.has(item) {
-			fifo = NewFIFOQueue()
+			fifo = NewFifoQueue()
 			q.queueGroup[item.GroupName()] = fifo
 		}
 		return

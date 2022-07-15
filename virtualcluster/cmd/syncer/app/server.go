@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	_ "net/http/pprof"
+	_ "net/http/pprof" // enable pprof in the server
 	"os"
 
 	"github.com/spf13/cobra"

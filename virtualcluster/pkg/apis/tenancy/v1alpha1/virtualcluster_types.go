@@ -81,16 +81,16 @@ type VirtualClusterStatus struct {
 type ClusterPhase string
 
 const (
-	// Cluster is processed by Operator, but not all components are ready
+	// ClusterPending is when Cluster is processed by Operator, but not all components are ready
 	ClusterPending ClusterPhase = "Pending"
 
-	// All components are ready
+	// ClusterRunning is when all components are ready
 	ClusterRunning ClusterPhase = "Running"
 
-	// when update cluster spec, phase will be updating
+	// ClusterUpdating when update cluster spec, phase will be updating
 	ClusterUpdating ClusterPhase = "Updating"
 
-	// Cluster can not be initiated, or occur the error that Operator
+	// ClusterError happens when Cluster can not be initiated, or occur the error that Operator
 	// can not recover
 	ClusterError ClusterPhase = "Error"
 )

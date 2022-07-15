@@ -109,9 +109,8 @@ func (c *controller) reconcileEndpointsCreate(clusterName, targetNamespace, requ
 		if pEndpoints.Annotations[constants.LabelUID] == requestUID {
 			klog.Infof("endpoints %s/%s of cluster %s already exist in super control plane", targetNamespace, pEndpoints.Name, clusterName)
 			return nil
-		} else {
-			return fmt.Errorf("pEndpoints %s/%s exists but its delegated object UID is different", targetNamespace, pEndpoints.Name)
 		}
+		return fmt.Errorf("pEndpoints %s/%s exists but its delegated object UID is different", targetNamespace, pEndpoints.Name)
 	}
 	return err
 }

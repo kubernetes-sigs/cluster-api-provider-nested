@@ -105,7 +105,7 @@ type featureGate struct {
 }
 
 // NewFeatureGate stores flag gates for known features from a map[string]bool or returns an error
-func NewFeatureGate(m map[string]bool) (*featureGate, error) {
+func NewFeatureGate(m map[string]bool) (FeatureGate, error) {
 	known := make(map[Feature]bool)
 	for k, v := range defaultFeatures {
 		known[k] = v.Default

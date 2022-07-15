@@ -42,14 +42,14 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 )
 
-type ProvisionerAliyun struct {
+type Aliyun struct {
 	client.Client
 	scheme             *runtime.Scheme
 	Log                logr.Logger
 	ProvisionerTimeout time.Duration
 }
 
-func NewProvisionerAliyun(mgr manager.Manager, log logr.Logger, provisionerTimeout time.Duration) (*ProvisionerAliyun, error) {
+func NewProvisionerAliyun(mgr manager.Manager, log logr.Logger, provisionerTimeout time.Duration) (*Aliyun, error) {
 	// if running under aliyun mode, 'AliyunAkSrt' and 'AliyunASKConfigMap' is required
 	ns, err := kubeutil.GetPodNsFromInside()
 	if err != nil {
@@ -71,7 +71,7 @@ func NewProvisionerAliyun(mgr manager.Manager, log logr.Logger, provisionerTimeo
 	}, &corev1.ConfigMap{}, log) {
 		return nil, fmt.Errorf("configmap/%s doesnot exist", aliyunutil.AliyunASKConfigMap)
 	}
-	return &ProvisionerAliyun{
+	return &Aliyun{
 		Client:             mgr.GetClient(),
 		scheme:             mgr.GetScheme(),
 		Log:                log.WithName("Aliyun"),
@@ -80,7 +80,7 @@ func NewProvisionerAliyun(mgr manager.Manager, log logr.Logger, provisionerTimeo
 }
 
 // CreateVirtualCluster creates a new ASK on aliyun for given VirtualCluster
-func (mpa *ProvisionerAliyun) CreateVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error {
+func (mpa *Aliyun) CreateVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error {
 	mpa.Log.Info("setting up control plane for the VirtualCluster", "VirtualCluster", vc.Name)
 	// 1. load aliyun accessKeyID/accessKeySecret from secret
 	aliyunAKID, aliyunAKSrt, err := aliyunutil.GetAliyunAKPair(mpa, mpa.Log)
@@ -229,7 +229,7 @@ PollASK:
 // DeleteVirtualCluster deletes the ASK cluster corresponding to the given VirtualCluster
 // NOTE Delete only sends the deletion request to Aliyun and do not promise
 // the ASK will be deleted
-func (mpa *ProvisionerAliyun) DeleteVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error {
+func (mpa *Aliyun) DeleteVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error {
 	mpa.Log.Info("deleting the ASK of the virtualcluster", "vc-name", vc.Name)
 	aliyunAKID, aliyunAKSrt, err := aliyunutil.GetAliyunAKPair(mpa, mpa.Log)
 	if err != nil {
@@ -285,6 +285,6 @@ OuterLoop:
 	return nil
 }
 
-func (mpa *ProvisionerAliyun) GetProvisioner() string {
+func (mpa *Aliyun) GetProvisioner() string {
 	return "aliyun"
 }

@@ -56,14 +56,14 @@ const (
 	// LabelSecretUID is the service account token secret UID in tenant namespace.
 	LabelSecretUID = "tenancy.x-k8s.io/secret.UID" // #nosec G101 -- This is a label key
 
-	// UwsControllerWorkersHigh is the quantity of the worker routine for a resource that generates high number of uws requests.
+	// UwsControllerWorkerHigh is the quantity of the worker routine for a resource that generates high number of uws requests.
 	UwsControllerWorkerHigh = 10
-	// UwsControllerWorkersLow is the quantity of the worker routine for a resource that generates low number of uws requests.
+	// UwsControllerWorkerLow is the quantity of the worker routine for a resource that generates low number of uws requests.
 	UwsControllerWorkerLow = 3
 
-	// DwsControllerWorkersHigh is the quantity of the worker routine for a resource that generates high number of dws requests.
+	// DwsControllerWorkerHigh is the quantity of the worker routine for a resource that generates high number of dws requests.
 	DwsControllerWorkerHigh = 10
-	// DwsControllerWorkersLow is the quantity of the worker routine for a resource that generates low number of dws requests.
+	// DwsControllerWorkerLow is the quantity of the worker routine for a resource that generates low number of dws requests.
 	DwsControllerWorkerLow = 3
 
 	TenantDNSServerNS          = "kube-system"
@@ -93,6 +93,7 @@ const (
 
 const (
 	// TODO(zhuangqh): make extend info plugable
+
 	// LabelExtendDeploymentName is the parent deployment name of pod. only take effect on pods.
 	LabelExtendDeploymentName = "tenancy.x-k8s.io/extend.deployment.name"
 	// LabelExtendDeploymentUID is the parent deployment uid of pod. only take effect on pods.
