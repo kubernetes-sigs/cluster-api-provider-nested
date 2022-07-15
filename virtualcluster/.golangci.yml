@@ -10,7 +10,7 @@ linters:
   - errcheck
   - goconst
   - gocritic
-#  - gocyclo
+  - gocyclo
   - gofmt
   - goimports
   - goprintffuncname

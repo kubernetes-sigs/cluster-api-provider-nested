@@ -179,101 +179,9 @@ func (c *controller) PatrollerDo() {
 	}
 
 	d := differ.HandlerFuncs{}
-	d.AddFunc = func(vObj differ.ClusterObject) {
-		vPod := vObj.Object.(*corev1.Pod)
-
-		// pPod not found and vPod is under deletion, we need to delete vPod manually
-		if vPod.DeletionTimestamp != nil {
-			// since pPod not found in super control plane, we can force delete vPod
-			c.forceDeleteVPod(vObj.GetOwnerCluster(), vPod, false)
-			return
-		}
-		// pPod not found and vPod still exists, the pPod may be deleted manually or by controller pod eviction.
-		// If the vPod has not been bound yet, we can create pPod again.
-		// If the vPod has been bound, we'd better delete the vPod since the new pPod may have a different nodename.
-		if isPodScheduled(vPod) {
-			c.forceDeleteVPod(vObj.GetOwnerCluster(), vPod, false)
-			metrics.CheckerRemedyStats.WithLabelValues("DeletedTenantPodsDueToSuperEviction").Inc()
-			return
-		}
-		c.requeuePod(vObj.GetOwnerCluster(), vPod)
-	}
-	d.UpdateFunc = func(vObj, pObj differ.ClusterObject) {
-		vPod := vObj.Object.(*corev1.Pod)
-		pPod := pObj.Object.(*corev1.Pod)
-
-		if vPod.DeletionTimestamp != nil && pPod.DeletionTimestamp == nil {
-			c.requeuePod(vObj.GetOwnerCluster(), vPod)
-			return
-		}
-
-		if pPod.Annotations[constants.LabelUID] != string(vPod.UID) {
-			if pPod.DeletionTimestamp != nil {
-				// pPod is under deletion, waiting for UWS bock populate the pod status.
-				return
-			}
-			klog.Errorf("Found pPod %s delegated UID is different from tenant object", pObj.Key)
-			c.graceDeletePPod(pPod)
-			return
-		}
-
-		if pPod.Spec.NodeName != "" && vPod.Spec.NodeName != "" && pPod.Spec.NodeName != vPod.Spec.NodeName {
-			// If pPod can be deleted arbitrarily, e.g., evicted by node controller, this inconsistency may happen.
-			// For example, if pPod is deleted just before uws tries to bind the vPod and dws gets a request from checker or
-			// user update at the same time, a new pPod is going to be created potentially in a different node.
-			// However, uws bound vPod to a wrong node already. There is no easy remediation besides deleting tenant pod.
-			c.forceDeleteVPod(vObj.GetOwnerCluster(), vPod, true)
-			klog.Errorf("Found pPod %s nodename is different from tenant pod nodename, delete the vPod", pObj.Key)
-			metrics.CheckerRemedyStats.WithLabelValues("DeletedTenantPodsDueToNodeMissMatch").Inc()
-			return
-		}
-
-		clusterName := vObj.GetOwnerCluster()
-		vc, err := util.GetVirtualClusterObject(c.MultiClusterController, clusterName)
-		if err != nil {
-			klog.Errorf("fail to get cluster spec %s: %v", clusterName, err)
-			return
-		}
-
-		if conversion.Equality(c.Config, vc).CheckPodEquality(pPod, vPod) != nil {
-			atomic.AddUint64(&numSpecMissMatchedPods, 1)
-			klog.Warningf("spec of pod %s diff in super&tenant control plane", pObj.Key)
-			if err := c.MultiClusterController.RequeueObject(clusterName, vPod); err != nil {
-				klog.Errorf("error requeue vPod %s: %v", vObj.Key, err)
-			} else {
-				metrics.CheckerRemedyStats.WithLabelValues("RequeuedTenantPods").Inc()
-			}
-		}
-
-		if conversion.CheckDWPodConditionEquality(pPod, vPod) != nil {
-			atomic.AddUint64(&numSpecMissMatchedPods, 1)
-			klog.Warningf("DWStatus of pod %s diff in super&tenant control plane", pObj.Key)
-			if err := c.MultiClusterController.RequeueObject(clusterName, vPod); err != nil {
-				klog.Errorf("error requeue vpod %v/%v in cluster %s: %v", vPod.Namespace, vPod.Name, clusterName, err)
-			} else {
-				metrics.CheckerRemedyStats.WithLabelValues("RequeuedTenantPods").Inc()
-			}
-		}
-
-		if conversion.Equality(c.Config, nil).CheckUWPodStatusEquality(pPod, vPod) != nil {
-			atomic.AddUint64(&numStatusMissMatchedPods, 1)
-			klog.Warningf("status of pod %v/%v diff in super&tenant control plane", pPod.Namespace, pPod.Name)
-			if assignedPod(pPod) {
-				c.enqueuePod(pPod)
-			}
-		}
-
-		if conversion.Equality(c.Config, vc).CheckUWObjectMetaEquality(&pPod.ObjectMeta, &vPod.ObjectMeta) != nil {
-			atomic.AddUint64(&numUWMetaMissMatchedPods, 1)
-			klog.Warningf("UWObjectMeta of pod %v/%v diff in super&tenant control plane", vPod.Namespace, vPod.Name)
-			if assignedPod(pPod) {
-				c.enqueuePod(pPod)
-			}
-		}
-	}
-	d.DeleteFunc = func(pObj differ.ClusterObject) {
-		c.graceDeletePPod(pObj.Object.(*corev1.Pod))
-	}
+	d.AddFunc = c.differAddFunc
+	d.UpdateFunc = c.differUpdateFunc
+	d.DeleteFunc = c.differDeleteFunc
 
 	vSet.Difference(pSet, differ.FilteringHandler{
 		Handler: d,
@@ -310,6 +218,104 @@ func (c *controller) PatrollerDo() {
 
 	// GC unused(orphan) vNodes in tenant control planes
 	c.vNodeGCDo()
+}
+
+func (c *controller) differDeleteFunc(pObj differ.ClusterObject) {
+	c.graceDeletePPod(pObj.Object.(*corev1.Pod))
+}
+
+func (c *controller) differUpdateFunc(vObj differ.ClusterObject, pObj differ.ClusterObject) {
+	vPod := vObj.Object.(*corev1.Pod)
+	pPod := pObj.Object.(*corev1.Pod)
+
+	if vPod.DeletionTimestamp != nil && pPod.DeletionTimestamp == nil {
+		c.requeuePod(vObj.GetOwnerCluster(), vPod)
+		return
+	}
+
+	if pPod.Annotations[constants.LabelUID] != string(vPod.UID) {
+		if pPod.DeletionTimestamp != nil {
+			// pPod is under deletion, waiting for UWS bock populate the pod status.
+			return
+		}
+		klog.Errorf("Found pPod %s delegated UID is different from tenant object", pObj.Key)
+		c.graceDeletePPod(pPod)
+		return
+	}
+
+	if pPod.Spec.NodeName != "" && vPod.Spec.NodeName != "" && pPod.Spec.NodeName != vPod.Spec.NodeName {
+		// If pPod can be deleted arbitrarily, e.g., evicted by node controller, this inconsistency may happen.
+		// For example, if pPod is deleted just before uws tries to bind the vPod and dws gets a request from checker or
+		// user update at the same time, a new pPod is going to be created potentially in a different node.
+		// However, uws bound vPod to a wrong node already. There is no easy remediation besides deleting tenant pod.
+		c.forceDeleteVPod(vObj.GetOwnerCluster(), vPod, true)
+		klog.Errorf("Found pPod %s nodename is different from tenant pod nodename, delete the vPod", pObj.Key)
+		metrics.CheckerRemedyStats.WithLabelValues("DeletedTenantPodsDueToNodeMissMatch").Inc()
+		return
+	}
+
+	clusterName := vObj.GetOwnerCluster()
+	vc, err := util.GetVirtualClusterObject(c.MultiClusterController, clusterName)
+	if err != nil {
+		klog.Errorf("fail to get cluster spec %s: %v", clusterName, err)
+		return
+	}
+
+	if conversion.Equality(c.Config, vc).CheckPodEquality(pPod, vPod) != nil {
+		atomic.AddUint64(&numSpecMissMatchedPods, 1)
+		klog.Warningf("spec of pod %s diff in super&tenant control plane", pObj.Key)
+		if err := c.MultiClusterController.RequeueObject(clusterName, vPod); err != nil {
+			klog.Errorf("error requeue vPod %s: %v", vObj.Key, err)
+		} else {
+			metrics.CheckerRemedyStats.WithLabelValues("RequeuedTenantPods").Inc()
+		}
+	}
+
+	if conversion.CheckDWPodConditionEquality(pPod, vPod) != nil {
+		atomic.AddUint64(&numSpecMissMatchedPods, 1)
+		klog.Warningf("DWStatus of pod %s diff in super&tenant control plane", pObj.Key)
+		if err := c.MultiClusterController.RequeueObject(clusterName, vPod); err != nil {
+			klog.Errorf("error requeue vpod %v/%v in cluster %s: %v", vPod.Namespace, vPod.Name, clusterName, err)
+		} else {
+			metrics.CheckerRemedyStats.WithLabelValues("RequeuedTenantPods").Inc()
+		}
+	}
+
+	if conversion.Equality(c.Config, nil).CheckUWPodStatusEquality(pPod, vPod) != nil {
+		atomic.AddUint64(&numStatusMissMatchedPods, 1)
+		klog.Warningf("status of pod %v/%v diff in super&tenant control plane", pPod.Namespace, pPod.Name)
+		if assignedPod(pPod) {
+			c.enqueuePod(pPod)
+		}
+	}
+
+	if conversion.Equality(c.Config, vc).CheckUWObjectMetaEquality(&pPod.ObjectMeta, &vPod.ObjectMeta) != nil {
+		atomic.AddUint64(&numUWMetaMissMatchedPods, 1)
+		klog.Warningf("UWObjectMeta of pod %v/%v diff in super&tenant control plane", vPod.Namespace, vPod.Name)
+		if assignedPod(pPod) {
+			c.enqueuePod(pPod)
+		}
+	}
+}
+
+func (c *controller) differAddFunc(vObj differ.ClusterObject) {
+	vPod := vObj.Object.(*corev1.Pod)
+
+	// pPod not found and vPod is under deletion, we need to delete vPod manually
+	if vPod.DeletionTimestamp != nil {
+		// since pPod not found in super control plane, we can force delete vPod
+		c.forceDeleteVPod(vObj.GetOwnerCluster(), vPod, false)
+		return
+	}
+	// pPod not found and vPod still exists, the pPod may be deleted manually or by controller pod eviction.
+	// If the vPod has not been bound yet, we can create pPod again.
+	// If the vPod has been bound, we'd better delete the vPod since the new pPod may have a different nodename.
+	if isPodScheduled(vPod) {
+		c.forceDeleteVPod(vObj.GetOwnerCluster(), vPod, false)
+		metrics.CheckerRemedyStats.WithLabelValues("DeletedTenantPodsDueToSuperEviction").Inc()
+		return
+	}
+	c.requeuePod(vObj.GetOwnerCluster(), vPod)
 }
 
 func (c *controller) forceDeleteVPod(clusterName string, vPod *corev1.Pod, graceful bool) {
