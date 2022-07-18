@@ -55,12 +55,13 @@ func TestAPIs(t *testing.T) {
 		[]Reporter{printer.NewlineReporter{}})
 }
 
-var _ = BeforeSuite(func(done Done) {
+var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crd")},
+		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "..", "config", "crd")},
+		ErrorIfCRDPathMissing: true,
 	}
 
 	var err error
@@ -101,8 +102,6 @@ var _ = BeforeSuite(func(done Done) {
 
 	cli = mgr.GetClient()
 	Expect(cli).ToNot(BeNil())
-
-	close(done)
 }, 60)
 
 var _ = AfterSuite(func() {

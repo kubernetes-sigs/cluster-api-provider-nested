@@ -21,7 +21,7 @@ DOCKER_REG ?= ${or ${VC_DOCKER_REGISTRY},"virtualcluster"}
 IMG ?= ${DOCKER_REG}/manager-amd64 ${DOCKER_REG}/vn-agent-amd64 ${DOCKER_REG}/syncer-amd64
 
 # TEST_FLAGS used as flags of go test.
-TEST_FLAGS ?= -v --race
+TEST_FLAGS ?= -v
 
 # COVERAGE_PACKAGES is the coverage we care about.
 COVERAGE_PACKAGES=$(shell go list ./... | \
@@ -32,6 +32,8 @@ COVERAGE_PACKAGES=$(shell go list ./... | \
 
 # CRD_OPTIONS ?= "crd:trivialVersions=true"
 CRD_OPTIONS ?= "crd:trivialVersions=true,maxDescLen=0"
+
+export KUBEBUILDER_ASSETS=/tmp/kubebuilder/bin/
 
 # Build code.
 #

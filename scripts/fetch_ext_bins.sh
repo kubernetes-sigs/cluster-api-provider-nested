@@ -108,4 +108,5 @@ function setup_envs {
   export TEST_ASSET_KUBECTL=/tmp/kubebuilder/bin/kubectl
   export TEST_ASSET_KUBE_APISERVER=/tmp/kubebuilder/bin/kube-apiserver
   export TEST_ASSET_ETCD=/tmp/kubebuilder/bin/etcd
+  export KUBEBUILDER_ASSETS=/tmp/kubebuilder/bin/
 }
