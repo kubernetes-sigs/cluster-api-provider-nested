@@ -50,6 +50,10 @@ func RsaKeyToSecret(name, namespace string, rsaKey *rsa.PrivateKey) (*corev1.Sec
 		return nil, err
 	}
 	return &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: corev1.SchemeGroupVersion.String(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -65,6 +69,10 @@ func RsaKeyToSecret(name, namespace string, rsaKey *rsa.PrivateKey) (*corev1.Sec
 // CrtKeyPairToSecret encapsulates ca/key pair ckp into a secret object
 func CrtKeyPairToSecret(name, namespace string, ckp *vcpki.CrtKeyPair) *corev1.Secret {
 	return &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: corev1.SchemeGroupVersion.String(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -80,6 +88,10 @@ func CrtKeyPairToSecret(name, namespace string, ckp *vcpki.CrtKeyPair) *corev1.S
 // KubeconfigToSecret encapsulates kubeconfig cfgContent into a secret object
 func KubeconfigToSecret(name, namespace string, cfgContent string) *corev1.Secret {
 	return &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: corev1.SchemeGroupVersion.String(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,

@@ -288,3 +288,7 @@ OuterLoop:
 func (mpa *Aliyun) GetProvisioner() string {
 	return "aliyun"
 }
+
+func (mpa *Aliyun) UpgradeVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error {
+	return fmt.Errorf("not implemented")
+}

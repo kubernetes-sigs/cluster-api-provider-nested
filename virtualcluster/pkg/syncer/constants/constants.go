@@ -50,6 +50,14 @@ const (
 	// LabelVCRootNS means the namespace is the rootns created by vc-manager.
 	LabelVCRootNS = "tenancy.x-k8s.io/vcrootns"
 
+	// LabelVCReadyForUpgrade is set to "true" when the cluster is ready for the upgrade being applied
+	// (use featuregate.VirtualClusterApplyUpdate to enable it in the provisioner)
+	LabelVCReadyForUpgrade = "tenancy.x-k8s.io/ready-for-upgrade"
+
+	// LabelClusterVersionApplied should be set equal to the ClusterVersion.metadata.resourceVersion value
+	// This label is used in featuregate.VirtualClusterApplyUpdate to compare if the update must be applied.
+	LabelClusterVersionApplied = "tenancy.x-k8s.io/cluster-version-applied"
+
 	// LabelExternalApiserverDomain is the domain name for apiserver url from outside the cluster
 	LabelExternalApiserverDomain = "tenancy.x-k8s.io/external-apiserver-domain"
 

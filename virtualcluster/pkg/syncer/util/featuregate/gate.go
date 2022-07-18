@@ -64,6 +64,10 @@ const (
 	// vn-agent to run as a daemonset but run without hostNetworking and
 	// accessed by the PodIP on each pod on the node
 	VNodeProviderPodIP = "VNodeProviderPodIP"
+
+	// VirtualClusterApplyUpdate is an experimental feature that allows the cluster provisioner
+	// to apply ClusterVersion updates if VirtualCluster object is requested it
+	VirtualClusterApplyUpdate = "VirtualClusterApplyUpdate"
 )
 
 var defaultFeatures = FeatureList{
@@ -74,6 +78,7 @@ var defaultFeatures = FeatureList{
 	VNodeProviderService:       {Default: false},
 	TenantAllowDNSPolicy:       {Default: false},
 	VNodeProviderPodIP:         {Default: false},
+	VirtualClusterApplyUpdate:  {Default: false},
 }
 
 type Feature string
