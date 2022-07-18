@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -71,6 +72,8 @@ var _ = BeforeSuite(func() {
 
 	err = apis.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
+
+	Expect(featuregate.DefaultFeatureGate.Set(featuregate.VirtualClusterApplyUpdate, true)).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
 
