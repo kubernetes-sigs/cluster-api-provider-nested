@@ -33,27 +33,27 @@ EOF
 
 # Create a certificate authority
 openssl genrsa -out CAKey.pem 2048
-openssl req -x509 -new -nodes -key CAKey.pem -days 100000 -out CACert.pem -subj "/CN=root_ca"
+openssl req -x509 -sha256 -new -nodes -key CAKey.pem -days 100000 -out CACert.pem -subj "/CN=root_ca"
 
 # Create a kubelet server certiticate
 openssl genrsa -out KubeletServerKey.pem 2048
 openssl req -new -key KubeletServerKey.pem -out KubeletServer.csr -subj "/CN=kubelet_server" -config server.conf
-openssl x509 -req -in KubeletServer.csr -CA CACert.pem -CAkey CAKey.pem -CAcreateserial -out KubeletServerCert.pem -days 100000 -extensions v3_req -extfile server.conf
+openssl x509 -req -sha256 -in KubeletServer.csr -CA CACert.pem -CAkey CAKey.pem -CAcreateserial -out KubeletServerCert.pem -days 100000 -extensions v3_req -extfile server.conf
 
 # Create a kubelet client certiticate
 openssl genrsa -out KubeletClientKey.pem 2048
 openssl req -new -key KubeletClientKey.pem -out KubeletClient.csr -subj "/CN=kubelet_client" -config server.conf
-openssl x509 -req -in KubeletClient.csr -CA CACert.pem -CAkey CAKey.pem -CAcreateserial -out KubeletClientCert.pem -days 100000 -extensions v3_req -extfile server.conf
+openssl x509 -req -sha256 -in KubeletClient.csr -CA CACert.pem -CAkey CAKey.pem -CAcreateserial -out KubeletClientCert.pem -days 100000 -extensions v3_req -extfile server.conf
 
 # Create a vn agent certiticate
 openssl genrsa -out VnAgentKey.pem 2048
 openssl req -new -key VnAgentKey.pem -out VnAgent.csr -subj "/CN=vnagent_server" -config server.conf
-openssl x509 -req -in VnAgent.csr -CA CACert.pem -CAkey CAKey.pem -CAcreateserial -out VnAgentCert.pem -days 100000 -extensions v3_req -extfile server.conf
+openssl x509 -req -sha256 -in VnAgent.csr -CA CACert.pem -CAkey CAKey.pem -CAcreateserial -out VnAgentCert.pem -days 100000 -extensions v3_req -extfile server.conf
 
 # Create a tenant certiticate
 openssl genrsa -out TenantKey.pem 2048
 openssl req -new -key TenantKey.pem -out Tenant.csr -subj "/CN=${TENANT_NAME}" -config server.conf
-openssl x509 -req -in Tenant.csr -CA CACert.pem -CAkey CAKey.pem -CAcreateserial -out TenantCert.pem -days 100000 -extensions v3_req -extfile server.conf
+openssl x509 -req -sha256 -in Tenant.csr -CA CACert.pem -CAkey CAKey.pem -CAcreateserial -out TenantCert.pem -days 100000 -extensions v3_req -extfile server.conf
 
 outfile=certs.go
 
