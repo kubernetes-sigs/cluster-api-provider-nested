@@ -287,26 +287,52 @@ func (mpn *Native) createOrUpdatePKISecrets(ctx context.Context, caGroup *vcpki.
 func (mpn *Native) createAndApplyPKI(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster, cv *tenancyv1alpha1.ClusterVersion, isClusterIP bool) error {
 	ns := conversion.ToClusterKey(vc)
 	caGroup := &vcpki.ClusterCAGroup{}
-	// create root ca, all components will share a single root ca
-	rootCACrt, rootKey, rootCAErr := pkiutil.NewCertificateAuthority(
-		&pkiutil.CertConfig{
-			Config: cert.Config{
-				CommonName:   "kubernetes",
-				Organization: []string{"kubernetes-sig.kubernetes-sigs/multi-tenancy.virtualcluster"},
-			},
-		})
-	if rootCAErr != nil {
-		return rootCAErr
-	}
 
-	rootRsaKey, ok := rootKey.(*rsa.PrivateKey)
-	if !ok {
-		return errors.New("fail to assert rsa PrivateKey")
-	}
+	var rootCAPair *vcpki.CrtKeyPair
 
-	rootCAPair := &vcpki.CrtKeyPair{
-		Crt: rootCACrt,
-		Key: rootRsaKey,
+	// reuse rootCa if it is present
+	rootCaSecret := &corev1.Secret{}
+	err := mpn.Get(ctx, client.ObjectKey{Name: secret.RootCASecretName, Namespace: vc.Status.ClusterNamespace}, rootCaSecret)
+	if err == nil {
+		rootCACrt, rootCAErr := pkiutil.DecodeCertPEM(rootCaSecret.Data[corev1.TLSCertKey])
+		if rootCAErr != nil {
+			return rootCAErr
+		}
+
+		rootCAKey, rootCAErr := vcpki.DecodePrivateKeyPEM(rootCaSecret.Data[corev1.TLSPrivateKeyKey])
+		if rootCAErr != nil {
+			return rootCAErr
+		}
+
+		rootCAPair = &vcpki.CrtKeyPair{
+			Crt: rootCACrt,
+			Key: rootCAKey,
+		}
+		mpn.Log.Info("rootCA pair is reused from the secret")
+	} else {
+		mpn.Log.Error(err, "fail to get rootCA secret")
+		// create root ca, all components will share a single root ca
+		rootCACrt, rootKey, rootCAErr := pkiutil.NewCertificateAuthority(
+			&pkiutil.CertConfig{
+				Config: cert.Config{
+					CommonName:   "kubernetes",
+					Organization: []string{"kubernetes-sig.kubernetes-sigs/multi-tenancy.virtualcluster"},
+				},
+			})
+		if rootCAErr != nil {
+			return rootCAErr
+		}
+
+		rootRsaKey, ok := rootKey.(*rsa.PrivateKey)
+		if !ok {
+			return errors.New("fail to assert rsa PrivateKey")
+		}
+
+		rootCAPair = &vcpki.CrtKeyPair{
+			Crt: rootCACrt,
+			Key: rootRsaKey,
+		}
+		mpn.Log.Info("rootCA pair generated")
 	}
 	caGroup.RootCA = rootCAPair
 
