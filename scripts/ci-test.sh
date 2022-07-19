@@ -28,3 +28,9 @@ source ./scripts/fetch_ext_bins.sh && \
 
 cd "${REPO_ROOT}" && \
 	make generate test
+
+echo "==================="
+echo "Test virtualcluster"
+
+cd "${REPO_ROOT}/virtualcluster/" && \
+ 	make test
