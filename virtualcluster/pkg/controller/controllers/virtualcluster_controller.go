@@ -71,8 +71,8 @@ func (r *ReconcileVirtualCluster) SetupWithManager(mgr ctrl.Manager, opts contro
 	}
 	r.Provisioner = provisioner
 
-	// Expose featuregate.ClusterVersionApplyCurrentState metrics only if it enabled
-	if featuregate.DefaultFeatureGate.Enabled(featuregate.ClusterVersionApplyCurrentState) {
+	// Expose featuregate.ClusterVersionPartialUpgrade metrics only if it enabled
+	if featuregate.DefaultFeatureGate.Enabled(featuregate.ClusterVersionPartialUpgrade) {
 		metrics.Registry.MustRegister(
 			clustersUpdatedCounter,
 			clustersUpdateSeconds,
@@ -175,7 +175,7 @@ func (r *ReconcileVirtualCluster) Reconcile(ctx context.Context, request reconci
 		return
 	case tenancyv1alpha1.ClusterRunning:
 		r.Log.Info("VirtualCluster is running", "vc", vc.GetName())
-		if !featuregate.DefaultFeatureGate.Enabled(featuregate.ClusterVersionApplyCurrentState) {
+		if !featuregate.DefaultFeatureGate.Enabled(featuregate.ClusterVersionPartialUpgrade) {
 			return
 		}
 		if isReady, ok := vc.Labels[constants.LabelVCReadyForUpgrade]; !ok || isReady != "true" {

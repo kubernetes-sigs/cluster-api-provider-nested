@@ -179,7 +179,6 @@ var _ = Describe("VirtualCluster Controller", func() {
 			}, time.Minute*5, interval).Should(BeTrue())
 
 			By("Updating ClusterVersion")
-			cvInstance.Spec.ETCD.StatefulSet.Spec.Template.Spec.Containers[0].Args = append([]string{"-debug"}, cvInstance.Spec.ETCD.StatefulSet.Spec.Template.Spec.Containers[0].Args...)
 			cvInstance.Spec.APIServer.StatefulSet.Spec.Template.Spec.Containers[0].Args = append([]string{"-v=7"}, cvInstance.Spec.APIServer.StatefulSet.Spec.Template.Spec.Containers[0].Args...)
 			if cvInstance.Spec.APIServer.Service.Labels == nil {
 				cvInstance.Spec.APIServer.Service.Labels = map[string]string{}
@@ -201,14 +200,6 @@ var _ = Describe("VirtualCluster Controller", func() {
 				svc := &corev1.Service{}
 				err := cli.Get(ctx, svcObjectKey, svc)
 				return !apierrors.IsNotFound(err) && svc.Labels["test-label"] == "test"
-			}, time.Minute*2, interval).Should(BeTrue())
-
-			etcdSts := &appsv1.StatefulSet{}
-			By("Control Plane etcd StatefulSet upgraded")
-			Eventually(func() bool {
-				stsObjectKey := getClusterObjectKey(instance, "etcd")
-				err := cli.Get(ctx, stsObjectKey, etcdSts)
-				return !apierrors.IsNotFound(err) && etcdSts.Spec.Template.Spec.Containers[0].Args[0] == "-debug"
 			}, time.Minute*2, interval).Should(BeTrue())
 
 			apiserverSts := &appsv1.StatefulSet{}

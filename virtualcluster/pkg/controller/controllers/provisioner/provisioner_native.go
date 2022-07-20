@@ -68,7 +68,7 @@ func NewProvisionerNative(mgr manager.Manager, log logr.Logger, provisionerTimeo
 }
 
 func updateLabelClusterVersionApplied(vc *tenancyv1alpha1.VirtualCluster, cv *tenancyv1alpha1.ClusterVersion) {
-	if featuregate.DefaultFeatureGate.Enabled(featuregate.ClusterVersionApplyCurrentState) {
+	if featuregate.DefaultFeatureGate.Enabled(featuregate.ClusterVersionPartialUpgrade) {
 		if vc.Labels == nil {
 			vc.Labels = map[string]string{}
 		}
@@ -114,6 +114,11 @@ func (mpn *Native) UpgradeVirtualCluster(ctx context.Context, vc *tenancyv1alpha
 		return nil
 	}
 	updateLabelClusterVersionApplied(vc, cv)
+
+	// We currently do not support ETCD upgrades because of amount of manual actions required
+	// The easiest way to achieve it - pass empty ETCD definition to the ClusterVersion
+	cv.Spec.ETCD = nil
+
 	return mpn.applyVirtualCluster(ctx, cv, vc)
 }
 
@@ -137,22 +142,26 @@ func (mpn *Native) applyVirtualCluster(ctx context.Context, cv *tenancyv1alpha1.
 		return err
 	}
 
-	// 3. deploy etcd
-	err = mpn.deployComponent(ctx, vc, cv.Spec.ETCD, clusterCAGroup)
-	if err != nil {
-		return err
+	// 3. deploy etcd if defined
+	if cv.Spec.ETCD != nil {
+		err = mpn.deployComponent(ctx, vc, cv.Spec.ETCD, clusterCAGroup)
+		if err != nil {
+			return err
+		}
 	}
 
-	// 4. deploy apiserver
+	// 4. deploy apiserver (must be defined always)
 	err = mpn.deployComponent(ctx, vc, cv.Spec.APIServer, clusterCAGroup)
 	if err != nil {
 		return err
 	}
 
-	// 5. deploy controller-manager
-	err = mpn.deployComponent(ctx, vc, cv.Spec.ControllerManager, clusterCAGroup)
-	if err != nil {
-		return err
+	// 5. deploy controller-manager if defined
+	if cv.Spec.ControllerManager != nil {
+		err = mpn.deployComponent(ctx, vc, cv.Spec.ControllerManager, clusterCAGroup)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -176,7 +185,6 @@ func genInitialClusterArgs(replicas int32, stsName, svcName string) (argsVal str
 
 // complementETCDTemplate complements the ETCD template of the specified clusterversion
 // based on the virtual cluster setting
-// etcd watches certificates and does not need watch-restart mechanism like apiserver or controller-manager
 func complementETCDTemplate(vcns string, etcdBdl *tenancyv1alpha1.StatefulSetSvcBundle) {
 	etcdBdl.StatefulSet.ObjectMeta.Namespace = vcns
 	etcdBdl.Service.ObjectMeta.Namespace = vcns

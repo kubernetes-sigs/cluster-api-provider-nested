@@ -73,7 +73,7 @@ var _ = BeforeSuite(func() {
 	err = apis.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	Expect(featuregate.DefaultFeatureGate.Set(featuregate.ClusterVersionApplyCurrentState, true)).NotTo(HaveOccurred())
+	Expect(featuregate.DefaultFeatureGate.Set(featuregate.ClusterVersionPartialUpgrade, true)).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
 
