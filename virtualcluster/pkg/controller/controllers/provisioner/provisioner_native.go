@@ -176,7 +176,8 @@ func genInitialClusterArgs(replicas int32, stsName, svcName string) (argsVal str
 
 // complementETCDTemplate complements the ETCD template of the specified clusterversion
 // based on the virtual cluster setting
-func complementETCDTemplate(vcns string, etcdBdl *tenancyv1alpha1.StatefulSetSvcBundle, clusterCAGroup *vcpki.ClusterCAGroup) {
+// etcd watches certificates and does not need watch-restart mechanism like apiserver or controller-manager
+func complementETCDTemplate(vcns string, etcdBdl *tenancyv1alpha1.StatefulSetSvcBundle) {
 	etcdBdl.StatefulSet.ObjectMeta.Namespace = vcns
 	etcdBdl.Service.ObjectMeta.Namespace = vcns
 	args := etcdBdl.StatefulSet.Spec.Template.Spec.Containers[0].Args
@@ -184,14 +185,6 @@ func complementETCDTemplate(vcns string, etcdBdl *tenancyv1alpha1.StatefulSetSvc
 		etcdBdl.StatefulSet.Name, etcdBdl.Service.Name)
 	args = append(args, "--initial-cluster", icaVal)
 	etcdBdl.StatefulSet.Spec.Template.Spec.Containers[0].Args = args
-
-	annotations := etcdBdl.StatefulSet.Spec.Template.GetAnnotations()
-	if annotations == nil {
-		annotations = map[string]string{}
-	}
-	annotations[secret.RootCASecretName+"-hash"] = secret.GetHash(clusterCAGroup.RootCA)
-	annotations[secret.ETCDCASecretName+"-hash"] = secret.GetHash(clusterCAGroup.ETCD)
-	etcdBdl.StatefulSet.Spec.Template.SetAnnotations(annotations)
 }
 
 // complementAPIServerTemplate complements the apiserver template of the specified clusterversion
@@ -240,7 +233,7 @@ func (mpn *Native) deployComponent(ctx context.Context, vc *tenancyv1alpha1.Virt
 
 	switch ssBdl.Name {
 	case "etcd":
-		complementETCDTemplate(ns, ssBdl, clusterCAGroup)
+		complementETCDTemplate(ns, ssBdl)
 	case "apiserver":
 		complementAPIServerTemplate(ns, ssBdl, clusterCAGroup)
 	case "controller-manager":
