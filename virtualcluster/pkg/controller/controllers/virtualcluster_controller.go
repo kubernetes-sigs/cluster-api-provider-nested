@@ -27,10 +27,10 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	tenancyv1alpha1 "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
@@ -70,6 +70,14 @@ func (r *ReconcileVirtualCluster) SetupWithManager(mgr ctrl.Manager, opts contro
 		return err
 	}
 	r.Provisioner = provisioner
+
+	// Expose featuregate.ClusterVersionApplyCurrentState metrics only if it enabled
+	if featuregate.DefaultFeatureGate.Enabled(featuregate.ClusterVersionApplyCurrentState) {
+		metrics.Registry.MustRegister(
+			clustersUpdatedCounter,
+			clustersUpdateSeconds,
+		)
+	}
 
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
