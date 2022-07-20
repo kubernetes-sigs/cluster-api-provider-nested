@@ -68,7 +68,7 @@ func NewProvisionerNative(mgr manager.Manager, log logr.Logger, provisionerTimeo
 }
 
 func updateLabelClusterVersionApplied(vc *tenancyv1alpha1.VirtualCluster, cv *tenancyv1alpha1.ClusterVersion) {
-	if featuregate.DefaultFeatureGate.Enabled(featuregate.VirtualClusterApplyUpdate) {
+	if featuregate.DefaultFeatureGate.Enabled(featuregate.ClusterVersionApplyCurrentState) {
 		if vc.Labels == nil {
 			vc.Labels = map[string]string{}
 		}

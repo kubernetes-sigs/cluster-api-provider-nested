@@ -65,20 +65,20 @@ const (
 	// accessed by the PodIP on each pod on the node
 	VNodeProviderPodIP = "VNodeProviderPodIP"
 
-	// VirtualClusterApplyUpdate is an experimental feature that allows the cluster provisioner
+	// ClusterVersionApplyCurrentState is an experimental feature that allows the cluster provisioner
 	// to apply ClusterVersion updates if VirtualCluster object is requested it
-	VirtualClusterApplyUpdate = "VirtualClusterApplyUpdate"
+	ClusterVersionApplyCurrentState = "ClusterVersionApplyCurrentState"
 )
 
 var defaultFeatures = FeatureList{
-	SuperClusterPooling:        {Default: false},
-	SuperClusterServiceNetwork: {Default: false},
-	SuperClusterLabelling:      {Default: false},
-	SuperClusterLabelFilter:    {Default: false},
-	VNodeProviderService:       {Default: false},
-	TenantAllowDNSPolicy:       {Default: false},
-	VNodeProviderPodIP:         {Default: false},
-	VirtualClusterApplyUpdate:  {Default: false},
+	SuperClusterPooling:             {Default: false},
+	SuperClusterServiceNetwork:      {Default: false},
+	SuperClusterLabelling:           {Default: false},
+	SuperClusterLabelFilter:         {Default: false},
+	VNodeProviderService:            {Default: false},
+	TenantAllowDNSPolicy:            {Default: false},
+	VNodeProviderPodIP:              {Default: false},
+	ClusterVersionApplyCurrentState: {Default: false},
 }
 
 type Feature string

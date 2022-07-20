@@ -167,7 +167,7 @@ func (r *ReconcileVirtualCluster) Reconcile(ctx context.Context, request reconci
 		return
 	case tenancyv1alpha1.ClusterRunning:
 		r.Log.Info("VirtualCluster is running", "vc", vc.GetName())
-		if !featuregate.DefaultFeatureGate.Enabled(featuregate.VirtualClusterApplyUpdate) {
+		if !featuregate.DefaultFeatureGate.Enabled(featuregate.ClusterVersionApplyCurrentState) {
 			return
 		}
 		if isReady, ok := vc.Labels[constants.LabelVCReadyForUpgrade]; !ok || isReady != "true" {
