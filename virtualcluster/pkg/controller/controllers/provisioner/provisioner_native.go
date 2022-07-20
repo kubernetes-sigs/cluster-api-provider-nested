@@ -326,26 +326,23 @@ func (mpn *Native) createAndApplyPKI(ctx context.Context, vc *tenancyv1alpha1.Vi
 	// reuse rootCa if it is present
 	rootCaSecret := &corev1.Secret{}
 	err := mpn.Get(ctx, client.ObjectKey{Name: secret.RootCASecretName, Namespace: vc.Status.ClusterNamespace}, rootCaSecret)
-	if err == nil {
-		// The secret is present and we can reuse it
+	switch {
+	case err == nil:
 		rootCACrt, rootCAErr := pkiutil.DecodeCertPEM(rootCaSecret.Data[corev1.TLSCertKey])
 		if rootCAErr != nil {
 			return nil, rootCAErr
 		}
-
 		rootCAKey, rootCAErr := vcpki.DecodePrivateKeyPEM(rootCaSecret.Data[corev1.TLSPrivateKeyKey])
 		if rootCAErr != nil {
 			return nil, rootCAErr
 		}
-
 		rootCAPair = &vcpki.CrtKeyPair{
 			Crt: rootCACrt,
 			Key: rootCAKey,
 		}
 		mpn.Log.Info("rootCA pair is reused from the secret")
-	} else if apierrors.IsNotFound(err) {
+	case apierrors.IsNotFound(err):
 		mpn.Log.Info("rootCA secret is not found. Creating")
-		// create root ca, all components will share a single root ca
 		rootCACrt, rootKey, rootCAErr := pkiutil.NewCertificateAuthority(
 			&pkiutil.CertConfig{
 				Config: cert.Config{
@@ -356,18 +353,16 @@ func (mpn *Native) createAndApplyPKI(ctx context.Context, vc *tenancyv1alpha1.Vi
 		if rootCAErr != nil {
 			return nil, rootCAErr
 		}
-
 		rootRsaKey, ok := rootKey.(*rsa.PrivateKey)
 		if !ok {
 			return nil, errors.New("fail to assert rsa PrivateKey")
 		}
-
 		rootCAPair = &vcpki.CrtKeyPair{
 			Crt: rootCACrt,
 			Key: rootRsaKey,
 		}
 		mpn.Log.Info("rootCA pair generated")
-	} else {
+	default:
 		mpn.Log.Error(err, "failed to check rootCA secret existence")
 		return nil, err
 	}
