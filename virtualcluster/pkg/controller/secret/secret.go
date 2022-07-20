@@ -18,6 +18,8 @@ package secret
 
 import (
 	"crypto/rsa"
+	"crypto/sha256"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,6 +44,14 @@ const (
 	// ServiceAccountSecretName name of the secret with ServiceAccount rsa
 	ServiceAccountSecretName = "serviceaccount-rsa"
 )
+
+// GetHash hashes object to sha256 for annotations
+func GetHash(o interface{}) string {
+	h := sha256.New()
+	h.Write([]byte(fmt.Sprintf("%v", o)))
+
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
 
 // RsaKeyToSecret encapsulates rsaKey into a secret object
 func RsaKeyToSecret(name, namespace string, rsaKey *rsa.PrivateKey) (*corev1.Secret, error) {

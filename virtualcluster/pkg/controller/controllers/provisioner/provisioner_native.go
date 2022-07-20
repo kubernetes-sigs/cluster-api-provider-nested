@@ -123,7 +123,7 @@ func (mpn *Native) applyVirtualCluster(ctx context.Context, cv *tenancyv1alpha1.
 	// if ClusterIP, have to update API Server ahead of time to lay it down in the PKI
 	if isClusterIP {
 		mpn.Log.Info("applying ClusterIP Service for API component", "component", cv.Spec.APIServer.Name)
-		complementAPIServerTemplate(conversion.ToClusterKey(vc), cv.Spec.APIServer)
+		complementAPIServerTemplate(conversion.ToClusterKey(vc), cv.Spec.APIServer, nil)
 		err := mpn.Patch(ctx, cv.Spec.APIServer.Service, client.Apply, patchOptions)
 		if err != nil {
 			mpn.Log.Error(err, "failed to update service", "service", cv.Spec.APIServer.Service.GetName())
@@ -132,25 +132,25 @@ func (mpn *Native) applyVirtualCluster(ctx context.Context, cv *tenancyv1alpha1.
 	}
 
 	// 2. apply PKI
-	err = mpn.createAndApplyPKI(ctx, vc, cv, isClusterIP)
+	clusterCAGroup, err := mpn.createAndApplyPKI(ctx, vc, cv, isClusterIP)
 	if err != nil {
 		return err
 	}
 
 	// 3. deploy etcd
-	err = mpn.deployComponent(ctx, vc, cv.Spec.ETCD)
+	err = mpn.deployComponent(ctx, vc, cv.Spec.ETCD, clusterCAGroup)
 	if err != nil {
 		return err
 	}
 
 	// 4. deploy apiserver
-	err = mpn.deployComponent(ctx, vc, cv.Spec.APIServer)
+	err = mpn.deployComponent(ctx, vc, cv.Spec.APIServer, clusterCAGroup)
 	if err != nil {
 		return err
 	}
 
 	// 5. deploy controller-manager
-	err = mpn.deployComponent(ctx, vc, cv.Spec.ControllerManager)
+	err = mpn.deployComponent(ctx, vc, cv.Spec.ControllerManager, clusterCAGroup)
 	if err != nil {
 		return err
 	}
@@ -176,7 +176,7 @@ func genInitialClusterArgs(replicas int32, stsName, svcName string) (argsVal str
 
 // complementETCDTemplate complements the ETCD template of the specified clusterversion
 // based on the virtual cluster setting
-func complementETCDTemplate(vcns string, etcdBdl *tenancyv1alpha1.StatefulSetSvcBundle) {
+func complementETCDTemplate(vcns string, etcdBdl *tenancyv1alpha1.StatefulSetSvcBundle, clusterCAGroup *vcpki.ClusterCAGroup) {
 	etcdBdl.StatefulSet.ObjectMeta.Namespace = vcns
 	etcdBdl.Service.ObjectMeta.Namespace = vcns
 	args := etcdBdl.StatefulSet.Spec.Template.Spec.Containers[0].Args
@@ -184,35 +184,67 @@ func complementETCDTemplate(vcns string, etcdBdl *tenancyv1alpha1.StatefulSetSvc
 		etcdBdl.StatefulSet.Name, etcdBdl.Service.Name)
 	args = append(args, "--initial-cluster", icaVal)
 	etcdBdl.StatefulSet.Spec.Template.Spec.Containers[0].Args = args
+
+	annotations := etcdBdl.StatefulSet.Spec.Template.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	annotations[secret.RootCASecretName+"-hash"] = secret.GetHash(clusterCAGroup.RootCA)
+	annotations[secret.ETCDCASecretName+"-hash"] = secret.GetHash(clusterCAGroup.ETCD)
+	etcdBdl.StatefulSet.Spec.Template.SetAnnotations(annotations)
 }
 
 // complementAPIServerTemplate complements the apiserver template of the specified clusterversion
 // based on the virtual cluster setting
-func complementAPIServerTemplate(vcns string, apiserverBdl *tenancyv1alpha1.StatefulSetSvcBundle) {
+func complementAPIServerTemplate(vcns string, apiserverBdl *tenancyv1alpha1.StatefulSetSvcBundle, clusterCAGroup *vcpki.ClusterCAGroup) {
 	apiserverBdl.StatefulSet.ObjectMeta.Namespace = vcns
 	apiserverBdl.Service.ObjectMeta.Namespace = vcns
+
+	// we use complementAPIServerTemplate for service creation before creating certs if the service isClusterIP
+	if clusterCAGroup == nil {
+		return
+	}
+
+	annotations := apiserverBdl.StatefulSet.Spec.Template.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	annotations[secret.RootCASecretName+"-hash"] = secret.GetHash(clusterCAGroup.RootCA)
+	annotations[secret.APIServerCASecretName+"-hash"] = secret.GetHash(clusterCAGroup.APIServer)
+	annotations[secret.FrontProxyCASecretName+"-hash"] = secret.GetHash(clusterCAGroup.FrontProxy)
+	annotations[secret.ServiceAccountSecretName+"-hash"] = secret.GetHash(clusterCAGroup.ServiceAccountPrivateKey)
+	apiserverBdl.StatefulSet.Spec.Template.SetAnnotations(annotations)
 }
 
 // complementCtrlMgrTemplate complements the controller manager template of the specified clusterversion
 // based on the virtual cluster setting
-func complementCtrlMgrTemplate(vcns string, ctrlMgrBdl *tenancyv1alpha1.StatefulSetSvcBundle) {
+func complementCtrlMgrTemplate(vcns string, ctrlMgrBdl *tenancyv1alpha1.StatefulSetSvcBundle, clusterCAGroup *vcpki.ClusterCAGroup) {
 	ctrlMgrBdl.StatefulSet.ObjectMeta.Namespace = vcns
+	annotations := ctrlMgrBdl.StatefulSet.Spec.Template.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	annotations[secret.RootCASecretName+"-hash"] = secret.GetHash(clusterCAGroup.RootCA)
+	annotations[secret.ServiceAccountSecretName+"-hash"] = secret.GetHash(clusterCAGroup.ServiceAccountPrivateKey)
+	annotations[secret.ControllerManagerSecretName+"-hash"] = secret.GetHash(clusterCAGroup.CtrlMgrKbCfg)
+	ctrlMgrBdl.StatefulSet.Spec.Template.SetAnnotations(annotations)
 }
 
 // deployComponent deploys control plane component in namespace vcName based on the given StatefulSet
 // and Service Bundle ssBdl
-func (mpn *Native) deployComponent(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster, ssBdl *tenancyv1alpha1.StatefulSetSvcBundle) error {
+// the method also adds annotations with certificates hashes to trigger pod recreation if certificates were changed
+func (mpn *Native) deployComponent(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster, ssBdl *tenancyv1alpha1.StatefulSetSvcBundle, clusterCAGroup *vcpki.ClusterCAGroup) error {
 	mpn.Log.Info("deploying StatefulSet for control plane component", "component", ssBdl.Name)
 
 	ns := conversion.ToClusterKey(vc)
 
 	switch ssBdl.Name {
 	case "etcd":
-		complementETCDTemplate(ns, ssBdl)
+		complementETCDTemplate(ns, ssBdl, clusterCAGroup)
 	case "apiserver":
-		complementAPIServerTemplate(ns, ssBdl)
+		complementAPIServerTemplate(ns, ssBdl, clusterCAGroup)
 	case "controller-manager":
-		complementCtrlMgrTemplate(ns, ssBdl)
+		complementCtrlMgrTemplate(ns, ssBdl, clusterCAGroup)
 	default:
 		return fmt.Errorf("try to deploy unknown component: %s", ssBdl.Name)
 	}
@@ -284,7 +316,8 @@ func (mpn *Native) createOrUpdatePKISecrets(ctx context.Context, caGroup *vcpki.
 
 // createAndApplyPKI constructs the PKI (all crt/key pair and kubeconfig) for the
 // virtual clusters, and store them as secrets in the meta cluster
-func (mpn *Native) createAndApplyPKI(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster, cv *tenancyv1alpha1.ClusterVersion, isClusterIP bool) error {
+// The method returns the current ClusterCAGroup to use it as annotations for control-plane pods for restart
+func (mpn *Native) createAndApplyPKI(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster, cv *tenancyv1alpha1.ClusterVersion, isClusterIP bool) (*vcpki.ClusterCAGroup, error) {
 	ns := conversion.ToClusterKey(vc)
 	caGroup := &vcpki.ClusterCAGroup{}
 
@@ -296,12 +329,12 @@ func (mpn *Native) createAndApplyPKI(ctx context.Context, vc *tenancyv1alpha1.Vi
 	if err == nil {
 		rootCACrt, rootCAErr := pkiutil.DecodeCertPEM(rootCaSecret.Data[corev1.TLSCertKey])
 		if rootCAErr != nil {
-			return rootCAErr
+			return nil, rootCAErr
 		}
 
 		rootCAKey, rootCAErr := vcpki.DecodePrivateKeyPEM(rootCaSecret.Data[corev1.TLSPrivateKeyKey])
 		if rootCAErr != nil {
-			return rootCAErr
+			return nil, rootCAErr
 		}
 
 		rootCAPair = &vcpki.CrtKeyPair{
@@ -320,12 +353,12 @@ func (mpn *Native) createAndApplyPKI(ctx context.Context, vc *tenancyv1alpha1.Vi
 				},
 			})
 		if rootCAErr != nil {
-			return rootCAErr
+			return nil, rootCAErr
 		}
 
 		rootRsaKey, ok := rootKey.(*rsa.PrivateKey)
 		if !ok {
-			return errors.New("fail to assert rsa PrivateKey")
+			return nil, errors.New("fail to assert rsa PrivateKey")
 		}
 
 		rootCAPair = &vcpki.CrtKeyPair{
@@ -340,14 +373,14 @@ func (mpn *Native) createAndApplyPKI(ctx context.Context, vc *tenancyv1alpha1.Vi
 	// create crt, key for etcd
 	etcdCAPair, etcdCrtErr := vcpki.NewEtcdServerCertAndKey(rootCAPair, etcdDomains)
 	if etcdCrtErr != nil {
-		return etcdCrtErr
+		return nil, etcdCrtErr
 	}
 	caGroup.ETCD = etcdCAPair
 
 	// create crt, key for frontendproxy
 	frontProxyCAPair, frontProxyCrtErr := vcpki.NewFrontProxyClientCertAndKey(rootCAPair)
 	if frontProxyCrtErr != nil {
-		return frontProxyCrtErr
+		return nil, frontProxyCrtErr
 	}
 	caGroup.FrontProxy = frontProxyCAPair
 
@@ -363,7 +396,7 @@ func (mpn *Native) createAndApplyPKI(ctx context.Context, vc *tenancyv1alpha1.Vi
 	apiserverDomain := cv.GetAPIServerDomain(ns)
 	apiserverCAPair, err := vcpki.NewAPIServerCrtAndKey(rootCAPair, vc, apiserverDomain, clusterIP)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	caGroup.APIServer = apiserverCAPair
 
@@ -377,7 +410,7 @@ func (mpn *Native) createAndApplyPKI(ctx context.Context, vc *tenancyv1alpha1.Vi
 		"system:kube-controller-manager",
 		vc.Name, finalAPIAddress, []string{}, rootCAPair)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	caGroup.CtrlMgrKbCfg = ctrlmgrKbCfg
 
@@ -386,24 +419,24 @@ func (mpn *Native) createAndApplyPKI(ctx context.Context, vc *tenancyv1alpha1.Vi
 		"admin", vc.Name, finalAPIAddress,
 		[]string{"system:masters"}, rootCAPair)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	caGroup.AdminKbCfg = adminKbCfg
 
 	// create rsa key for service-account
 	svcAcctCAPair, err := vcpki.NewServiceAccountSigningKey()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	caGroup.ServiceAccountPrivateKey = svcAcctCAPair
 
 	// store ca and kubeconfig into secrets
 	genSrtsErr := mpn.createOrUpdatePKISecrets(ctx, caGroup, ns)
 	if genSrtsErr != nil {
-		return genSrtsErr
+		return nil, genSrtsErr
 	}
 
-	return nil
+	return caGroup, nil
 }
 
 func (mpn *Native) DeleteVirtualCluster(_ context.Context, _ *tenancyv1alpha1.VirtualCluster) error {
