@@ -64,16 +64,21 @@ const (
 	// vn-agent to run as a daemonset but run without hostNetworking and
 	// accessed by the PodIP on each pod on the node
 	VNodeProviderPodIP = "VNodeProviderPodIP"
+
+	// ClusterVersionPartialUpgrade is an experimental feature that allows the cluster provisioner
+	// to apply ClusterVersion updates if VirtualCluster object is requested it
+	ClusterVersionPartialUpgrade = "ClusterVersionPartialUpgrade"
 )
 
 var defaultFeatures = FeatureList{
-	SuperClusterPooling:        {Default: false},
-	SuperClusterServiceNetwork: {Default: false},
-	SuperClusterLabelling:      {Default: false},
-	SuperClusterLabelFilter:    {Default: false},
-	VNodeProviderService:       {Default: false},
-	TenantAllowDNSPolicy:       {Default: false},
-	VNodeProviderPodIP:         {Default: false},
+	SuperClusterPooling:          {Default: false},
+	SuperClusterServiceNetwork:   {Default: false},
+	SuperClusterLabelling:        {Default: false},
+	SuperClusterLabelFilter:      {Default: false},
+	VNodeProviderService:         {Default: false},
+	TenantAllowDNSPolicy:         {Default: false},
+	VNodeProviderPodIP:           {Default: false},
+	ClusterVersionPartialUpgrade: {Default: false},
 }
 
 type Feature string

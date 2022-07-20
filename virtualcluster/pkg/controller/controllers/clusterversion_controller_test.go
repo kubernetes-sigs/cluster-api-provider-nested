@@ -95,7 +95,7 @@ var defaultClusterVersion = &v1alpha1.ClusterVersionSpec{
 					},
 				},
 				UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
-					Type: appsv1.OnDeleteStatefulSetStrategyType,
+					Type: appsv1.RollingUpdateStatefulSetStrategyType,
 				},
 				Template: corev1.PodTemplateSpec{
 					ObjectMeta: metav1.ObjectMeta{
@@ -247,7 +247,7 @@ var defaultClusterVersion = &v1alpha1.ClusterVersionSpec{
 					},
 				},
 				UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
-					Type: appsv1.OnDeleteStatefulSetStrategyType,
+					Type: appsv1.RollingUpdateStatefulSetStrategyType,
 				},
 				Template: corev1.PodTemplateSpec{
 					ObjectMeta: metav1.ObjectMeta{
@@ -302,6 +302,7 @@ var defaultClusterVersion = &v1alpha1.ClusterVersionSpec{
 									{
 										ContainerPort: 6443,
 										Name:          "api",
+										Protocol:      corev1.ProtocolTCP, // Must be explicit in 1.19
 									},
 								},
 								LivenessProbe: &corev1.Probe{
@@ -453,7 +454,7 @@ var defaultClusterVersion = &v1alpha1.ClusterVersionSpec{
 					},
 				},
 				UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
-					Type: appsv1.OnDeleteStatefulSetStrategyType,
+					Type: appsv1.RollingUpdateStatefulSetStrategyType,
 				},
 				Template: corev1.PodTemplateSpec{
 					ObjectMeta: metav1.ObjectMeta{

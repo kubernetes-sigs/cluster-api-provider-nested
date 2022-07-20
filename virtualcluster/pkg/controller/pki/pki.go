@@ -242,6 +242,14 @@ func EncodePrivateKeyPEM(key *rsa.PrivateKey) []byte {
 	return pem.EncodeToMemory(&block)
 }
 
+func DecodePrivateKeyPEM(raw []byte) (*rsa.PrivateKey, error) {
+	block, _ := pem.Decode(raw)
+	if block == nil {
+		return nil, fmt.Errorf("failed to decode private key")
+	}
+	return x509.ParsePKCS1PrivateKey(block.Bytes)
+}
+
 // newPrivateKey creates an RSA private key
 func newPrivateKey() (*rsa.PrivateKey, error) {
 	return rsa.GenerateKey(cryptorand.Reader, 2048)

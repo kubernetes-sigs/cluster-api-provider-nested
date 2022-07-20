@@ -25,16 +25,20 @@ import (
 
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	tenancyv1alpha1 "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/controllers/provisioner"
 	kubeutil "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/util/kube"
 	strutil "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/controller/util/strings"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
 )
 
 // GetProvisioner returns a new provisioner.Provisioner by ProvisionerName
@@ -66,6 +70,15 @@ func (r *ReconcileVirtualCluster) SetupWithManager(mgr ctrl.Manager, opts contro
 		return err
 	}
 	r.Provisioner = provisioner
+
+	// Expose featuregate.ClusterVersionPartialUpgrade metrics only if it enabled
+	if featuregate.DefaultFeatureGate.Enabled(featuregate.ClusterVersionPartialUpgrade) {
+		metrics.Registry.MustRegister(
+			clustersUpgradedCounter,
+			clustersUpgradeFailedCounter,
+			clustersUpgradeSeconds,
+		)
+	}
 
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
@@ -163,6 +176,43 @@ func (r *ReconcileVirtualCluster) Reconcile(ctx context.Context, request reconci
 		return
 	case tenancyv1alpha1.ClusterRunning:
 		r.Log.Info("VirtualCluster is running", "vc", vc.GetName())
+		if !featuregate.DefaultFeatureGate.Enabled(featuregate.ClusterVersionPartialUpgrade) {
+			return
+		}
+		if isReady, ok := vc.Labels[constants.LabelVCReadyForUpgrade]; !ok || isReady != "true" {
+			return
+		}
+		r.Log.Info("VirtualCluster is ready for upgrade", "vc", vc.GetName())
+		upgradeStartTimestamp := time.Now()
+		err = r.Provisioner.UpgradeVirtualCluster(ctx, vc)
+		clustersUpgradeSeconds.WithLabelValues(vc.Spec.ClusterVersionName, vc.Labels[constants.LabelClusterVersionApplied]).Observe(time.Since(upgradeStartTimestamp).Seconds())
+		if err != nil {
+			r.Log.Error(err, "fail to upgrade virtualcluster", "vc", vc.GetName())
+			kubeutil.SetVCStatus(vc, tenancyv1alpha1.ClusterRunning, fmt.Sprintf("fail to upgrade: %s", err), "TenantControlPlaneUpgradeFailed")
+			clustersUpgradeFailedCounter.WithLabelValues(vc.Spec.ClusterVersionName, vc.Labels[constants.LabelClusterVersionApplied]).Inc()
+		} else {
+			r.Log.Info("upgrade finished", "vc", vc.GetName())
+			kubeutil.SetVCStatus(vc, tenancyv1alpha1.ClusterRunning, "tenant control plane is upgraded", "TenantControlPlaneUpgradeCompleted")
+			clustersUpgradedCounter.WithLabelValues(vc.Spec.ClusterVersionName, vc.Labels[constants.LabelClusterVersionApplied]).Inc()
+		}
+
+		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			vcStatus := vc.Status
+			delete(vc.Labels, constants.LabelVCReadyForUpgrade)
+			vcLabels := vc.Labels
+			updateErr := r.Update(ctx, vc)
+			if updateErr != nil {
+				if err := r.Get(ctx, types.NamespacedName{
+					Namespace: vc.GetNamespace(),
+					Name:      vc.GetName(),
+				}, vc); err != nil {
+					r.Log.Info("fail to get obj on update failure", "object", vc.GetName(), "error", err.Error())
+				}
+				vc.Status = vcStatus
+				vc.Labels = vcLabels
+			}
+			return updateErr
+		})
 		return
 	case tenancyv1alpha1.ClusterError:
 		r.Log.Info("fail to create virtualcluster", "vc", vc.GetName())

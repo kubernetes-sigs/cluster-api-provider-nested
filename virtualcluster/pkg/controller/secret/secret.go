@@ -18,6 +18,8 @@ package secret
 
 import (
 	"crypto/rsa"
+	"crypto/sha256"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,6 +45,14 @@ const (
 	ServiceAccountSecretName = "serviceaccount-rsa"
 )
 
+// GetHash hashes object to sha256 for annotations
+func GetHash(o interface{}) string {
+	h := sha256.New()
+	h.Write([]byte(fmt.Sprintf("%v", o)))
+
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
 // RsaKeyToSecret encapsulates rsaKey into a secret object
 func RsaKeyToSecret(name, namespace string, rsaKey *rsa.PrivateKey) (*corev1.Secret, error) {
 	encodedPubKey, err := pkiutil.EncodePublicKeyPEM(&rsaKey.PublicKey)
@@ -50,6 +60,10 @@ func RsaKeyToSecret(name, namespace string, rsaKey *rsa.PrivateKey) (*corev1.Sec
 		return nil, err
 	}
 	return &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: corev1.SchemeGroupVersion.String(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -65,6 +79,10 @@ func RsaKeyToSecret(name, namespace string, rsaKey *rsa.PrivateKey) (*corev1.Sec
 // CrtKeyPairToSecret encapsulates ca/key pair ckp into a secret object
 func CrtKeyPairToSecret(name, namespace string, ckp *vcpki.CrtKeyPair) *corev1.Secret {
 	return &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: corev1.SchemeGroupVersion.String(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -80,6 +98,10 @@ func CrtKeyPairToSecret(name, namespace string, ckp *vcpki.CrtKeyPair) *corev1.S
 // KubeconfigToSecret encapsulates kubeconfig cfgContent into a secret object
 func KubeconfigToSecret(name, namespace string, cfgContent string) *corev1.Secret {
 	return &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: corev1.SchemeGroupVersion.String(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,

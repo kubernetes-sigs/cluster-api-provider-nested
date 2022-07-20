@@ -25,6 +25,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"math"
 	"math/big"
 	"time"
@@ -133,6 +134,14 @@ func EncodeCertPEM(cert *x509.Certificate) []byte {
 		Bytes: cert.Raw,
 	}
 	return pem.EncodeToMemory(&block)
+}
+
+func DecodeCertPEM(raw []byte) (*x509.Certificate, error) {
+	block, _ := pem.Decode(raw)
+	if block == nil {
+		return nil, fmt.Errorf("failed to decode certificate")
+	}
+	return x509.ParseCertificate(block.Bytes)
 }
 
 // EncodePublicKeyPEM returns PEM-encoded public data

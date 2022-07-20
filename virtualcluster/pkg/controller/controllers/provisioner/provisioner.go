@@ -26,4 +26,6 @@ type Provisioner interface {
 	CreateVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error
 	DeleteVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error
 	GetProvisioner() string
+	// UpgradeVirtualCluster is used to apply current clusterversion if featuregate.VirtualClusterApplyUpdate enabled
+	UpgradeVirtualCluster(ctx context.Context, vc *tenancyv1alpha1.VirtualCluster) error
 }
