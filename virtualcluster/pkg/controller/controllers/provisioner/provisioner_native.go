@@ -25,6 +25,7 @@ import (
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/util/cert"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -90,7 +91,7 @@ func (mpn *Native) CreateVirtualCluster(ctx context.Context, vc *tenancyv1alpha1
 	if err != nil {
 		return err
 	}
-	return mpn.applyVirtualCluster(ctx, cv, vc)
+	return mpn.applyVirtualCluster(ctx, cv, vc, true)
 }
 
 func (mpn *Native) fetchClusterVersion(vc *tenancyv1alpha1.VirtualCluster) (*tenancyv1alpha1.ClusterVersion, error) {
@@ -117,12 +118,10 @@ func (mpn *Native) UpgradeVirtualCluster(ctx context.Context, vc *tenancyv1alpha
 
 	// We currently do not support ETCD upgrades because of amount of manual actions required
 	// The easiest way to achieve it - pass empty ETCD definition to the ClusterVersion
-	cv.Spec.ETCD = nil
-
-	return mpn.applyVirtualCluster(ctx, cv, vc)
+	return mpn.applyVirtualCluster(ctx, cv, vc, false)
 }
 
-func (mpn *Native) applyVirtualCluster(ctx context.Context, cv *tenancyv1alpha1.ClusterVersion, vc *tenancyv1alpha1.VirtualCluster) error {
+func (mpn *Native) applyVirtualCluster(ctx context.Context, cv *tenancyv1alpha1.ClusterVersion, vc *tenancyv1alpha1.VirtualCluster, applyETCD bool) error {
 	var err error
 	isClusterIP := cv.Spec.APIServer.Service != nil && cv.Spec.APIServer.Service.Spec.Type == corev1.ServiceTypeClusterIP
 	// if ClusterIP, have to update API Server ahead of time to lay it down in the PKI
@@ -143,7 +142,7 @@ func (mpn *Native) applyVirtualCluster(ctx context.Context, cv *tenancyv1alpha1.
 	}
 
 	// 3. deploy etcd if defined
-	if cv.Spec.ETCD != nil {
+	if applyETCD {
 		err = mpn.deployComponent(ctx, vc, cv.Spec.ETCD, clusterCAGroup)
 		if err != nil {
 			return err
@@ -328,6 +327,7 @@ func (mpn *Native) createAndApplyPKI(ctx context.Context, vc *tenancyv1alpha1.Vi
 	rootCaSecret := &corev1.Secret{}
 	err := mpn.Get(ctx, client.ObjectKey{Name: secret.RootCASecretName, Namespace: vc.Status.ClusterNamespace}, rootCaSecret)
 	if err == nil {
+		// The secret is present and we can reuse it
 		rootCACrt, rootCAErr := pkiutil.DecodeCertPEM(rootCaSecret.Data[corev1.TLSCertKey])
 		if rootCAErr != nil {
 			return nil, rootCAErr
@@ -343,8 +343,8 @@ func (mpn *Native) createAndApplyPKI(ctx context.Context, vc *tenancyv1alpha1.Vi
 			Key: rootCAKey,
 		}
 		mpn.Log.Info("rootCA pair is reused from the secret")
-	} else {
-		mpn.Log.Error(err, "fail to get rootCA secret")
+	} else if apierrors.IsNotFound(err) {
+		mpn.Log.Info("rootCA secret is not found. Creating")
 		// create root ca, all components will share a single root ca
 		rootCACrt, rootKey, rootCAErr := pkiutil.NewCertificateAuthority(
 			&pkiutil.CertConfig{
@@ -367,6 +367,9 @@ func (mpn *Native) createAndApplyPKI(ctx context.Context, vc *tenancyv1alpha1.Vi
 			Key: rootRsaKey,
 		}
 		mpn.Log.Info("rootCA pair generated")
+	} else {
+		mpn.Log.Error(err, "failed to check rootCA secret existence")
+		return nil, err
 	}
 	caGroup.RootCA = rootCAPair
 
