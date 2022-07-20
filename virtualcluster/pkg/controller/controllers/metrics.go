@@ -14,8 +14,9 @@ var (
 	)
 	clustersUpdateSeconds = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name: "clusters_update_seconds",
-			Help: "Duration of cluster upgrade by reconciler in featuregate.ClusterVersionApplyCurrentState",
+			Name:    "clusters_update_seconds",
+			Help:    "Duration of cluster upgrade by reconciler in featuregate.ClusterVersionApplyCurrentState",
+			Buckets: []float64{.1, .5, 1, 5, 10, 20, 30, 60, 90, 120, 300, 600, 900},
 		},
 		[]string{"cluster_version", "resource_version"},
 	)
