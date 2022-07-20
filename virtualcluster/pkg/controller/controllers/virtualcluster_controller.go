@@ -174,13 +174,16 @@ func (r *ReconcileVirtualCluster) Reconcile(ctx context.Context, request reconci
 			return
 		}
 		r.Log.Info("VirtualCluster is ready for upgrade", "vc", vc.GetName())
+		upgradeStartTimestamp := time.Now()
 		err = r.Provisioner.UpgradeVirtualCluster(ctx, vc)
+		clustersUpdateSeconds.WithLabelValues(vc.Spec.ClusterVersionName, vc.Labels[constants.LabelClusterVersionApplied]).Observe(time.Since(upgradeStartTimestamp).Seconds())
 		if err != nil {
 			r.Log.Error(err, "fail to upgrade virtualcluster", "vc", vc.GetName())
 			kubeutil.SetVCStatus(vc, tenancyv1alpha1.ClusterRunning, fmt.Sprintf("fail to upgrade: %s", err), "TenantControlPlaneUpgradeFailed")
 		} else {
 			r.Log.Info("upgrade finished", "vc", vc.GetName())
 			kubeutil.SetVCStatus(vc, tenancyv1alpha1.ClusterRunning, "tenant control plane is upgraded", "TenantControlPlaneUpgradeCompleted")
+			clustersUpdatedCounter.WithLabelValues(vc.Spec.ClusterVersionName, vc.Labels[constants.LabelClusterVersionApplied]).Inc()
 		}
 
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
