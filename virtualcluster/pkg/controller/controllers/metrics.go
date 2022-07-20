@@ -5,17 +5,24 @@ import (
 )
 
 var (
-	clustersUpdatedCounter = prometheus.NewCounterVec(
+	clustersUpgradedCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "clusters_updated",
-			Help: "Amount of clusters upgraded by reconciler in featuregate.ClusterVersionApplyCurrentState",
+			Name: "clusters_upgraded",
+			Help: "Amount of clusters upgraded by reconciler in featuregate.ClusterVersionPartialUpgrade",
 		},
 		[]string{"cluster_version", "resource_version"},
 	)
-	clustersUpdateSeconds = prometheus.NewHistogramVec(
+	clustersUpgradeFailedCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "clusters_upgrade_failed",
+			Help: "Amount of clusters failed to upgrade by reconciler in featuregate.ClusterVersionPartialUpgrade",
+		},
+		[]string{"cluster_version", "resource_version"},
+	)
+	clustersUpgradeSeconds = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name:    "clusters_update_seconds",
-			Help:    "Duration of cluster upgrade by reconciler in featuregate.ClusterVersionApplyCurrentState",
+			Name:    "clusters_upgrade_seconds",
+			Help:    "Duration of cluster upgrade by reconciler in featuregate.ClusterVersionPartialUpgrade",
 			Buckets: []float64{.1, .5, 1, 5, 10, 20, 30, 60, 90, 120, 300, 600, 900},
 		},
 		[]string{"cluster_version", "resource_version"},
