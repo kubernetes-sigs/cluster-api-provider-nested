@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"k8s.io/apiserver/pkg/server/healthz"
 
@@ -98,8 +99,9 @@ func Run(c *config.Config, serverOption *options.ServerOption, stopCh <-chan str
 	}
 
 	s := &http.Server{
-		Addr:    fmt.Sprintf(":%d", serverOption.Port),
-		Handler: handler,
+		Addr:              fmt.Sprintf(":%d", serverOption.Port),
+		Handler:           handler,
+		ReadHeaderTimeout: time.Minute,
 		TLSConfig: &tls.Config{
 			ClientAuth: tls.RequestClientCert,
 			MinVersion: tls.VersionTLS12,
