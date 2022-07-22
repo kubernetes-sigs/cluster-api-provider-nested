@@ -96,9 +96,10 @@ func (c *controller) reconcileIngressCreate(clusterName, targetNamespace, reques
 	if apierrors.IsAlreadyExists(err) {
 		if pIngress.Annotations[constants.LabelUID] == requestUID {
 			klog.Infof("ingress %s/%s of cluster %s already exist in super control plane", targetNamespace, pIngress.Name, clusterName)
-			return nil
+		} else {
+			klog.Errorf("pIngress %s/%s exists but its delegated object UID is different", targetNamespace, pIngress.Name)
 		}
-		return fmt.Errorf("pIngress %s/%s exists but its delegated object UID is different", targetNamespace, pIngress.Name)
+		return nil
 	}
 	return err
 }

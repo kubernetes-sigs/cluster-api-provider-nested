@@ -96,9 +96,10 @@ func (c *controller) reconcileConfigMapCreate(clusterName, targetNamespace, requ
 	if apierrors.IsAlreadyExists(err) {
 		if pConfigMap.Annotations[constants.LabelUID] == requestUID {
 			klog.Infof("configmap %s/%s of cluster %s already exist in super control plane", targetNamespace, configMap.Name, clusterName)
-			return nil
+		} else {
+			klog.Errorf("pConfigMap %s/%s exists but its delegated object UID is different", targetNamespace, pConfigMap.Name)
 		}
-		return fmt.Errorf("pConfigMap %s/%s exists but its delegated object UID is different", targetNamespace, pConfigMap.Name)
+		return nil
 	}
 	return err
 }

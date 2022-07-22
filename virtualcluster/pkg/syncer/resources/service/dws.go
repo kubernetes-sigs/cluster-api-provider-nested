@@ -96,9 +96,10 @@ func (c *controller) reconcileServiceCreate(clusterName, targetNamespace, reques
 	if apierrors.IsAlreadyExists(err) {
 		if pService.Annotations[constants.LabelUID] == requestUID {
 			klog.Infof("service %s/%s of cluster %s already exist in super control plane", targetNamespace, pService.Name, clusterName)
-			return nil
+		} else {
+			klog.Errorf("pService %s/%s exists but its delegated object UID is different", targetNamespace, pService.Name)
 		}
-		return fmt.Errorf("pService %s/%s exists but its delegated object UID is different", targetNamespace, pService.Name)
+		return nil
 	}
 	return err
 }
