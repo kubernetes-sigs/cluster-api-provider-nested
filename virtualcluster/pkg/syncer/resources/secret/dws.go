@@ -161,9 +161,10 @@ func (c *controller) reconcileNormalSecretCreate(clusterName, targetNamespace, r
 	if apierrors.IsAlreadyExists(err) {
 		if pSecret.Annotations[constants.LabelUID] == requestUID {
 			klog.Infof("secret %s/%s of cluster %s already exist in super control plane", targetNamespace, secret.Name, clusterName)
-			return nil
+		} else {
+			klog.Errorf("pSecret %s/%s exists but its delegated object UID is different", targetNamespace, pSecret.Name)
 		}
-		return fmt.Errorf("pSecret %s/%s exists but its delegated object UID is different", targetNamespace, pSecret.Name)
+		return nil
 	}
 
 	return err

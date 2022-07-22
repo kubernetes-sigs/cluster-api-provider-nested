@@ -236,9 +236,10 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 	if apierrors.IsAlreadyExists(err) {
 		if pPod.Annotations[constants.LabelUID] == requestUID {
 			klog.Infof("pod %s/%s of cluster %s already exist in super control plane", targetNamespace, pPod.Name, clusterName)
-			return nil
+		} else {
+			klog.Errorf("pPod %s/%s exists but the UID is different from tenant control plane", targetNamespace, pPod.Name)
 		}
-		return fmt.Errorf("pPod %s/%s exists but the UID is different from tenant control plane", targetNamespace, pPod.Name)
+		return nil
 	}
 
 	return err
