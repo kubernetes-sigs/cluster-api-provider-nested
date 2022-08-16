@@ -19,8 +19,6 @@ package conversion
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -226,18 +224,14 @@ func mutateDownwardAPIField(env *v1.EnvVar, vPod *v1.Pod) {
 	if env.ValueFrom.FieldRef == nil {
 		return
 	}
-	if !strings.HasPrefix(env.ValueFrom.FieldRef.FieldPath, "metadata") {
-		return
-	}
 	switch env.ValueFrom.FieldRef.FieldPath {
-	case "metadata.name":
-		env.Value = vPod.Name
 	case "metadata.namespace":
 		env.Value = vPod.Namespace
+		env.ValueFrom = nil
 	case "metadata.uid":
 		env.Value = string(vPod.UID)
+		env.ValueFrom = nil
 	}
-	env.ValueFrom = nil
 }
 
 func getServiceEnvVarMap(ns, cluster string, enableServiceLinks *bool, services []*v1.Service) (string, map[string]string) {

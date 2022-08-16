@@ -86,8 +86,13 @@ func Test_mutateDownwardAPIField(t *testing.T) {
 				},
 			},
 			expectedEnv: &v1.EnvVar{
-				Name:  "env_name",
-				Value: aPod.Name,
+				Name: "env_name",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						APIVersion: "v1",
+						FieldPath:  "metadata.name",
+					},
+				},
 			},
 		},
 		{
@@ -122,6 +127,50 @@ func Test_mutateDownwardAPIField(t *testing.T) {
 			expectedEnv: &v1.EnvVar{
 				Name:  "env_name",
 				Value: string(aPod.UID),
+			},
+		},
+		{
+			name: "env with metadata.annotations",
+			pod:  aPod,
+			env: &v1.EnvVar{
+				Name: "env_name",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						APIVersion: "v1",
+						FieldPath:  "metadata.annotations['anno1']",
+					},
+				},
+			},
+			expectedEnv: &v1.EnvVar{
+				Name: "env_name",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						APIVersion: "v1",
+						FieldPath:  "metadata.annotations['anno1']",
+					},
+				},
+			},
+		},
+		{
+			name: "env with metadata.labels",
+			pod:  aPod,
+			env: &v1.EnvVar{
+				Name: "env_name",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						APIVersion: "v1",
+						FieldPath:  "metadata.labels['label1']",
+					},
+				},
+			},
+			expectedEnv: &v1.EnvVar{
+				Name: "env_name",
+				ValueFrom: &v1.EnvVarSource{
+					FieldRef: &v1.ObjectFieldSelector{
+						APIVersion: "v1",
+						FieldPath:  "metadata.labels['label1']",
+					},
+				},
 			},
 		},
 	} {
