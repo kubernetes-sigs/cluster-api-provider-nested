@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -47,7 +47,7 @@ import (
 
 var SchemeGroupVersion = schema.GroupVersion{
 	Group:   "apiextensions.k8s.io",
-	Version: "v1beta1",
+	Version: "v1",
 }
 
 var (
@@ -72,8 +72,8 @@ func init() {
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(
 		SchemeGroupVersion,
-		&v1beta1.CustomResourceDefinition{},
-		&v1beta1.CustomResourceDefinitionList{},
+		&apiextensionsv1.CustomResourceDefinition{},
+		&apiextensionsv1.CustomResourceDefinitionList{},
 	)
 	scheme.AddKnownTypes(
 		SchemeGroupVersion,
@@ -133,12 +133,12 @@ func NewCrdController(config *config.SyncerConfiguration,
 	if err != nil {
 		return nil, err
 	}
-	c.informer, err = c.crdcache.GetInformer(context.Background(), &v1beta1.CustomResourceDefinition{})
+	c.informer, err = c.crdcache.GetInformer(context.Background(), &apiextensionsv1.CustomResourceDefinition{})
 	if err != nil {
 		return nil, err
 	}
 
-	c.MultiClusterController, err = mc.NewMCController(&v1beta1.CustomResourceDefinition{}, &v1beta1.CustomResourceDefinitionList{}, c,
+	c.MultiClusterController, err = mc.NewMCController(&apiextensionsv1.CustomResourceDefinition{}, &apiextensionsv1.CustomResourceDefinitionList{}, c,
 		mc.WithMaxConcurrentReconciles(constants.DwsControllerWorkerLow), mc.WithOptions(options.MCOptions))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create crd mc controller: %v", err)
@@ -152,11 +152,11 @@ func NewCrdController(config *config.SyncerConfiguration,
 		c.vcSynced = vcInformer.Informer().HasSynced
 	}
 
-	c.UpwardController, err = uw.NewUWController(&v1beta1.CustomResourceDefinition{}, c, uw.WithOptions(options.UWOptions))
+	c.UpwardController, err = uw.NewUWController(&apiextensionsv1.CustomResourceDefinition{}, c, uw.WithOptions(options.UWOptions))
 	if err != nil {
 		return nil, err
 	}
-	c.Patroller, err = pa.NewPatroller(&v1beta1.CustomResourceDefinition{}, c, pa.WithOptions(options.PatrolOptions))
+	c.Patroller, err = pa.NewPatroller(&apiextensionsv1.CustomResourceDefinition{}, c, pa.WithOptions(options.PatrolOptions))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create crd patroller: %v", err)
 	}
@@ -165,13 +165,13 @@ func NewCrdController(config *config.SyncerConfiguration,
 		cache.FilteringResourceEventHandler{
 			FilterFunc: func(obj interface{}) bool {
 				switch t := obj.(type) {
-				case *v1beta1.CustomResourceDefinition:
+				case *apiextensionsv1.CustomResourceDefinition:
 					return publicCRD(t)
 				case cache.DeletedFinalStateUnknown:
-					if e, ok := t.Obj.(*v1beta1.CustomResourceDefinition); ok {
+					if e, ok := t.Obj.(*apiextensionsv1.CustomResourceDefinition); ok {
 						return publicCRD(e)
 					}
-					utilruntime.HandleError(fmt.Errorf("unable to convert object %v to *v1beta1.CustomResourceDefinition", obj))
+					utilruntime.HandleError(fmt.Errorf("unable to convert object %v to *apiextensionsv1.CustomResourceDefinition", obj))
 					return false
 				default:
 					utilruntime.HandleError(fmt.Errorf("unable to handle object in super control plane CRD controller: %v", obj))
@@ -181,8 +181,8 @@ func NewCrdController(config *config.SyncerConfiguration,
 			Handler: cache.ResourceEventHandlerFuncs{
 				AddFunc: c.enqueueCRD,
 				UpdateFunc: func(oldObj, newObj interface{}) {
-					newCRD := newObj.(*v1beta1.CustomResourceDefinition)
-					oldCRD := oldObj.(*v1beta1.CustomResourceDefinition)
+					newCRD := newObj.(*apiextensionsv1.CustomResourceDefinition)
+					oldCRD := oldObj.(*apiextensionsv1.CustomResourceDefinition)
 					if newCRD.ResourceVersion != oldCRD.ResourceVersion {
 						c.enqueueCRD(newObj)
 					}
@@ -201,7 +201,7 @@ func (c *controller) GetListener() listener.ClusterChangeListener {
 	return listener.NewMCControllerListener(c.MultiClusterController, mc.WatchOptions{})
 }
 
-func publicCRD(e *v1beta1.CustomResourceDefinition) bool {
+func publicCRD(e *apiextensionsv1.CustomResourceDefinition) bool {
 	// We only backpopulate specific crds to tenant control planes
 	return e.Labels[constants.PublicObjectKey] == "true"
 }
