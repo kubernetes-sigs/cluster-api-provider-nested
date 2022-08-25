@@ -19,12 +19,11 @@ package conversion
 import (
 	"strings"
 
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-
 	v1 "k8s.io/api/core/v1"
 	v1beta1extensions "k8s.io/api/extensions/v1beta1"
 	v1scheduling "k8s.io/api/scheduling/v1"
 	v1storage "k8s.io/api/storage/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -628,7 +627,7 @@ func (e vcEquality) CheckPriorityClassEquality(pObj, vObj *v1scheduling.Priority
 	}
 }
 
-func (e vcEquality) CheckCRDEquality(pObj, vObj *v1beta1.CustomResourceDefinition) *v1beta1.CustomResourceDefinition {
+func (e vcEquality) CheckCRDEquality(pObj, vObj *apiextensionsv1.CustomResourceDefinition) *apiextensionsv1.CustomResourceDefinition {
 	pObjCopy := pObj.DeepCopy()
 	pObjCopy.ObjectMeta = vObj.ObjectMeta
 	pObjCopy.TypeMeta = vObj.TypeMeta

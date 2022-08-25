@@ -22,9 +22,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	apiextensionclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
+	apiextensionclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -67,7 +67,7 @@ func (c *controller) PatrollerDo() {
 	}
 	wg.Wait()
 
-	pCRDList := &v1beta1.CustomResourceDefinitionList{}
+	pCRDList := &apiextensionsv1.CustomResourceDefinitionList{}
 	err := c.superClient.List(context.Background(), pCRDList)
 	if err != nil {
 		klog.Errorf("error listing crd from super control plane informer cache: %v", err)
@@ -78,7 +78,7 @@ func (c *controller) PatrollerDo() {
 			continue
 		}
 		for _, clusterName := range clusterNames {
-			if err := c.MultiClusterController.Get(clusterName, "", pCRD.Name, &v1beta1.CustomResourceDefinition{}); err != nil {
+			if err := c.MultiClusterController.Get(clusterName, "", pCRD.Name, &apiextensionsv1.CustomResourceDefinition{}); err != nil {
 				if apierrors.IsNotFound(err) {
 					metrics.CheckerRemedyStats.WithLabelValues("RequeuedSuperControlPlaneCRD").Inc()
 					klog.Infof("patroller create crd %v in virtual cluster", clusterName+"/"+pCRD.Name)
@@ -91,7 +91,7 @@ func (c *controller) PatrollerDo() {
 }
 
 func (c *controller) checkCRDOfTenantCluster(clusterName string) {
-	crdList := &v1beta1.CustomResourceDefinitionList{}
+	crdList := &apiextensionsv1.CustomResourceDefinitionList{}
 	if err := c.MultiClusterController.List(clusterName, crdList); err != nil {
 		klog.Errorf("error listing CRD from cluster %s informer cache: %v", clusterName, err)
 		return
@@ -109,13 +109,13 @@ func (c *controller) checkCRDOfTenantCluster(clusterName string) {
 		klog.Errorf("cannot create CRD client in virtual cluster ")
 		return
 	}
-	vcapiextensionsClient = vcc.ApiextensionsV1beta1()
+	vcapiextensionsClient = vcc.ApiextensionsV1()
 
 	for i, vCRD := range crdList.Items {
 		if !publicCRD(&crdList.Items[i]) {
 			continue
 		}
-		pCRD := &v1beta1.CustomResourceDefinition{}
+		pCRD := &apiextensionsv1.CustomResourceDefinition{}
 		err := c.superClient.Get(context.Background(), client.ObjectKey{
 			Name: vCRD.Name,
 		}, pCRD)

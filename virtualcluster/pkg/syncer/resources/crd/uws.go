@@ -20,9 +20,9 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	apiextensionclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
+	apiextensionclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
@@ -53,7 +53,7 @@ func (c *controller) BackPopulate(key string) error {
 	// The key format is clustername/pcName.
 	clusterName, crdName, _ := cache.SplitMetaNamespaceKey(key)
 	op := reconciler.AddEvent
-	pCRD := &v1beta1.CustomResourceDefinition{}
+	pCRD := &apiextensionsv1.CustomResourceDefinition{}
 	err := c.superClient.Get(context.TODO(), client.ObjectKey{
 		Name: crdName,
 	}, pCRD)
@@ -74,9 +74,9 @@ func (c *controller) BackPopulate(key string) error {
 	if err != nil {
 		return err
 	}
-	vcapiextensionsClient = vcc.ApiextensionsV1beta1()
+	vcapiextensionsClient = vcc.ApiextensionsV1()
 
-	vCRD := &v1beta1.CustomResourceDefinition{}
+	vCRD := &apiextensionsv1.CustomResourceDefinition{}
 	if err := c.MultiClusterController.Get(clusterName, "", crdName, vCRD); err != nil {
 		if apierrors.IsNotFound(err) {
 			if op == reconciler.AddEvent {
