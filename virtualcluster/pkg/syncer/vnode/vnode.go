@@ -85,7 +85,6 @@ func NewVirtualNode(provider provider.VirtualNodeProvider, node *corev1.Node) (v
 
 	// fill in status
 	n.Status.Conditions = nodeConditions()
-	n.Status.NodeInfo.OperatingSystem = "Linux"
 	de, err := provider.GetNodeDaemonEndpoints(node)
 	if err != nil {
 		return nil, pkgerr.Wrapf(err, "get node daemon endpoints from provider")
