@@ -64,18 +64,26 @@ spec:
               livenessProbe:
                 exec:
                   command: 
-                  - sh
-                  - -c
-                  - ETCDCTL_API=3 etcdctl --endpoints=https://etcd:2379 --cacert=/etc/kubernetes/pki/root/tls.crt --cert=/etc/kubernetes/pki/etcd/tls.crt --key=/etc/kubernetes/pki/etcd/tls.key endpoint health
+                  - /usr/local/bin/etcdctl
+                  - --endpoints=https://etcd:2379
+                  - --cacert=/etc/kubernetes/pki/root/tls.crt
+                  - --cert=/etc/kubernetes/pki/etcd/tls.crt
+                  - --key=/etc/kubernetes/pki/etcd/tls.key
+                  - endpoint
+                  - health
                 failureThreshold: 8
                 initialDelaySeconds: 60
                 timeoutSeconds: 15
               readinessProbe:
                 exec:
                   command: 
-                  - sh
-                  - -c
-                  - ETCDCTL_API=3 etcdctl --endpoints=https://etcd:2379 --cacert=/etc/kubernetes/pki/root/tls.crt --cert=/etc/kubernetes/pki/etcd/tls.crt --key=/etc/kubernetes/pki/etcd/tls.key endpoint health
+                  - /usr/local/bin/etcdctl
+                  - --endpoints=https://etcd:2379
+                  - --cacert=/etc/kubernetes/pki/root/tls.crt
+                  - --cert=/etc/kubernetes/pki/etcd/tls.crt
+                  - --key=/etc/kubernetes/pki/etcd/tls.key
+                  - endpoint
+                  - health
                 failureThreshold: 8
                 initialDelaySeconds: 15
                 periodSeconds: 2
@@ -137,7 +145,7 @@ spec:
             subdomain: apiserver-svc
             containers:
             - name: apiserver
-              image: virtualcluster/apiserver-v1.16.2
+              image: k8s.gcr.io/kube-apiserver:v1.22.13
               imagePullPolicy: Always
               command:
               - kube-apiserver
@@ -148,7 +156,6 @@ spec:
               - --client-ca-file=/etc/kubernetes/pki/root/tls.crt
               - --tls-cert-file=/etc/kubernetes/pki/apiserver/tls.crt
               - --tls-private-key-file=/etc/kubernetes/pki/apiserver/tls.key
-              - --kubelet-https=true
               - --kubelet-client-certificate=/etc/kubernetes/pki/apiserver/tls.crt
               - --kubelet-client-key=/etc/kubernetes/pki/apiserver/tls.key
               - --enable-bootstrap-token-auth=true
@@ -156,6 +163,8 @@ spec:
               - --etcd-cafile=/etc/kubernetes/pki/root/tls.crt
               - --etcd-certfile=/etc/kubernetes/pki/apiserver/tls.crt
               - --etcd-keyfile=/etc/kubernetes/pki/apiserver/tls.key
+              - --service-account-issuer=api
+              - --service-account-signing-key-file=/etc/kubernetes/pki/service-account/tls.key
               - --service-account-key-file=/etc/kubernetes/pki/service-account/tls.key
               - --service-cluster-ip-range=10.32.0.0/16
               - --service-node-port-range=30000-32767
@@ -229,7 +238,7 @@ spec:
                 defaultMode: 420
                 secretName: serviceaccount-rsa
     service:
-      apiVersion: apps/v1
+      apiVersion: v1
       kind: Service
       metadata:
         name: apiserver-svc
@@ -243,8 +252,6 @@ spec:
           targetPort: api
   # a statefulset and service bundle for controller-manager
   controllerManager:
-    apiVersion: apps/v1
-    kind: StatefulSet
     metadata:
       name: controller-manager
     # statefuleset template for controller-manager
@@ -268,7 +275,7 @@ spec:
           spec:
             containers:
             - name: controller-manager
-              image: virtualcluster/controller-manager-v1.16.2
+              image: k8s.gcr.io/kube-controller-manager:v1.22.13
               imagePullPolicy: Always
               command:
               - kube-controller-manager

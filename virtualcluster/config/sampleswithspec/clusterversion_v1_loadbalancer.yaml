@@ -10,6 +10,8 @@ spec:
     metadata:
       name: etcd 
     statefulset:
+      apiVersion: apps/v1
+      kind: StatefulSet
       metadata:
         name: etcd
       spec:
@@ -62,18 +64,26 @@ spec:
               livenessProbe:
                 exec:
                   command: 
-                  - sh
-                  - -c
-                  - ETCDCTL_API=3 etcdctl --endpoints=https://etcd:2379 --cacert=/etc/kubernetes/pki/root/tls.crt --cert=/etc/kubernetes/pki/etcd/tls.crt --key=/etc/kubernetes/pki/etcd/tls.key endpoint health
+                  - /usr/local/bin/etcdctl
+                  - --endpoints=https://etcd:2379
+                  - --cacert=/etc/kubernetes/pki/root/tls.crt
+                  - --cert=/etc/kubernetes/pki/etcd/tls.crt
+                  - --key=/etc/kubernetes/pki/etcd/tls.key
+                  - endpoint
+                  - health
                 failureThreshold: 8
                 initialDelaySeconds: 60
                 timeoutSeconds: 15
               readinessProbe:
                 exec:
                   command: 
-                  - sh
-                  - -c
-                  - ETCDCTL_API=3 etcdctl --endpoints=https://etcd:2379 --cacert=/etc/kubernetes/pki/root/tls.crt --cert=/etc/kubernetes/pki/etcd/tls.crt --key=/etc/kubernetes/pki/etcd/tls.key endpoint health
+                  - /usr/local/bin/etcdctl
+                  - --endpoints=https://etcd:2379
+                  - --cacert=/etc/kubernetes/pki/root/tls.crt
+                  - --cert=/etc/kubernetes/pki/etcd/tls.crt
+                  - --key=/etc/kubernetes/pki/etcd/tls.key
+                  - endpoint
+                  - health
                 failureThreshold: 8
                 initialDelaySeconds: 15
                 periodSeconds: 2
@@ -97,6 +107,8 @@ spec:
     # etcd will be accessed only by apiserver from inside the cluster, so we use a headless service to 
     # encapsulate it
     service:
+      apiVersion: v1
+      kind: Service
       metadata:
         name: etcd
       spec:
@@ -110,6 +122,8 @@ spec:
     metadata:
       name: apiserver
     statefulset:
+      apiVersion: apps/v1
+      kind: StatefulSet
       metadata:
         name: apiserver
       spec:
@@ -131,7 +145,7 @@ spec:
             subdomain: apiserver-svc
             containers:
             - name: apiserver
-              image: virtualcluster/apiserver-v1.16.2
+              image: k8s.gcr.io/kube-apiserver:v1.22.13
               imagePullPolicy: Always
               command:
               - kube-apiserver
@@ -142,7 +156,6 @@ spec:
               - --client-ca-file=/etc/kubernetes/pki/root/tls.crt
               - --tls-cert-file=/etc/kubernetes/pki/apiserver/tls.crt
               - --tls-private-key-file=/etc/kubernetes/pki/apiserver/tls.key
-              - --kubelet-https=true
               - --kubelet-client-certificate=/etc/kubernetes/pki/apiserver/tls.crt
               - --kubelet-client-key=/etc/kubernetes/pki/apiserver/tls.key
               - --enable-bootstrap-token-auth=true
@@ -150,11 +163,13 @@ spec:
               - --etcd-cafile=/etc/kubernetes/pki/root/tls.crt
               - --etcd-certfile=/etc/kubernetes/pki/apiserver/tls.crt
               - --etcd-keyfile=/etc/kubernetes/pki/apiserver/tls.key
+              - --service-account-issuer=api
+              - --service-account-signing-key-file=/etc/kubernetes/pki/service-account/tls.key
               - --service-account-key-file=/etc/kubernetes/pki/service-account/tls.key
               - --service-cluster-ip-range=10.32.0.0/16
               - --service-node-port-range=30000-32767
               - --authorization-mode=Node,RBAC
-              - --runtime-config=api/all
+              - --runtime-config=api/all=true
               - --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota
               - --apiserver-count=1
               - --enable-aggregator-routing=true
@@ -223,6 +238,8 @@ spec:
                 defaultMode: 420
                 secretName: serviceaccount-rsa
     service:
+      apiVersion: v1
+      kind: Service
       metadata:
         name: apiserver-svc
       spec:
@@ -238,7 +255,9 @@ spec:
     metadata:
       name: controller-manager
     # statefuleset template for controller-manager
-    statefulset:  
+    statefulset:
+      apiVersion: apps/v1
+      kind: StatefulSet
       metadata:
         name: controller-manager
       spec:
@@ -256,7 +275,7 @@ spec:
           spec:
             containers:
             - name: controller-manager
-              image: virtualcluster/controller-manager-v1.16.2
+              image: k8s.gcr.io/kube-controller-manager:v1.22.13
               imagePullPolicy: Always
               command:
               - kube-controller-manager
