@@ -369,6 +369,11 @@ func (mpn *Native) createAndApplyPKI(ctx context.Context, vc *tenancyv1alpha1.Vi
 	caGroup.RootCA = rootCAPair
 
 	etcdDomains := append(cv.GetEtcdServers(), cv.GetEtcdDomain())
+	// We may want to connect to etcd from controllers namespace
+	// So we duplicate etcdDomains here with the namespace
+	for _, etcdDomain := range etcdDomains {
+		etcdDomains = append(etcdDomains, etcdDomain+"."+ns)
+	}
 	// create crt, key for etcd
 	etcdCAPair, etcdCrtErr := vcpki.NewEtcdServerCertAndKey(rootCAPair, etcdDomains)
 	if etcdCrtErr != nil {
