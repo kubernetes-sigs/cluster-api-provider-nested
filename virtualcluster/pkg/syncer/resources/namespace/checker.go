@@ -48,7 +48,7 @@ func (c *controller) StartPatrol(stopCh <-chan struct{}) error {
 	return nil
 }
 
-//  shouldBeGarbageCollected checks if the owner vc object is deleted or not. If so, the namespace should be garbage collected.
+// shouldBeGarbageCollected checks if the owner vc object is deleted or not. If so, the namespace should be garbage collected.
 func (c *controller) shouldBeGarbageCollected(ns *corev1.Namespace) bool {
 	vcName := ns.Annotations[constants.LabelVCName]
 	vcNamespace := ns.Annotations[constants.LabelVCNamespace]
