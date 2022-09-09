@@ -19,7 +19,7 @@ package ingress
 import (
 	"testing"
 
-	v1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -150,7 +150,7 @@ func TestIngressPatrol(t *testing.T) {
 						t.Errorf("%s: Unexpected action %s", k, action)
 						continue
 					}
-					created := action.(core.CreateAction).GetObject().(*v1beta1.Ingress)
+					created := action.(core.CreateAction).GetObject().(*networkingv1.Ingress)
 					fullName := created.Namespace + "/" + created.Name
 					if fullName != expectedName {
 						t.Errorf("%s: Expect to create pIngress %s, got %s", k, expectedName, fullName)

@@ -22,7 +22,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,7 +82,7 @@ func (c *controller) PatrollerDo() {
 			continue
 		}
 		shouldDelete := false
-		vIngress := &v1beta1.Ingress{}
+		vIngress := &networkingv1.Ingress{}
 		err := c.MultiClusterController.Get(clusterName, vNamespace, pIngress.Name, vIngress)
 		if apierrors.IsNotFound(err) {
 			shouldDelete = true
@@ -109,7 +109,7 @@ func (c *controller) PatrollerDo() {
 }
 
 func (c *controller) checkIngressesOfTenantCluster(clusterName string) {
-	ingList := &v1beta1.IngressList{}
+	ingList := &networkingv1.IngressList{}
 	if err := c.MultiClusterController.List(clusterName, ingList); err != nil {
 		klog.Errorf("error listing ingresss from cluster %s informer cache: %v", clusterName, err)
 		return

@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
-	v1beta1extensions "k8s.io/api/extensions/v1beta1"
+	v1networking "k8s.io/api/networking/v1"
 	v1scheduling "k8s.io/api/scheduling/v1"
 	v1storage "k8s.io/api/storage/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -640,7 +640,7 @@ func (e vcEquality) CheckCRDEquality(pObj, vObj *apiextensionsv1.CustomResourceD
 	}
 }
 
-func (e vcEquality) CheckIngressEquality(pObj, vObj *v1beta1extensions.Ingress) *v1beta1extensions.Ingress {
+func (e vcEquality) CheckIngressEquality(pObj, vObj *v1networking.Ingress) *v1networking.Ingress {
 	pObjCopy := pObj.DeepCopy()
 	pObjCopy.ObjectMeta = vObj.ObjectMeta
 	// pObj.TypeMeta is empty

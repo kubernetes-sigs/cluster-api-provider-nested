@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	pkgerr "github.com/pkg/errors"
-	"k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,7 +64,7 @@ func (c *controller) BackPopulate(key string) error {
 		return nil
 	}
 
-	vIngress := &v1beta1.Ingress{}
+	vIngress := &networkingv1.Ingress{}
 	if err := c.MultiClusterController.Get(clusterName, vNamespace, pName, vIngress); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
@@ -85,12 +85,12 @@ func (c *controller) BackPopulate(key string) error {
 		return pkgerr.Wrapf(err, "failed to get spec of cluster %s", clusterName)
 	}
 
-	var newIngress *v1beta1.Ingress
+	var newIngress *networkingv1.Ingress
 	updatedMeta := conversion.Equality(c.Config, vc).CheckUWObjectMetaEquality(&pIngress.ObjectMeta, &vIngress.ObjectMeta)
 	if updatedMeta != nil {
 		newIngress = vIngress.DeepCopy()
 		newIngress.ObjectMeta = *updatedMeta
-		if _, err = tenantClient.ExtensionsV1beta1().Ingresses(vIngress.Namespace).Update(context.TODO(), newIngress, metav1.UpdateOptions{}); err != nil {
+		if _, err = tenantClient.NetworkingV1().Ingresses(vIngress.Namespace).Update(context.TODO(), newIngress, metav1.UpdateOptions{}); err != nil {
 			return fmt.Errorf("failed to back populate ingress %s/%s meta update for cluster %s: %v", vIngress.Namespace, vIngress.Name, clusterName, err)
 		}
 	}
@@ -100,12 +100,12 @@ func (c *controller) BackPopulate(key string) error {
 			newIngress = vIngress.DeepCopy()
 		} else {
 			// vIngress has been updated, let us fetch the lastest version.
-			if newIngress, err = tenantClient.ExtensionsV1beta1().Ingresses(vIngress.Namespace).Get(context.TODO(), vIngress.Name, metav1.GetOptions{}); err != nil {
+			if newIngress, err = tenantClient.NetworkingV1().Ingresses(vIngress.Namespace).Get(context.TODO(), vIngress.Name, metav1.GetOptions{}); err != nil {
 				return fmt.Errorf("failed to retrieve vIngress %s/%s from cluster %s: %v", vIngress.Namespace, vIngress.Name, clusterName, err)
 			}
 		}
 		newIngress.Status = pIngress.Status
-		if _, err = tenantClient.ExtensionsV1beta1().Ingresses(vIngress.Namespace).UpdateStatus(context.TODO(), newIngress, metav1.UpdateOptions{}); err != nil {
+		if _, err = tenantClient.NetworkingV1().Ingresses(vIngress.Namespace).UpdateStatus(context.TODO(), newIngress, metav1.UpdateOptions{}); err != nil {
 			return fmt.Errorf("failed to back populate ingress %s/%s status update for cluster %s: %v", vIngress.Namespace, vIngress.Name, clusterName, err)
 		}
 	}

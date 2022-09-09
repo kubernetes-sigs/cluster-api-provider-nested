@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	v1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,11 +33,11 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
 )
 
-func tenantIngress(name, namespace, uid string) *v1beta1.Ingress {
-	return &v1beta1.Ingress{
+func tenantIngress(name, namespace, uid string) *networkingv1.Ingress {
+	return &networkingv1.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Ingress",
-			APIVersion: "v1beta1",
+			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -47,8 +47,8 @@ func tenantIngress(name, namespace, uid string) *v1beta1.Ingress {
 	}
 }
 
-func superIngress(name, namespace, uid, clusterKey string) *v1beta1.Ingress {
-	return &v1beta1.Ingress{
+func superIngress(name, namespace, uid, clusterKey string) *networkingv1.Ingress {
+	return &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -79,7 +79,7 @@ func TestDWIngressCreation(t *testing.T) {
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
-		ExistingObjectInTenant *v1beta1.Ingress
+		ExistingObjectInTenant *networkingv1.Ingress
 
 		ExpectedCreatedIngresses []string
 		ExpectedError            string
@@ -141,7 +141,7 @@ func TestDWIngressCreation(t *testing.T) {
 				if !action.Matches("create", "ingresses") {
 					t.Errorf("%s: Unexpected action %s", k, action)
 				}
-				createdSVC := action.(core.CreateAction).GetObject().(*v1beta1.Ingress)
+				createdSVC := action.(core.CreateAction).GetObject().(*networkingv1.Ingress)
 				fullName := createdSVC.Namespace + "/" + createdSVC.Name
 				if fullName != expectedName {
 					t.Errorf("%s: Expected %s to be created, got %s", k, expectedName, fullName)
@@ -169,7 +169,7 @@ func TestDWIngressDeletion(t *testing.T) {
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper []runtime.Object
-		EnqueueObject         *v1beta1.Ingress
+		EnqueueObject         *networkingv1.Ingress
 
 		ExpectedDeletedIngresses []string
 		ExpectedError            string
@@ -235,7 +235,7 @@ func TestDWIngressDeletion(t *testing.T) {
 	}
 }
 
-func applySpecToIngress(ing *v1beta1.Ingress, spec *v1beta1.IngressSpec) *v1beta1.Ingress {
+func applySpecToIngress(ing *networkingv1.Ingress, spec *networkingv1.IngressSpec) *networkingv1.Ingress {
 	ing.Spec = *spec.DeepCopy()
 	return ing
 }
@@ -257,31 +257,31 @@ func TestDWIngressUpdate(t *testing.T) {
 	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
 	nginx := "nginx"
-	spec1 := &v1beta1.IngressSpec{
+	spec1 := &networkingv1.IngressSpec{
 		IngressClassName: &nginx,
-		Backend: &v1beta1.IngressBackend{
-			ServiceName: "nginx",
+		DefaultBackend: &networkingv1.IngressBackend{
+			Service: &networkingv1.IngressServiceBackend{Name: "nginx"},
 		},
 	}
 
-	spec2 := &v1beta1.IngressSpec{
+	spec2 := &networkingv1.IngressSpec{
 		IngressClassName: &nginx,
-		Backend: &v1beta1.IngressBackend{
-			ServiceName: "nginx",
+		DefaultBackend: &networkingv1.IngressBackend{
+			Service: &networkingv1.IngressServiceBackend{Name: "nginx"},
 		},
 	}
 
 	haproxy := "haproxy"
-	spec3 := &v1beta1.IngressSpec{
+	spec3 := &networkingv1.IngressSpec{
 		IngressClassName: &haproxy,
-		Backend: &v1beta1.IngressBackend{
-			ServiceName: "haproxy",
+		DefaultBackend: &networkingv1.IngressBackend{
+			Service: &networkingv1.IngressServiceBackend{Name: "haproxy"},
 		},
 	}
 
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
-		ExistingObjectInTenant *v1beta1.Ingress
+		ExistingObjectInTenant *networkingv1.Ingress
 
 		ExpectedUpdatedIngresses []runtime.Object
 		ExpectedError            string
