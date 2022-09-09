@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
@@ -51,7 +51,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 		pExists = false
 	}
 	vExists := true
-	vIngress := &v1beta1.Ingress{}
+	vIngress := &networkingv1.Ingress{}
 	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vIngress); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return reconciler.Result{Requeue: true}, err
@@ -84,13 +84,13 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	return reconciler.Result{}, nil
 }
 
-func (c *controller) reconcileIngressCreate(clusterName, targetNamespace, requestUID string, ingress *v1beta1.Ingress) error {
+func (c *controller) reconcileIngressCreate(clusterName, targetNamespace, requestUID string, ingress *networkingv1.Ingress) error {
 	newObj, err := c.Conversion().BuildSuperClusterObject(clusterName, ingress)
 	if err != nil {
 		return err
 	}
 
-	pIngress := newObj.(*v1beta1.Ingress)
+	pIngress := newObj.(*networkingv1.Ingress)
 
 	pIngress, err = c.ingressClient.Ingresses(targetNamespace).Create(context.TODO(), pIngress, metav1.CreateOptions{})
 	if apierrors.IsAlreadyExists(err) {
@@ -103,7 +103,7 @@ func (c *controller) reconcileIngressCreate(clusterName, targetNamespace, reques
 	return err
 }
 
-func (c *controller) reconcileIngressUpdate(clusterName, targetNamespace, requestUID string, pIngress, vIngress *v1beta1.Ingress) error {
+func (c *controller) reconcileIngressUpdate(clusterName, targetNamespace, requestUID string, pIngress, vIngress *networkingv1.Ingress) error {
 	if pIngress.Annotations[constants.LabelUID] != requestUID {
 		return fmt.Errorf("pIngress %s/%s delegated UID is different from updated object", targetNamespace, pIngress.Name)
 	}
@@ -122,7 +122,7 @@ func (c *controller) reconcileIngressUpdate(clusterName, targetNamespace, reques
 	return nil
 }
 
-func (c *controller) reconcileIngressRemove(targetNamespace, requestUID, name string, pIngress *v1beta1.Ingress) error {
+func (c *controller) reconcileIngressRemove(targetNamespace, requestUID, name string, pIngress *networkingv1.Ingress) error {
 	if pIngress.Annotations[constants.LabelUID] != requestUID {
 		return fmt.Errorf("to be deleted pIngress %s/%s delegated UID is different from deleted object", targetNamespace, name)
 	}

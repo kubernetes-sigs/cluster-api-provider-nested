@@ -19,12 +19,12 @@ package ingress
 import (
 	"fmt"
 
-	v1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
-	v1beta1extensions "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
-	listersv1beta1 "k8s.io/client-go/listers/extensions/v1beta1"
+	v1networking "k8s.io/client-go/kubernetes/typed/networking/v1"
+	listersnetworkingv1 "k8s.io/client-go/listers/networking/v1"
 	"k8s.io/client-go/tools/cache"
 
 	vcclient "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/client/clientset/versioned"
@@ -51,9 +51,9 @@ func init() {
 type controller struct {
 	manager.BaseResourceSyncer
 	// super control plane ingress client
-	ingressClient v1beta1extensions.IngressesGetter
+	ingressClient v1networking.IngressesGetter
 	// super control plane informer/listers/synced functions
-	ingressLister listersv1beta1.IngressLister
+	ingressLister listersnetworkingv1.IngressLister
 	ingressSynced cache.InformerSynced
 }
 
@@ -67,43 +67,43 @@ func NewIngressController(config *config.SyncerConfiguration,
 		BaseResourceSyncer: manager.BaseResourceSyncer{
 			Config: config,
 		},
-		ingressClient: client.ExtensionsV1beta1(),
+		ingressClient: client.NetworkingV1(),
 	}
 
 	var err error
-	c.MultiClusterController, err = mc.NewMCController(&v1beta1.Ingress{}, &v1beta1.IngressList{}, c, mc.WithOptions(options.MCOptions))
+	c.MultiClusterController, err = mc.NewMCController(&networkingv1.Ingress{}, &networkingv1.IngressList{}, c, mc.WithOptions(options.MCOptions))
 	if err != nil {
 		return nil, err
 	}
 
-	c.ingressLister = informer.Extensions().V1beta1().Ingresses().Lister()
+	c.ingressLister = informer.Networking().V1().Ingresses().Lister()
 	if options.IsFake {
 		c.ingressSynced = func() bool { return true }
 	} else {
-		c.ingressSynced = informer.Extensions().V1beta1().Ingresses().Informer().HasSynced
+		c.ingressSynced = informer.Networking().V1().Ingresses().Informer().HasSynced
 	}
 
-	c.UpwardController, err = uw.NewUWController(&v1beta1.Ingress{}, c, uw.WithOptions(options.UWOptions))
+	c.UpwardController, err = uw.NewUWController(&networkingv1.Ingress{}, c, uw.WithOptions(options.UWOptions))
 	if err != nil {
 		return nil, err
 	}
 
-	c.Patroller, err = pa.NewPatroller(&v1beta1.Ingress{}, c, pa.WithOptions(options.PatrolOptions))
+	c.Patroller, err = pa.NewPatroller(&networkingv1.Ingress{}, c, pa.WithOptions(options.PatrolOptions))
 	if err != nil {
 		return nil, err
 	}
 
-	informer.Extensions().V1beta1().Ingresses().Informer().AddEventHandler(
+	informer.Networking().V1().Ingresses().Informer().AddEventHandler(
 		cache.FilteringResourceEventHandler{
 			FilterFunc: func(obj interface{}) bool {
 				switch t := obj.(type) {
-				case *v1beta1.Ingress:
+				case *networkingv1.Ingress:
 					return true
 				case cache.DeletedFinalStateUnknown:
-					if _, ok := t.Obj.(*v1beta1.Ingress); ok {
+					if _, ok := t.Obj.(*networkingv1.Ingress); ok {
 						return true
 					}
-					utilruntime.HandleError(fmt.Errorf("unable to convert object %v to *v1beta1.Ingress", obj))
+					utilruntime.HandleError(fmt.Errorf("unable to convert object %v to *networkingv1.Ingress", obj))
 					return false
 				default:
 					utilruntime.HandleError(fmt.Errorf("unable to handle object in super control plane ingress controller: %v", obj))
@@ -113,8 +113,8 @@ func NewIngressController(config *config.SyncerConfiguration,
 			Handler: cache.ResourceEventHandlerFuncs{
 				AddFunc: c.enqueueIngress,
 				UpdateFunc: func(oldObj, newObj interface{}) {
-					newIngress := newObj.(*v1beta1.Ingress)
-					oldIngress := oldObj.(*v1beta1.Ingress)
+					newIngress := newObj.(*networkingv1.Ingress)
+					oldIngress := oldObj.(*networkingv1.Ingress)
 					if newIngress.ResourceVersion != oldIngress.ResourceVersion {
 						c.enqueueIngress(newObj)
 					}
@@ -126,7 +126,7 @@ func NewIngressController(config *config.SyncerConfiguration,
 }
 
 func (c *controller) enqueueIngress(obj interface{}) {
-	svc, ok := obj.(*v1beta1.Ingress)
+	svc, ok := obj.(*networkingv1.Ingress)
 	if !ok {
 		return
 	}
