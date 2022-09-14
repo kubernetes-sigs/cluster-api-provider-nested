@@ -24,4 +24,16 @@ import (
 type VirtualNodeProvider interface {
 	GetNodeDaemonEndpoints(node *corev1.Node) (corev1.NodeDaemonEndpoints, error)
 	GetNodeAddress(node *corev1.Node) ([]corev1.NodeAddress, error)
+	GetLabelsToSync() map[string]struct{}
+}
+
+// GetNodeLabels is used to sync allowed node labels to vNode
+func GetNodeLabels(p VirtualNodeProvider, node *corev1.Node, labels map[string]string) map[string]string {
+	labelsToSync := p.GetLabelsToSync()
+	for k, v := range node.GetLabels() {
+		if _, found := labelsToSync[k]; found {
+			labels[k] = v
+		}
+	}
+	return labels
 }

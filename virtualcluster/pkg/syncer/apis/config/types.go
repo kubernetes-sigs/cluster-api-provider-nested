@@ -59,6 +59,9 @@ type SyncerConfiguration struct {
 	// from syncer which replace the kubelet generated envs.
 	DisablePodServiceLinks bool
 
+	// ExtraNodeLabels is the list of extra labels to be synced to vNode from the super cluster.
+	ExtraNodeLabels []string
+
 	// VNAgentPort defines the port that the VN Agent is running on per host
 	VNAgentPort int32
 

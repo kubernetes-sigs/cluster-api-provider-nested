@@ -41,16 +41,19 @@ import (
 )
 
 func GetNodeProvider(config *config.SyncerConfiguration, client clientset.Interface) provider.VirtualNodeProvider {
+	for _, labelKey := range config.ExtraNodeLabels {
+		defaultLabelsToSync[labelKey] = struct{}{}
+	}
 	if featuregate.DefaultFeatureGate.Enabled(featuregate.VNodeProviderService) {
-		return service.NewServiceVirtualNodeProvider(config.VNAgentPort, config.VNAgentNamespacedName, client)
+		return service.NewServiceVirtualNodeProvider(config.VNAgentPort, config.VNAgentNamespacedName, client, defaultLabelsToSync)
 	}
 	if featuregate.DefaultFeatureGate.Enabled(featuregate.VNodeProviderPodIP) {
-		return pod.NewPodVirtualNodeProvider(config.VNAgentPort, config.VNAgentNamespacedName, config.VNAgentLabelSelector, client)
+		return pod.NewPodVirtualNodeProvider(config.VNAgentPort, config.VNAgentNamespacedName, config.VNAgentLabelSelector, client, defaultLabelsToSync)
 	}
-	return native.NewNativeVirtualNodeProvider(config.VNAgentPort)
+	return native.NewNativeVirtualNodeProvider(config.VNAgentPort, defaultLabelsToSync)
 }
 
-func NewVirtualNode(provider provider.VirtualNodeProvider, node *corev1.Node) (vnode *corev1.Node, err error) {
+func NewVirtualNode(vNodeProvider provider.VirtualNodeProvider, node *corev1.Node) (vnode *corev1.Node, err error) {
 	now := metav1.Now()
 	n := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
@@ -69,23 +72,17 @@ func NewVirtualNode(provider provider.VirtualNodeProvider, node *corev1.Node) (v
 	if featuregate.DefaultFeatureGate.Enabled(featuregate.SuperClusterPooling) {
 		labels[constants.LabelSuperClusterID] = utilconstants.SuperClusterID
 	}
-
-	for k, v := range node.GetLabels() {
-		if _, isWellKnown := wellKnownNodeLabelsMap[k]; isWellKnown {
-			labels[k] = v
-		}
-	}
-	n.SetLabels(labels)
+	n.SetLabels(provider.GetNodeLabels(vNodeProvider, node, labels))
 
 	// fill in status
 	n.Status.Conditions = nodeConditions()
-	de, err := provider.GetNodeDaemonEndpoints(node)
+	de, err := vNodeProvider.GetNodeDaemonEndpoints(node)
 	if err != nil {
 		return nil, pkgerr.Wrapf(err, "get node daemon endpoints from provider")
 	}
 	n.Status.DaemonEndpoints = de
 
-	na, err := provider.GetNodeAddress(node)
+	na, err := vNodeProvider.GetNodeAddress(node)
 	if err != nil {
 		return nil, pkgerr.Wrapf(err, "get node address from provider")
 	}
@@ -122,7 +119,7 @@ func BuildVNodeTaints(node *corev1.Node, now metav1.Time) (vnodeTaints []corev1.
 	return vnodeTaints
 }
 
-var wellKnownNodeLabelsMap = map[string]struct{}{
+var defaultLabelsToSync = map[string]struct{}{
 	corev1.LabelOSStable:   {},
 	corev1.LabelArchStable: {},
 	corev1.LabelHostname:   {},

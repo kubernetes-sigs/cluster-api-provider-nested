@@ -23,13 +23,14 @@ import (
 )
 
 type provider struct {
-	vnAgentPort int32
+	vnAgentPort  int32
+	labelsToSync map[string]struct{}
 }
 
 var _ vnodeprovider.VirtualNodeProvider = &provider{}
 
-func NewNativeVirtualNodeProvider(vnAgentPort int32) vnodeprovider.VirtualNodeProvider {
-	return &provider{vnAgentPort: vnAgentPort}
+func NewNativeVirtualNodeProvider(vnAgentPort int32, labelsToSync map[string]struct{}) vnodeprovider.VirtualNodeProvider {
+	return &provider{vnAgentPort: vnAgentPort, labelsToSync: labelsToSync}
 }
 
 func (p *provider) GetNodeDaemonEndpoints(node *corev1.Node) (corev1.NodeDaemonEndpoints, error) {
@@ -51,4 +52,8 @@ func (p *provider) GetNodeAddress(node *corev1.Node) ([]corev1.NodeAddress, erro
 	}
 
 	return addresses, nil
+}
+
+func (p *provider) GetLabelsToSync() map[string]struct{} {
+	return p.labelsToSync
 }
