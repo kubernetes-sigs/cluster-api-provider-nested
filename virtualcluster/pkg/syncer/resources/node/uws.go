@@ -22,6 +22,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 
@@ -66,14 +67,14 @@ func (c *controller) BackPopulate(nodeName string) error {
 	var wg sync.WaitGroup
 	wg.Add(len(clusterList))
 	for _, clusterName := range clusterList {
-		go c.updateClusterNodeStatus(clusterName, node, &wg)
+		go c.updateClusterNode(clusterName, node, &wg)
 	}
 	wg.Wait()
 
 	return nil
 }
 
-func (c *controller) updateClusterNodeStatus(clusterName string, node *corev1.Node, wg *sync.WaitGroup) {
+func (c *controller) updateClusterNode(clusterName string, node *corev1.Node, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	tenantClient, err := c.MultiClusterController.GetClusterClient(clusterName)
@@ -114,7 +115,9 @@ func (c *controller) updateClusterNodeStatus(clusterName string, node *corev1.No
 	}
 	newVNode.Status.DaemonEndpoints = nodeDaemonEndpoints
 
-	if err := vnode.UpdateNodeStatus(tenantClient.CoreV1().Nodes(), vNode, newVNode); err != nil {
+	newVNode.Spec.Taints = vnode.BuildVNodeTaints(node, metav1.Now())
+
+	if err := vnode.UpdateNode(tenantClient.CoreV1().Nodes(), vNode, newVNode); err != nil {
 		klog.Errorf("failed to update node %s/%s's heartbeats: %v", clusterName, node.Name, err)
 	}
 }

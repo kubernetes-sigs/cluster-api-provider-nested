@@ -58,13 +58,7 @@ func NewVirtualNode(provider provider.VirtualNodeProvider, node *corev1.Node) (v
 		},
 		Spec: corev1.NodeSpec{
 			Unschedulable: true,
-			Taints: []corev1.Taint{
-				{
-					Key:       "node.kubernetes.io/unschedulable",
-					Effect:    corev1.TaintEffectNoSchedule,
-					TimeAdded: &now,
-				},
-			},
+			Taints:        BuildVNodeTaints(node, now),
 		},
 	}
 
@@ -102,6 +96,30 @@ func NewVirtualNode(provider provider.VirtualNodeProvider, node *corev1.Node) (v
 	n.Status.Allocatable = node.Status.Allocatable
 
 	return n, nil
+}
+
+// BuildVNodeTaints is used to convert pNode taints to vNode (adding corev1.TaintNodeUnschedulable)
+func BuildVNodeTaints(node *corev1.Node, now metav1.Time) (vnodeTaints []corev1.Taint) {
+	nodeTaints := node.Spec.Taints
+	newTaint := corev1.Taint{
+		Key:       corev1.TaintNodeUnschedulable,
+		Effect:    corev1.TaintEffectNoSchedule,
+		TimeAdded: &now,
+	}
+	updated := false
+	for i := range nodeTaints {
+		if newTaint.MatchTaint(&nodeTaints[i]) {
+			nodeTaints[i].TimeAdded = newTaint.TimeAdded
+			updated = true
+			continue
+		}
+
+		vnodeTaints = append(vnodeTaints, nodeTaints[i])
+	}
+	if !updated {
+		vnodeTaints = append(vnodeTaints, newTaint)
+	}
+	return vnodeTaints
 }
 
 var wellKnownNodeLabelsMap = map[string]struct{}{
@@ -155,9 +173,35 @@ func nodeConditions() []corev1.NodeCondition {
 	}
 }
 
-func UpdateNodeStatus(client v1core.NodeInterface, node, newNode *corev1.Node) error {
-	_, _, err := patchNodeStatus(client, types.NodeName(node.Name), node, newNode)
+func UpdateNode(client v1core.NodeInterface, node, newNode *corev1.Node) error {
+	updatedNode, _, err := patchNodeStatus(client, types.NodeName(node.Name), node, newNode)
+	if err != nil {
+		return err
+	}
+	_, err = patchNodeTaints(client, types.NodeName(updatedNode.Name), updatedNode, newNode)
 	return err
+}
+
+func patchNodeTaints(nodes v1core.NodeInterface, nodeName types.NodeName, oldNode *corev1.Node, newNode *corev1.Node) (*corev1.Node, error) {
+	oldData, err := json.Marshal(oldNode)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal old node %#v for node %q: %v", oldNode, nodeName, err)
+	}
+
+	newTaints := newNode.Spec.Taints
+	newNodeClone := oldNode.DeepCopy()
+	newNodeClone.Spec.Taints = newTaints
+	newData, err := json.Marshal(newNodeClone)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal new node %#v for node %q: %v", newNodeClone, nodeName, err)
+	}
+
+	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, corev1.Node{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create patch for node %q: %v", nodeName, err)
+	}
+
+	return nodes.Patch(context.TODO(), string(nodeName), types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
 }
 
 // patchNodeStatus patches node status.
