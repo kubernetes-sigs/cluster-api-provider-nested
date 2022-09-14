@@ -31,13 +31,11 @@ import (
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/apis/config"
-	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode/native"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode/pod"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode/provider"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode/service"
-	utilconstants "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/constants"
 )
 
 func GetNodeProvider(config *config.SyncerConfiguration, client clientset.Interface) provider.VirtualNodeProvider {
@@ -57,22 +55,14 @@ func NewVirtualNode(vNodeProvider provider.VirtualNodeProvider, node *corev1.Nod
 	now := metav1.Now()
 	n := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: node.Name,
+			Name:   node.Name,
+			Labels: provider.GetNodeLabels(vNodeProvider, node),
 		},
 		Spec: corev1.NodeSpec{
 			Unschedulable: true,
 			Taints:        BuildVNodeTaints(node, now),
 		},
 	}
-
-	labels := map[string]string{
-		constants.LabelVirtualNode: "true",
-	}
-
-	if featuregate.DefaultFeatureGate.Enabled(featuregate.SuperClusterPooling) {
-		labels[constants.LabelSuperClusterID] = utilconstants.SuperClusterID
-	}
-	n.SetLabels(provider.GetNodeLabels(vNodeProvider, node, labels))
 
 	// fill in status
 	n.Status.Conditions = nodeConditions()
@@ -175,19 +165,20 @@ func UpdateNode(client v1core.NodeInterface, node, newNode *corev1.Node) error {
 	if err != nil {
 		return err
 	}
-	_, err = patchNodeTaints(client, types.NodeName(updatedNode.Name), updatedNode, newNode)
+	_, err = patchNode(client, types.NodeName(updatedNode.Name), updatedNode, newNode)
 	return err
 }
 
-func patchNodeTaints(nodes v1core.NodeInterface, nodeName types.NodeName, oldNode *corev1.Node, newNode *corev1.Node) (*corev1.Node, error) {
+func patchNode(nodes v1core.NodeInterface, nodeName types.NodeName, oldNode *corev1.Node, newNode *corev1.Node) (*corev1.Node, error) {
 	oldData, err := json.Marshal(oldNode)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal old node %#v for node %q: %v", oldNode, nodeName, err)
 	}
 
-	newTaints := newNode.Spec.Taints
 	newNodeClone := oldNode.DeepCopy()
-	newNodeClone.Spec.Taints = newTaints
+	newNodeClone.Spec = newNode.Spec
+	newNodeClone.ObjectMeta = newNode.ObjectMeta
+
 	newData, err := json.Marshal(newNodeClone)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal new node %#v for node %q: %v", newNodeClone, nodeName, err)

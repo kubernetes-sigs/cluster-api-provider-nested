@@ -27,6 +27,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode/provider"
 )
 
 // StartUWS starts the upward syncer
@@ -116,6 +117,7 @@ func (c *controller) updateClusterNode(clusterName string, node *corev1.Node, wg
 	newVNode.Status.DaemonEndpoints = nodeDaemonEndpoints
 
 	newVNode.Spec.Taints = vnode.BuildVNodeTaints(node, metav1.Now())
+	newVNode.ObjectMeta.SetLabels(provider.GetNodeLabels(c.vnodeProvider, node))
 
 	if err := vnode.UpdateNode(tenantClient.CoreV1().Nodes(), vNode, newVNode); err != nil {
 		klog.Errorf("failed to update node %s/%s's heartbeats: %v", clusterName, node.Name, err)
