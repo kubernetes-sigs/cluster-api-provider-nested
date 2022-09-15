@@ -159,14 +159,14 @@ func Test_provider_GetNodeTaints(t *testing.T) {
 // This method is like https://github.com/kubernetes/kubernetes/blob/v1.21.9/pkg/util/taints/taints.go#L324
 // but only returns bool
 func taintsDiffer(t1, t2 []corev1.Taint) bool {
-	for _, taint := range t1 {
-		if !taintExists(t2, &taint) {
+	for i := range t1 {
+		if !taintExists(t2, &t1[i]) {
 			return true
 		}
 	}
 
-	for _, taint := range t2 {
-		if !taintExists(t1, &taint) {
+	for i := range t2 {
+		if !taintExists(t1, &t2[i]) {
 			return true
 		}
 	}
