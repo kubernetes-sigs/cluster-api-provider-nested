@@ -31,6 +31,7 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/errors"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/reconciler"
 )
 
@@ -64,7 +65,12 @@ func (c *controller) BackPopulate(key string) error {
 		op = reconciler.DeleteEvent
 	}
 
-	vcrestconfig := c.MultiClusterController.GetCluster(clusterName).GetRestConfig()
+	cluster := c.MultiClusterController.GetCluster(clusterName)
+	if cluster == nil {
+		return errors.NewClusterNotFound(clusterName)
+	}
+
+	vcrestconfig := cluster.GetRestConfig()
 	var vcapiextensionsClient apiextensionclientset.CustomResourceDefinitionsGetter
 
 	if vcrestconfig == nil {
