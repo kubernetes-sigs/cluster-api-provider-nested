@@ -97,7 +97,13 @@ func (c *controller) checkCRDOfTenantCluster(clusterName string) {
 		return
 	}
 
-	vcrestconfig := c.MultiClusterController.GetCluster(clusterName).GetRestConfig()
+	cluster := c.MultiClusterController.GetCluster(clusterName)
+	if cluster == nil {
+		klog.Errorf("cannot get virtual cluster")
+		return
+	}
+
+	vcrestconfig := cluster.GetRestConfig()
 	var vcapiextensionsClient apiextensionclientset.CustomResourceDefinitionsGetter
 
 	if vcrestconfig == nil {
