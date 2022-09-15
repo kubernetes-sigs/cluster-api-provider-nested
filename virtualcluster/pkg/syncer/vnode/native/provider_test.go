@@ -35,6 +35,13 @@ func newNode() *corev1.Node {
 				"b": "test-1",
 			},
 		},
+		Spec: corev1.NodeSpec{
+			Taints: []corev1.Taint{
+				{Key: "a", Effect: corev1.TaintEffectNoSchedule},
+				{Key: "b", Effect: corev1.TaintEffectNoExecute},
+				{Key: "secret", Effect: corev1.TaintEffectNoSchedule},
+			},
+		},
 	}
 }
 
@@ -42,20 +49,14 @@ func Test_provider_GetNodeLabels(t *testing.T) {
 	type fields struct {
 		labelsToSync map[string]struct{}
 	}
-	type args struct {
-		node *corev1.Node
-	}
-
 	tests := []struct {
 		name   string
 		fields fields
-		args   args
 		want   map[string]string
 	}{
 		{
 			name:   "TestWithNoLabels",
 			fields: fields{},
-			args:   args{newNode()},
 			want: map[string]string{
 				"tenancy.x-k8s.io/virtualnode": "true",
 			},
@@ -67,7 +68,6 @@ func Test_provider_GetNodeLabels(t *testing.T) {
 					"a": {},
 				},
 			},
-			args: args{newNode()},
 			want: map[string]string{
 				"tenancy.x-k8s.io/virtualnode": "true",
 				"a":                            "test-0",
@@ -82,7 +82,6 @@ func Test_provider_GetNodeLabels(t *testing.T) {
 					"c": {},
 				},
 			},
-			args: args{newNode()},
 			want: map[string]string{
 				"tenancy.x-k8s.io/virtualnode": "true",
 				"a":                            "test-0",
@@ -92,11 +91,96 @@ func Test_provider_GetNodeLabels(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := NewNativeVirtualNodeProvider(8080, tt.fields.labelsToSync)
-			got := vnodeprovider.GetNodeLabels(p, tt.args.node)
+			p := NewNativeVirtualNodeProvider(8080, tt.fields.labelsToSync, map[string]struct{}{})
+			got := vnodeprovider.GetNodeLabels(p, newNode())
 			if len(tt.want) != 0 && !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("vnodeprovider.GetNodeLabels() = %v, want %v", got, tt.want)
 			}
 		})
 	}
+}
+
+func Test_provider_GetNodeTaints(t *testing.T) {
+	type fields struct {
+		taintsToSync map[string]struct{}
+	}
+	now := metav1.Now()
+	tests := []struct {
+		name   string
+		fields fields
+		want   []corev1.Taint
+	}{
+		{
+			name:   "TestWithNoTaints",
+			fields: fields{},
+			want: []corev1.Taint{
+				{Key: corev1.TaintNodeUnschedulable, Effect: corev1.TaintEffectNoSchedule, TimeAdded: &now},
+			},
+		},
+		{
+			name: "TestWithOneTaint",
+			fields: fields{
+				taintsToSync: map[string]struct{}{
+					"a": {},
+				},
+			},
+			want: []corev1.Taint{
+				{Key: corev1.TaintNodeUnschedulable, Effect: corev1.TaintEffectNoSchedule, TimeAdded: &now},
+				{Key: "a", Effect: corev1.TaintEffectNoSchedule},
+			},
+		},
+		{
+			name: "TestWithManyTaints",
+			fields: fields{
+				taintsToSync: map[string]struct{}{
+					"a": {},
+					"b": {},
+					"c": {},
+				},
+			},
+			want: []corev1.Taint{
+				{Key: corev1.TaintNodeUnschedulable, Effect: corev1.TaintEffectNoSchedule, TimeAdded: &now},
+				{Key: "a", Effect: corev1.TaintEffectNoSchedule},
+				{Key: "b", Effect: corev1.TaintEffectNoExecute},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := NewNativeVirtualNodeProvider(8080, map[string]struct{}{}, tt.fields.taintsToSync)
+			got := vnodeprovider.GetNodeTaints(p, newNode(), now)
+			if taintsDiffer(got, tt.want) {
+				t.Errorf("vnodeprovider.GetNodeTaints() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// This method is like https://github.com/kubernetes/kubernetes/blob/v1.21.9/pkg/util/taints/taints.go#L324
+// but only returns bool
+func taintsDiffer(t1, t2 []corev1.Taint) bool {
+	for _, taint := range t1 {
+		if !taintExists(t2, &taint) {
+			return true
+		}
+	}
+
+	for _, taint := range t2 {
+		if !taintExists(t1, &taint) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// This is the copy-paste of https://github.com/kubernetes/kubernetes/blob/v1.21.9/pkg/util/taints/taints.go#L315
+// as it would be too heavy to import kubernetes lib here
+func taintExists(taints []corev1.Taint, taintToFind *corev1.Taint) bool {
+	for _, taint := range taints {
+		if taint.MatchTaint(taintToFind) {
+			return true
+		}
+	}
+	return false
 }

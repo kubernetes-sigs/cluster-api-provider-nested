@@ -42,13 +42,17 @@ func GetNodeProvider(config *config.SyncerConfiguration, client clientset.Interf
 	for _, labelKey := range config.ExtraNodeLabels {
 		defaultLabelsToSync[labelKey] = struct{}{}
 	}
+	taintsToSync := make(map[string]struct{})
+	for _, taintKey := range config.OpaqueTaintKeys {
+		taintsToSync[taintKey] = struct{}{}
+	}
 	if featuregate.DefaultFeatureGate.Enabled(featuregate.VNodeProviderService) {
-		return service.NewServiceVirtualNodeProvider(config.VNAgentPort, config.VNAgentNamespacedName, client, defaultLabelsToSync)
+		return service.NewServiceVirtualNodeProvider(config.VNAgentPort, config.VNAgentNamespacedName, client, defaultLabelsToSync, taintsToSync)
 	}
 	if featuregate.DefaultFeatureGate.Enabled(featuregate.VNodeProviderPodIP) {
-		return pod.NewPodVirtualNodeProvider(config.VNAgentPort, config.VNAgentNamespacedName, config.VNAgentLabelSelector, client, defaultLabelsToSync)
+		return pod.NewPodVirtualNodeProvider(config.VNAgentPort, config.VNAgentNamespacedName, config.VNAgentLabelSelector, client, defaultLabelsToSync, taintsToSync)
 	}
-	return native.NewNativeVirtualNodeProvider(config.VNAgentPort, defaultLabelsToSync)
+	return native.NewNativeVirtualNodeProvider(config.VNAgentPort, defaultLabelsToSync, taintsToSync)
 }
 
 func NewVirtualNode(vNodeProvider provider.VirtualNodeProvider, node *corev1.Node) (vnode *corev1.Node, err error) {
@@ -60,7 +64,7 @@ func NewVirtualNode(vNodeProvider provider.VirtualNodeProvider, node *corev1.Nod
 		},
 		Spec: corev1.NodeSpec{
 			Unschedulable: true,
-			Taints:        BuildVNodeTaints(node, now),
+			Taints:        provider.GetNodeTaints(vNodeProvider, node, now),
 		},
 	}
 
@@ -83,30 +87,6 @@ func NewVirtualNode(vNodeProvider provider.VirtualNodeProvider, node *corev1.Nod
 	n.Status.Allocatable = node.Status.Allocatable
 
 	return n, nil
-}
-
-// BuildVNodeTaints is used to convert pNode taints to vNode (adding corev1.TaintNodeUnschedulable)
-func BuildVNodeTaints(node *corev1.Node, now metav1.Time) (vnodeTaints []corev1.Taint) {
-	nodeTaints := node.Spec.Taints
-	newTaint := corev1.Taint{
-		Key:       corev1.TaintNodeUnschedulable,
-		Effect:    corev1.TaintEffectNoSchedule,
-		TimeAdded: &now,
-	}
-	updated := false
-	for i := range nodeTaints {
-		if newTaint.MatchTaint(&nodeTaints[i]) {
-			nodeTaints[i].TimeAdded = newTaint.TimeAdded
-			updated = true
-			continue
-		}
-
-		vnodeTaints = append(vnodeTaints, nodeTaints[i])
-	}
-	if !updated {
-		vnodeTaints = append(vnodeTaints, newTaint)
-	}
-	return vnodeTaints
 }
 
 var defaultLabelsToSync = map[string]struct{}{

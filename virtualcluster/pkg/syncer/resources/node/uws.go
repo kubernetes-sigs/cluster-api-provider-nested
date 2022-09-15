@@ -116,7 +116,7 @@ func (c *controller) updateClusterNode(clusterName string, node *corev1.Node, wg
 	}
 	newVNode.Status.DaemonEndpoints = nodeDaemonEndpoints
 
-	newVNode.Spec.Taints = vnode.BuildVNodeTaints(node, metav1.Now())
+	newVNode.Spec.Taints = provider.GetNodeTaints(c.vnodeProvider, node, metav1.Now())
 	newVNode.ObjectMeta.SetLabels(provider.GetNodeLabels(c.vnodeProvider, node))
 
 	if err := vnode.UpdateNode(tenantClient.CoreV1().Nodes(), vNode, newVNode); err != nil {

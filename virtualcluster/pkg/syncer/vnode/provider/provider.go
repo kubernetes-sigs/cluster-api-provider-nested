@@ -18,6 +18,7 @@ package provider
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
@@ -29,6 +30,7 @@ type VirtualNodeProvider interface {
 	GetNodeDaemonEndpoints(node *corev1.Node) (corev1.NodeDaemonEndpoints, error)
 	GetNodeAddress(node *corev1.Node) ([]corev1.NodeAddress, error)
 	GetLabelsToSync() map[string]struct{}
+	GetTaintsToSync() map[string]struct{}
 }
 
 // GetNodeLabels is used to sync allowed node labels to vNode
@@ -48,4 +50,31 @@ func GetNodeLabels(p VirtualNodeProvider, node *corev1.Node) map[string]string {
 		}
 	}
 	return labels
+}
+
+// GetNodeTaints is used to convert pNode taints to vNode (adding corev1.TaintNodeUnschedulable)
+func GetNodeTaints(p VirtualNodeProvider, node *corev1.Node, now metav1.Time) (taints []corev1.Taint) {
+	nodeTaints := node.Spec.Taints
+	newTaint := corev1.Taint{
+		Key:       corev1.TaintNodeUnschedulable,
+		Effect:    corev1.TaintEffectNoSchedule,
+		TimeAdded: &now,
+	}
+	taintsToSync := p.GetTaintsToSync()
+	updated := false
+	for i := range nodeTaints {
+		if newTaint.MatchTaint(&nodeTaints[i]) {
+			nodeTaints[i].TimeAdded = newTaint.TimeAdded
+			updated = true
+			continue
+		}
+		if _, found := taintsToSync[nodeTaints[i].Key]; !found {
+			continue
+		}
+		taints = append(taints, nodeTaints[i])
+	}
+	if !updated {
+		taints = append(taints, newTaint)
+	}
+	return taints
 }
