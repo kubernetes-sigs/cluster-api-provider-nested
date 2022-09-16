@@ -31,67 +31,52 @@ import (
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/apis/config"
-	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode/native"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode/pod"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode/provider"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode/service"
-	utilconstants "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/util/constants"
 )
 
 func GetNodeProvider(config *config.SyncerConfiguration, client clientset.Interface) provider.VirtualNodeProvider {
+	for _, labelKey := range config.ExtraNodeLabels {
+		defaultLabelsToSync[labelKey] = struct{}{}
+	}
+	taintsToSync := make(map[string]struct{})
+	for _, taintKey := range config.OpaqueTaintKeys {
+		taintsToSync[taintKey] = struct{}{}
+	}
 	if featuregate.DefaultFeatureGate.Enabled(featuregate.VNodeProviderService) {
-		return service.NewServiceVirtualNodeProvider(config.VNAgentPort, config.VNAgentNamespacedName, client)
+		return service.NewServiceVirtualNodeProvider(config.VNAgentPort, config.VNAgentNamespacedName, client, defaultLabelsToSync, taintsToSync)
 	}
 	if featuregate.DefaultFeatureGate.Enabled(featuregate.VNodeProviderPodIP) {
-		return pod.NewPodVirtualNodeProvider(config.VNAgentPort, config.VNAgentNamespacedName, config.VNAgentLabelSelector, client)
+		return pod.NewPodVirtualNodeProvider(config.VNAgentPort, config.VNAgentNamespacedName, config.VNAgentLabelSelector, client, defaultLabelsToSync, taintsToSync)
 	}
-	return native.NewNativeVirtualNodeProvider(config.VNAgentPort)
+	return native.NewNativeVirtualNodeProvider(config.VNAgentPort, defaultLabelsToSync, taintsToSync)
 }
 
-func NewVirtualNode(provider provider.VirtualNodeProvider, node *corev1.Node) (vnode *corev1.Node, err error) {
+func NewVirtualNode(vNodeProvider provider.VirtualNodeProvider, node *corev1.Node) (vnode *corev1.Node, err error) {
 	now := metav1.Now()
 	n := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: node.Name,
+			Name:   node.Name,
+			Labels: provider.GetNodeLabels(vNodeProvider, node),
 		},
 		Spec: corev1.NodeSpec{
 			Unschedulable: true,
-			Taints: []corev1.Taint{
-				{
-					Key:       "node.kubernetes.io/unschedulable",
-					Effect:    corev1.TaintEffectNoSchedule,
-					TimeAdded: &now,
-				},
-			},
+			Taints:        provider.GetNodeTaints(vNodeProvider, node, now),
 		},
 	}
 
-	labels := map[string]string{
-		constants.LabelVirtualNode: "true",
-	}
-
-	if featuregate.DefaultFeatureGate.Enabled(featuregate.SuperClusterPooling) {
-		labels[constants.LabelSuperClusterID] = utilconstants.SuperClusterID
-	}
-
-	for k, v := range node.GetLabels() {
-		if _, isWellKnown := wellKnownNodeLabelsMap[k]; isWellKnown {
-			labels[k] = v
-		}
-	}
-	n.SetLabels(labels)
-
 	// fill in status
 	n.Status.Conditions = nodeConditions()
-	de, err := provider.GetNodeDaemonEndpoints(node)
+	de, err := vNodeProvider.GetNodeDaemonEndpoints(node)
 	if err != nil {
 		return nil, pkgerr.Wrapf(err, "get node daemon endpoints from provider")
 	}
 	n.Status.DaemonEndpoints = de
 
-	na, err := provider.GetNodeAddress(node)
+	na, err := vNodeProvider.GetNodeAddress(node)
 	if err != nil {
 		return nil, pkgerr.Wrapf(err, "get node address from provider")
 	}
@@ -104,7 +89,7 @@ func NewVirtualNode(provider provider.VirtualNodeProvider, node *corev1.Node) (v
 	return n, nil
 }
 
-var wellKnownNodeLabelsMap = map[string]struct{}{
+var defaultLabelsToSync = map[string]struct{}{
 	corev1.LabelOSStable:   {},
 	corev1.LabelArchStable: {},
 	corev1.LabelHostname:   {},
@@ -155,9 +140,36 @@ func nodeConditions() []corev1.NodeCondition {
 	}
 }
 
-func UpdateNodeStatus(client v1core.NodeInterface, node, newNode *corev1.Node) error {
-	_, _, err := patchNodeStatus(client, types.NodeName(node.Name), node, newNode)
+func UpdateNode(client v1core.NodeInterface, node, newNode *corev1.Node) error {
+	updatedNode, _, err := patchNodeStatus(client, types.NodeName(node.Name), node, newNode)
+	if err != nil {
+		return err
+	}
+	_, err = patchNode(client, types.NodeName(updatedNode.Name), updatedNode, newNode)
 	return err
+}
+
+func patchNode(nodes v1core.NodeInterface, nodeName types.NodeName, oldNode *corev1.Node, newNode *corev1.Node) (*corev1.Node, error) {
+	oldData, err := json.Marshal(oldNode)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal old node %#v for node %q: %v", oldNode, nodeName, err)
+	}
+
+	newNodeClone := oldNode.DeepCopy()
+	newNodeClone.Spec = newNode.Spec
+	newNodeClone.ObjectMeta = newNode.ObjectMeta
+
+	newData, err := json.Marshal(newNodeClone)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal new node %#v for node %q: %v", newNodeClone, nodeName, err)
+	}
+
+	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, corev1.Node{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create patch for node %q: %v", nodeName, err)
+	}
+
+	return nodes.Patch(context.TODO(), string(nodeName), types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
 }
 
 // patchNodeStatus patches node status.

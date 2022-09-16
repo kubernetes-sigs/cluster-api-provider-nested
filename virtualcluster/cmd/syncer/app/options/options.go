@@ -89,6 +89,8 @@ func NewResourceSyncerOptions() (*ResourceSyncerOptions, error) {
 			DisableServiceAccountToken: true,
 			DefaultOpaqueMetaDomains:   []string{"kubernetes.io", "k8s.io"},
 			ExtraSyncingResources:      []string{},
+			ExtraNodeLabels:            []string{},
+			OpaqueTaintKeys:            []string{},
 			VNAgentPort:                int32(10550),
 			VNAgentNamespacedName:      "vc-manager/vn-agent",
 			VNAgentLabelSelector:       "app=vn-agent",
@@ -125,6 +127,8 @@ func (o *ResourceSyncerOptions) Flags() cliflag.NamedFlagSets {
 	fs.StringSliceVar(&o.ComponentConfig.DefaultOpaqueMetaDomains, "default-opaque-meta-domains", o.ComponentConfig.DefaultOpaqueMetaDomains, "DefaultOpaqueMetaDomains is the default opaque meta configuration for each Virtual Cluster.")
 	fs.StringSliceVar(&o.ComponentConfig.ExtraSyncingResources, "extra-syncing-resources", o.ComponentConfig.ExtraSyncingResources, "ExtraSyncingResources defines additional resources that need to be synced for each Virtual Cluster. (priorityclass, ingress, crd)")
 	fs.Var(cliflag.NewMapStringBool(&o.ComponentConfig.FeatureGates), "feature-gates", "A set of key=value pairs that describe featuregate gates for various features.")
+	fs.StringSliceVar(&o.ComponentConfig.ExtraNodeLabels, "extra-node-labels", o.ComponentConfig.ExtraNodeLabels, "ExtraNodeLabels defines additional node labels that need to be synced for each Virtual Cluster")
+	fs.StringSliceVar(&o.ComponentConfig.OpaqueTaintKeys, "opaque-taint-keys", o.ComponentConfig.OpaqueTaintKeys, "OpaqueTaintKeys defines taint keys that need to be synced for each Virtual Cluster")
 	fs.Int32Var(&o.ComponentConfig.VNAgentPort, "vn-agent-port", 10550, "Port the vn-agent listens on")
 	fs.StringVar(&o.ComponentConfig.VNAgentNamespacedName, "vn-agent-namespace-name", "vc-manager/vn-agent", "Namespace/Name of the vn-agent running in cluster, used for VNodeProviderService")
 	fs.Var(cliflag.NewMapStringString(&o.DNSOptions), "dns-options", "DNSOptions is the default DNS options attached to each pod")

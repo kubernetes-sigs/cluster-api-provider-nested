@@ -31,15 +31,19 @@ type provider struct {
 	vnAgentPort          int32
 	vnAgentNamespaceName string
 	client               clientset.Interface
+	labelsToSync         map[string]struct{}
+	taintsToSync         map[string]struct{}
 }
 
 var _ vnodeprovider.VirtualNodeProvider = &provider{}
 
-func NewServiceVirtualNodeProvider(vnAgentPort int32, vnAgentNamespaceName string, client clientset.Interface) vnodeprovider.VirtualNodeProvider {
+func NewServiceVirtualNodeProvider(vnAgentPort int32, vnAgentNamespaceName string, client clientset.Interface, labelsToSync, taintsToSync map[string]struct{}) vnodeprovider.VirtualNodeProvider {
 	return &provider{
 		vnAgentPort:          vnAgentPort,
 		vnAgentNamespaceName: vnAgentNamespaceName,
 		client:               client,
+		labelsToSync:         labelsToSync,
+		taintsToSync:         taintsToSync,
 	}
 }
 
@@ -64,4 +68,12 @@ func (p *provider) GetNodeAddress(node *corev1.Node) ([]corev1.NodeAddress, erro
 		Address: svc.Spec.ClusterIP,
 	})
 	return addresses, nil
+}
+
+func (p *provider) GetLabelsToSync() map[string]struct{} {
+	return p.labelsToSync
+}
+
+func (p *provider) GetTaintsToSync() map[string]struct{} {
+	return p.taintsToSync
 }
