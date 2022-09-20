@@ -126,7 +126,7 @@ func TestUWPVUpdate(t *testing.T) {
 				boundPV(superPVC("pvc", superDefaultNSName, "23456", defaultClusterKey), superPV("pv", "12345")),
 			},
 			ExistingObjectInTenant: []runtime.Object{
-				tenantPVC("pvc", superDefaultNSName, "23456"),
+				tenantPVC("pvc", "default", "23456"),
 				tenantPV("pv", "123456"),
 			},
 			EnqueuedKey:   "pv",
@@ -138,7 +138,7 @@ func TestUWPVUpdate(t *testing.T) {
 				applyPVSourceToPV(boundPV(superPVC("pvc", superDefaultNSName, "23456", defaultClusterKey), superPV("pv", "12345")), pvSource1),
 			},
 			ExistingObjectInTenant: []runtime.Object{
-				tenantPVC("pvc", superDefaultNSName, "23456"),
+				tenantPVC("pvc", "default", "23456"),
 				applyPVSourceToPV(tenantPV("pv", "12345"), pvSource2),
 			},
 			EnqueuedKey: "pv",

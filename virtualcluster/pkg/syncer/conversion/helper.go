@@ -312,6 +312,10 @@ func BuildVirtualCRD(cluster string, pCRD *apiextensionsv1.CustomResourceDefinit
 func BuildVirtualPersistentVolume(pPV *v1.PersistentVolume, vPVC *v1.PersistentVolumeClaim) *v1.PersistentVolume {
 	vPV := pPV.DeepCopy()
 	ResetMetadata(vPV)
+	if vPV.Annotations == nil {
+		vPV.Annotations = make(map[string]string)
+	}
+	vPV.Annotations[constants.LabelUID] = string(pPV.UID)
 	// The pv needs to bind with the vPVC
 	vPV.Spec.ClaimRef.Namespace = vPVC.Namespace
 	vPV.Spec.ClaimRef.UID = vPVC.UID
