@@ -141,12 +141,13 @@ func nodeConditions() []corev1.NodeCondition {
 }
 
 func UpdateNode(client v1core.NodeInterface, node, newNode *corev1.Node) error {
-	updatedNode, _, err := patchNodeStatus(client, types.NodeName(node.Name), node, newNode)
-	if err != nil {
-		return err
-	}
-	_, err = patchNode(client, types.NodeName(updatedNode.Name), updatedNode, newNode)
+	_, _, err := patchNodeStatus(client, types.NodeName(node.Name), node, newNode)
 	return err
+	// if err != nil {
+	// 	return err
+	// }
+	// _, err = patchNode(client, types.NodeName(updatedNode.Name), updatedNode, newNode)
+	// return err
 }
 
 func patchNode(nodes v1core.NodeInterface, nodeName types.NodeName, oldNode *corev1.Node, newNode *corev1.Node) (*corev1.Node, error) {
