@@ -131,6 +131,9 @@ func NewCluster(key, namespace, name, uid string, getter mccontroller.Getter, co
 		options:    o,
 		synced:     false,
 		context:    context.Background(),
+		cancelContext: func() {
+			klog.Errorf("Stop invoked before Start. This should not happen")
+		},
 	}, nil
 }
 
