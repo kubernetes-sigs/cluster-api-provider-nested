@@ -141,13 +141,12 @@ func nodeConditions() []corev1.NodeCondition {
 }
 
 func UpdateNode(client v1core.NodeInterface, node, newNode *corev1.Node) error {
-	_, _, err := patchNodeStatus(client, types.NodeName(node.Name), node, newNode)
+	updatedNode, _, err := patchNodeStatus(client, types.NodeName(node.Name), node, newNode)
+	if err != nil {
+		return err
+	}
+	_, err = patchNode(client, types.NodeName(updatedNode.Name), updatedNode, newNode)
 	return err
-	// if err != nil {
-	// 	return err
-	// }
-	// _, err = patchNode(client, types.NodeName(updatedNode.Name), updatedNode, newNode)
-	// return err
 }
 
 func patchNode(nodes v1core.NodeInterface, nodeName types.NodeName, oldNode *corev1.Node, newNode *corev1.Node) (*corev1.Node, error) {
@@ -181,9 +180,9 @@ func patchNodeStatus(nodes v1core.NodeInterface, nodeName types.NodeName, oldNod
 		return nil, nil, err
 	}
 
-	updatedNode, err := nodes.Patch(context.TODO(), string(nodeName), types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
+	updatedNode, err := nodes.Patch(context.TODO(), string(nodeName), types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{}, "status")
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to patch %q for node %q: %v", patchBytes, nodeName, err)
+		return nil, nil, fmt.Errorf("failed to patch status %q for node %q: %v", patchBytes, nodeName, err)
 	}
 	return updatedNode, patchBytes, nil
 }
@@ -194,17 +193,20 @@ func preparePatchBytesforNodeStatus(nodeName types.NodeName, oldNode *corev1.Nod
 		return nil, fmt.Errorf("failed to Marshal oldData for node %q: %v", nodeName, err)
 	}
 
+	newNodeClone := oldNode.DeepCopy()
+	newNodeClone.Status = newNode.Status
+
 	// NodeStatus.Addresses is incorrectly annotated as patchStrategy=merge, which
 	// will cause strategicpatch.CreateTwoWayMergePatch to create an incorrect patch
 	// if it changed.
-	manuallyPatchAddresses := (len(oldNode.Status.Addresses) > 0) && !equality.Semantic.DeepEqual(oldNode.Status.Addresses, newNode.Status.Addresses)
+	manuallyPatchAddresses := (len(oldNode.Status.Addresses) > 0) && !equality.Semantic.DeepEqual(oldNode.Status.Addresses, newNodeClone.Status.Addresses)
 
 	var newAddresses []corev1.NodeAddress
 	if manuallyPatchAddresses {
-		newAddresses = newNode.Status.Addresses
-		newNode.Status.Addresses = oldNode.Status.Addresses
+		newAddresses = newNodeClone.Status.Addresses
+		newNodeClone.Status.Addresses = oldNode.Status.Addresses
 	}
-	newData, err := json.Marshal(newNode)
+	newData, err := json.Marshal(newNodeClone)
 	if err != nil {
 		return nil, fmt.Errorf("failed to Marshal newData for node %q: %v", nodeName, err)
 	}
