@@ -122,18 +122,16 @@ func NewCluster(key, namespace, name, uid string, getter mccontroller.Getter, co
 	}
 
 	return &Cluster{
-		key:        key,
-		name:       name,
-		namespace:  namespace,
-		uid:        uid,
-		getter:     getter,
-		RestConfig: clusterRestConfig,
-		options:    o,
-		synced:     false,
-		context:    context.Background(),
-		cancelContext: func() {
-			klog.Errorf("Stop invoked before Start. This should not happen")
-		},
+		key:           key,
+		name:          name,
+		namespace:     namespace,
+		uid:           uid,
+		getter:        getter,
+		RestConfig:    clusterRestConfig,
+		options:       o,
+		synced:        false,
+		context:       context.Background(),
+		cancelContext: func() {},
 	}, nil
 }
 
