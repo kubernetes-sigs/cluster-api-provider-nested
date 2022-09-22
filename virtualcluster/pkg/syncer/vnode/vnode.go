@@ -155,9 +155,10 @@ func patchNode(nodes v1core.NodeInterface, nodeName types.NodeName, oldNode *cor
 		return nil, fmt.Errorf("failed to marshal old node %#v for node %q: %v", oldNode, nodeName, err)
 	}
 
+	// We can't override ResourceVersion and Generation, so we just update Spec and Labels only.
 	newNodeClone := oldNode.DeepCopy()
 	newNodeClone.Spec = newNode.Spec
-	newNodeClone.ObjectMeta = newNode.ObjectMeta
+	newNodeClone.ObjectMeta.SetLabels(newNode.ObjectMeta.Labels)
 
 	newData, err := json.Marshal(newNodeClone)
 	if err != nil {
