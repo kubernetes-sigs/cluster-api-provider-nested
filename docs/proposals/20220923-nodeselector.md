@@ -95,11 +95,11 @@ type VirtualClusterNodeSelector struct {
     Spec   VirtualClusterNodeSelectorSpec   `json:"spec,omitempty"`
 }
 type VirtualClusterNodeSelectorSpec struct {
-	// NodeSelector represents the union of the results of one or more label queries
-	// over a set of nodes; that is, it represents the OR of the selectors represented
-	// by the node selector terms.
+	// NodeSelector is a selector which must be true for the pod to fit on a node.
+	// Selector which must match a node's labels for the pod to be scheduled on that node.
+	// More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
 	// +optional
-	NodeSelector *corev1.NodeSelector `json:"nodeSelector,omitempty"`
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 	// If specified, list of taints that should be tolerated in pod spec
 	// to assign to NoSchedule nodes for better isolation
 	// +optional
