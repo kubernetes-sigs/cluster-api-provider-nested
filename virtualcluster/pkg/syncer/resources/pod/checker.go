@@ -313,8 +313,8 @@ func (c *controller) differAddFunc(vObj differ.ClusterObject) {
 	if isPodScheduled(vPod) {
 		// double check pPod exist or not.
 		targetNamespace := conversion.ToSuperClusterNamespace(vObj.OwnerCluster, vPod.Namespace)
-		if _, err := c.podLister.Pods(targetNamespace).Get(vPod.Name); !apierrors.IsNotFound(err) {
-			klog.Warningf("pPod %s found by double check, should not delete vPod anymore", vObj.Key)
+		if _, err := c.podLister.Pods(targetNamespace).Get(vPod.Name); err == nil || !apierrors.IsNotFound(err) {
+			klog.Warningf("pPod %s may exist, should not delete vPod", vObj.Key)
 			return
 		}
 		c.forceDeleteVPod(vObj.GetOwnerCluster(), vPod, false)
