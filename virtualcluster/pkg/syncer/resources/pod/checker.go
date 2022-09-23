@@ -311,6 +311,12 @@ func (c *controller) differAddFunc(vObj differ.ClusterObject) {
 	// If the vPod has not been bound yet, we can create pPod again.
 	// If the vPod has been bound, we'd better delete the vPod since the new pPod may have a different nodename.
 	if isPodScheduled(vPod) {
+		// double check pPod exist or not.
+		targetNamespace := conversion.ToSuperClusterNamespace(vObj.OwnerCluster, vPod.Namespace)
+		if _, err := c.podLister.Pods(targetNamespace).Get(vPod.Name); !apierrors.IsNotFound(err) {
+			klog.Warningf("pPod %s found by double check, should not delete vPod anymore", vObj.Key)
+			return
+		}
 		c.forceDeleteVPod(vObj.GetOwnerCluster(), vPod, false)
 		metrics.CheckerRemedyStats.WithLabelValues("DeletedTenantPodsDueToSuperEviction").Inc()
 		return
