@@ -155,9 +155,10 @@ func patchNode(nodes v1core.NodeInterface, nodeName types.NodeName, oldNode *cor
 		return nil, fmt.Errorf("failed to marshal old node %#v for node %q: %v", oldNode, nodeName, err)
 	}
 
+	// We can't override ResourceVersion and Generation, so we just update Spec and Labels only.
 	newNodeClone := oldNode.DeepCopy()
 	newNodeClone.Spec = newNode.Spec
-	newNodeClone.ObjectMeta = newNode.ObjectMeta
+	newNodeClone.ObjectMeta.SetLabels(newNode.ObjectMeta.Labels)
 
 	newData, err := json.Marshal(newNodeClone)
 	if err != nil {
@@ -193,17 +194,20 @@ func preparePatchBytesforNodeStatus(nodeName types.NodeName, oldNode *corev1.Nod
 		return nil, fmt.Errorf("failed to Marshal oldData for node %q: %v", nodeName, err)
 	}
 
+	newNodeClone := oldNode.DeepCopy()
+	newNodeClone.Status = newNode.Status
+
 	// NodeStatus.Addresses is incorrectly annotated as patchStrategy=merge, which
 	// will cause strategicpatch.CreateTwoWayMergePatch to create an incorrect patch
 	// if it changed.
-	manuallyPatchAddresses := (len(oldNode.Status.Addresses) > 0) && !equality.Semantic.DeepEqual(oldNode.Status.Addresses, newNode.Status.Addresses)
+	manuallyPatchAddresses := (len(oldNode.Status.Addresses) > 0) && !equality.Semantic.DeepEqual(oldNode.Status.Addresses, newNodeClone.Status.Addresses)
 
 	var newAddresses []corev1.NodeAddress
 	if manuallyPatchAddresses {
-		newAddresses = newNode.Status.Addresses
-		newNode.Status.Addresses = oldNode.Status.Addresses
+		newAddresses = newNodeClone.Status.Addresses
+		newNodeClone.Status.Addresses = oldNode.Status.Addresses
 	}
-	newData, err := json.Marshal(newNode)
+	newData, err := json.Marshal(newNodeClone)
 	if err != nil {
 		return nil, fmt.Errorf("failed to Marshal newData for node %q: %v", nodeName, err)
 	}

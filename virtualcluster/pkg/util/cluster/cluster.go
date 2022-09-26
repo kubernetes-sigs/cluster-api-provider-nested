@@ -122,15 +122,16 @@ func NewCluster(key, namespace, name, uid string, getter mccontroller.Getter, co
 	}
 
 	return &Cluster{
-		key:        key,
-		name:       name,
-		namespace:  namespace,
-		uid:        uid,
-		getter:     getter,
-		RestConfig: clusterRestConfig,
-		options:    o,
-		synced:     false,
-		context:    context.Background(),
+		key:           key,
+		name:          name,
+		namespace:     namespace,
+		uid:           uid,
+		getter:        getter,
+		RestConfig:    clusterRestConfig,
+		options:       o,
+		synced:        false,
+		context:       context.Background(),
+		cancelContext: func() {},
 	}, nil
 }
 
