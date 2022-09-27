@@ -197,15 +197,14 @@ func (c *controller) reconcilePodCreate(clusterName, targetNamespace, requestUID
 		return fmt.Errorf("failed to find nameserver: %v", err)
 	}
 
-	var ms = []conversion.PodMutator{
-		conversion.PodMutateServiceLink(c.Config.DisablePodServiceLinks),
+	// We need to apply default mutator first
+	var ms = append([]conversion.PodMutator{
+		// TODO: Convert PodMutateDefault to a plugin
+		// It is not an easy task as it uses a lot of controller methods now, but could be nice to be generalised.
 		conversion.PodMutateDefault(vPod, pSecretMap, services, nameServer, c.Config.DNSOptions),
-		conversion.PodMutateAutoMountServiceAccountToken(c.Config.DisableServiceAccountToken),
-		// TODO: make extension configurable
-		// conversion.PodAddExtensionMeta(vPod),
-	}
+	}, c.podMutators...)
 
-	err = conversion.VC(c.MultiClusterController, clusterName).Pod(pPod).Mutate(ms...)
+	err = conversion.VC(c.MultiClusterController, clusterName).Pod(pPod, vPod).Mutate(ms...)
 	if err != nil {
 		return fmt.Errorf("failed to mutate pod: %v", err)
 	}

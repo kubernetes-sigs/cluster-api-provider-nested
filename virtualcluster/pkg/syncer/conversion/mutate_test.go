@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
+
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
 )
@@ -306,7 +307,7 @@ func Test_mutateContainerSecret(t *testing.T) {
 }
 
 func Test_mutateDNSConfig(t *testing.T) {
-	podMutateCtxFunc := func(policy v1.DNSPolicy, config *v1.PodDNSConfig, hostNetwork bool) *podMutateCtx {
+	podMutateCtxFunc := func(policy v1.DNSPolicy, config *v1.PodDNSConfig, hostNetwork bool) *PodMutateCtx {
 		pPod := newPod(func(p *v1.Pod) {
 			spec := v1.PodSpec{}
 			spec.DNSPolicy = policy
@@ -316,9 +317,9 @@ func Test_mutateDNSConfig(t *testing.T) {
 			}
 			p.Spec = spec
 		})
-		return &podMutateCtx{
-			clusterName: "sample",
-			pPod:        pPod,
+		return &PodMutateCtx{
+			ClusterName: "sample",
+			PPod:        pPod,
 		}
 	}
 	defaultOptions := []v1.PodDNSConfigOption{
@@ -336,7 +337,7 @@ func Test_mutateDNSConfig(t *testing.T) {
 	dnsNone := v1.DNSNone
 
 	type args struct {
-		p             *podMutateCtx
+		p             *PodMutateCtx
 		vPod          *v1.Pod
 		clusterDomain string
 		nameServer    string
@@ -570,14 +571,14 @@ func Test_mutateDNSConfig(t *testing.T) {
 			}
 			mutateDNSConfig(tt.args.p, tt.args.vPod, tt.args.clusterDomain, tt.args.nameServer, tt.args.dnsoptions)
 			if tt.expectedDNSPolicy != nil {
-				if tt.args.p.pPod.Spec.DNSPolicy != *tt.expectedDNSPolicy {
-					t.Errorf("expected DNSPolicy %+v, got %+v", *tt.expectedDNSPolicy, tt.args.p.pPod.Spec.DNSPolicy)
+				if tt.args.p.PPod.Spec.DNSPolicy != *tt.expectedDNSPolicy {
+					t.Errorf("expected DNSPolicy %+v, got %+v", *tt.expectedDNSPolicy, tt.args.p.PPod.Spec.DNSPolicy)
 				}
 			}
 
 			if tt.expectedDNSConfig != nil {
-				if !equality.Semantic.DeepEqual(tt.args.p.pPod.Spec.DNSConfig, tt.expectedDNSConfig) {
-					t.Errorf("expected DNSConfig %+v, got %+v", *tt.expectedDNSConfig, tt.args.p.pPod.Spec.DNSConfig)
+				if !equality.Semantic.DeepEqual(tt.args.p.PPod.Spec.DNSConfig, tt.expectedDNSConfig) {
+					t.Errorf("expected DNSConfig %+v, got %+v", *tt.expectedDNSConfig, tt.args.p.PPod.Spec.DNSConfig)
 				}
 			}
 		})
