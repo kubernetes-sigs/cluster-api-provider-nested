@@ -474,7 +474,7 @@ func (c *MultiClusterController) processNextWorkItem() bool {
 	metrics.RecordDWSOperationStatus(c.objectKind, req.ClusterName, utilconstants.StatusCodeError)
 	c.Queue.AddRateLimited(req)
 	klog.Errorf("%s dws request reconcile failed: %v", req, err)
-	return false
+	return true
 }
 
 func (c *MultiClusterController) FilterObjectFromSchedulingResult(req reconciler.Request) bool {
