@@ -17,6 +17,7 @@ limitations under the License.
 package pod
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -39,6 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/manager"
 	pa "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/patrol"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/resources/pod/mutatorplugin"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/resources/pod/validationplugin"
 	uw "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/uwcontroller"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/vnode"
@@ -77,6 +79,7 @@ type controller struct {
 	// vnodeProvider manages vnode object.
 	vnodeProvider provider.VirtualNodeProvider
 	plugin        validationplugin.Interface
+	podMutators   []conversion.PodMutator
 }
 
 type VirtulNodeDeletionPhase string
@@ -129,6 +132,26 @@ func NewPodController(config *config.SyncerConfiguration,
 			c.plugin = quotaplugin.(validationplugin.Interface)
 			c.plugin.ContextInit(c.MultiClusterController, options.IsFake)
 		}
+	}
+
+	initContext := &plugin.InitContext{
+		Context:    context.Background(),
+		Config:     config,
+		Client:     client,
+		Informer:   informer,
+		VCClient:   vcClient,
+		VCInformer: vcInformer,
+	}
+
+	mutatorList := mutatorplugin.MutatorRegister.List()
+	for _, r := range mutatorList {
+		mutator, err := r.Init(initContext).Instance()
+		if err != nil {
+			klog.Errorf("initialize mutator plugin %s with err %v", r.ID, err)
+			continue
+		}
+		mp := mutator.(mutatorplugin.Interface)
+		c.podMutators = append(c.podMutators, mp.Mutator())
 	}
 
 	c.serviceLister = c.informer.Services().Lister()
