@@ -96,13 +96,13 @@ replicaset.apps/vc-manager-76c5878465   1         1         1       92s
 replicaset.apps/vc-syncer-55c5bc5898    1         1         1       92s
 ```
 
-## (Optional) Create `kubelet` client secrete and update `vn-agent`
+## (Optional) Create `kubelet` client secret and update `vn-agent`
 
-By default, `vn-agent` works in a suboptimal mode by forwarding all `kubelet` API requests to super control-plane.
+By default, `vn-agent` works in a suboptimal mode by forwarding all `kubelet` API requests to the super control-plane.
 A more efficient method is to communicate with `kubelet` directly using the client cert/key used by the super control-plane.
 
 The location of the client PKI files may vary based on the local setup.
-Please note that we need to make sure the client cert/key files are imported as `client.crt` and `client.key` so that they can be referenced to.
+Please note that we need to make sure the client cert/key files are imported as `client.crt` and `client.key` so that they can be referenced.
 
 ### Create `kubelet` client secret in `minikube` cluster
 
@@ -116,7 +116,7 @@ cp ~/.minikube/cert.pem client.crt && cp ~/.minikube/key.pem client.key
 kubectl create secret generic vc-kubelet-client --from-file=client.crt --from-file=client.key --namespace vc-manager
 ```
 
-### Create `kubelet` client secrete in `kind` cluster:
+### Create `kubelet` client secret in `kind` cluster:
 
 If you're using `kind`, the client PKI files are located in its control plane Docker container.
 So we can retrieve them back and create `vc-kubelet-client` secret using the following commands:
@@ -154,7 +154,7 @@ The following cmd will create a `ClusterVersion` named `cv-sample-np`, which spe
 $ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-nested/main/virtualcluster/config/sampleswithspec/clusterversion_v1_nodeport.yaml
 ```
 
-> Note that tenant control plane does not have scheduler installed. The Pods are still scheduled as usual in super control plane.
+> Note that tenant control plane does not have a scheduler installed. The Pods are still scheduled as usual in super control plane.
 
 ## Create VirtualCluster
 
@@ -329,7 +329,7 @@ Load average: 0.45 0.47 0.54 1/1308 23
 
 ## (Optional) use `kubectl vc exec` to enter cluster context and regenerate kubeconfig for particular virtualcluster
 
-You can use `kubectl vc exec` to operate on desired virtualcluster, for example:
+You can use `kubectl vc exec` to operate on desired VirtualCluster, for example:
 ```bash
 $ kubectl vc exec vc-sample-1
 kubeconfig for virtualcluster default/vc-sample-1 is placed at:
