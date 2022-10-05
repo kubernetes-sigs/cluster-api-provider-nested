@@ -175,6 +175,7 @@ func SetVCStatus(vc *tenancyv1alpha1.VirtualCluster, phase tenancyv1alpha1.Clust
 		LastTransitionTime: &metav1.Time{Time: time.Now()},
 		Reason:             reason,
 		Message:            message,
+		Status:             corev1.ConditionTrue,
 	})
 }
 
