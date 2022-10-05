@@ -63,7 +63,7 @@ type VirtualClusterStatus struct {
 	// +optional
 	ClusterNamespace string `json:"clusterNamespace,omitempty"`
 
-	// A human readable message indicating details about why the cluster is in
+	// A human-readable message indicating details about why the cluster is in
 	// this condition.
 	// +optional
 	Message string `json:"message"`
@@ -102,7 +102,7 @@ type ClusterCondition struct {
 
 	// Last time the condition transitioned from one status to another.
 	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
 
 	// Unique, one-word, CamelCase reason for the condition's last transition.
 	// +optional

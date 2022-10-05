@@ -172,7 +172,7 @@ func SetVCStatus(vc *tenancyv1alpha1.VirtualCluster, phase tenancyv1alpha1.Clust
 	vc.Status.Message = message
 	vc.Status.Reason = reason
 	vc.Status.Conditions = append(vc.Status.Conditions, tenancyv1alpha1.ClusterCondition{
-		LastTransitionTime: metav1.NewTime(time.Now()),
+		LastTransitionTime: &metav1.Time{Time: time.Now()},
 		Reason:             reason,
 		Message:            message,
 	})
