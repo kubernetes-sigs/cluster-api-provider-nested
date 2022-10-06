@@ -68,6 +68,10 @@ const (
 	// ClusterVersionPartialUpgrade is an experimental feature that allows the cluster provisioner
 	// to apply ClusterVersion updates if VirtualCluster object is requested it
 	ClusterVersionPartialUpgrade = "ClusterVersionPartialUpgrade"
+
+	// TenantScheduler is an experimental feature that allows the tenant
+	// to have dedicated nodes and own scheduler instead of using vc-syncer
+	TenantScheduler = "TenantScheduler"
 )
 
 var defaultFeatures = FeatureList{
@@ -79,6 +83,7 @@ var defaultFeatures = FeatureList{
 	TenantAllowDNSPolicy:         {Default: false},
 	VNodeProviderPodIP:           {Default: false},
 	ClusterVersionPartialUpgrade: {Default: false},
+	TenantScheduler:              {Default: false},
 }
 
 type Feature string
