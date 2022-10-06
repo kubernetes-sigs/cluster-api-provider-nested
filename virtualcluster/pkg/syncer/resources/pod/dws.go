@@ -64,6 +64,12 @@ func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Resul
 	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vPod); err != nil && !apierrors.IsNotFound(err) {
 		return reconciler.Result{Requeue: true}, err
 	}
+	// if LabelTenantSchedulerName is specified, bypass syncing
+	schedulerlabel, ok := vPod.GetLabels()[constants.LabelTenantSchedulerName]
+	if ok && schedulerlabel != "" {
+		klog.V(5).Infof("skip syncing pod with tenant scheduler label")
+		return reconciler.Result{}, nil
+	}
 
 	var operation string
 	defer func() {

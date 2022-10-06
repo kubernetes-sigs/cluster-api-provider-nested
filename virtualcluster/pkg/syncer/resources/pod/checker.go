@@ -170,6 +170,12 @@ func (c *controller) PatrollerDo() {
 					continue
 				}
 			}
+			// if LabelTenantSchedulerName is specified, bypass syncing
+			schedulerlabel, ok := vList.Items[i].GetLabels()[constants.LabelTenantSchedulerName]
+			if ok && schedulerlabel != "" {
+				klog.V(5).Infof("skip syncing pod with tenant scheduler label %v", schedulerlabel)
+				continue
+			}
 			vSet.Insert(differ.ClusterObject{
 				Object:       &vList.Items[i],
 				OwnerCluster: cluster,
