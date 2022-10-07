@@ -55,11 +55,6 @@ func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Resul
 	reconcilestart := time.Now()
 	targetNamespace := conversion.ToSuperClusterNamespace(request.ClusterName, request.Namespace)
 
-	pPod, err := c.podLister.Pods(targetNamespace).Get(request.Name)
-	if err != nil && !apierrors.IsNotFound(err) {
-		return reconciler.Result{Requeue: true}, err
-	}
-
 	vPod := &corev1.Pod{}
 	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vPod); err != nil && !apierrors.IsNotFound(err) {
 		return reconciler.Result{Requeue: true}, err
@@ -71,6 +66,10 @@ func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Resul
 			klog.V(5).Infof("skip syncing pod with tenant scheduler label")
 			return reconciler.Result{}, nil
 		}
+	}
+	pPod, err := c.podLister.Pods(targetNamespace).Get(request.Name)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return reconciler.Result{Requeue: true}, err
 	}
 
 	var operation string
