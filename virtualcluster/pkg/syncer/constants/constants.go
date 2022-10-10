@@ -64,8 +64,8 @@ const (
 	// LabelSecretUID is the service account token secret UID in tenant namespace.
 	LabelSecretUID = "tenancy.x-k8s.io/secret.UID" // #nosec G101 -- This is a label key
 
-	// LabelTenantSchedulerName is used to by resources that do not need to be synced, but to be scheduled to a tenant controlled node
-	LabelTenantSchedulerName = "tenancy.x-k8s.io/tenant-scheduler"
+	// LabelTenantIgnoreSync is used by resources that do not need to be synced, but to be scheduled to a tenant controlled node
+	LabelTenantIgnoreSync = "tenancy.x-k8s.io/ignore-sync"
 
 	// UwsControllerWorkerHigh is the quantity of the worker routine for a resource that generates high number of uws requests.
 	UwsControllerWorkerHigh = 10

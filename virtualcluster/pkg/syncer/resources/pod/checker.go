@@ -161,7 +161,7 @@ func (c *controller) PatrollerDo() {
 
 	sel := labels.NewSelector()
 	if featuregate.DefaultFeatureGate.Enabled(featuregate.TenantScheduler) {
-		r, err := labels.NewRequirement(constants.LabelTenantSchedulerName, selection.DoesNotExist, nil)
+		r, err := labels.NewRequirement(constants.LabelTenantIgnoreSync, selection.NotEquals, []string{"true"})
 		if err == nil {
 			sel = sel.Add(*r)
 		}

@@ -60,9 +60,9 @@ func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Resul
 		return reconciler.Result{Requeue: true}, err
 	}
 	if featuregate.DefaultFeatureGate.Enabled(featuregate.TenantScheduler) {
-		// if LabelTenantSchedulerName is specified, bypass syncing
-		schedulerlabel, ok := vPod.GetLabels()[constants.LabelTenantSchedulerName]
-		if ok && schedulerlabel != "" {
+		// if constants.LabelTenantIgnoreSync is true, bypass syncing
+		schedulerlabel, ok := vPod.GetLabels()[constants.LabelTenantIgnoreSync]
+		if ok && schedulerlabel == "true" {
 			klog.V(5).Infof("skip syncing pod with tenant scheduler label")
 			return reconciler.Result{}, nil
 		}
