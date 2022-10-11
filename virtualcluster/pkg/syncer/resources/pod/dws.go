@@ -59,11 +59,11 @@ func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Resul
 	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vPod); err != nil && !apierrors.IsNotFound(err) {
 		return reconciler.Result{Requeue: true}, err
 	}
-	if featuregate.DefaultFeatureGate.Enabled(featuregate.TenantScheduler) {
+	if featuregate.DefaultFeatureGate.Enabled(featuregate.ResourceNoSync) {
 		// if constants.LabelTenantIgnoreSync is true, bypass syncing
-		schedulerlabel, ok := vPod.GetLabels()[constants.LabelTenantIgnoreSync]
-		if ok && schedulerlabel == "true" {
-			klog.V(5).Infof("skip syncing pod with tenant scheduler label")
+		ignoresynclabel, ok := vPod.GetLabels()[constants.LabelTenantIgnoreSync]
+		if ok && ignoresynclabel == "true" {
+			klog.V(5).Infof("skip syncing pod with ignore sync label = %v", ignoresynclabel)
 			return reconciler.Result{}, nil
 		}
 	}

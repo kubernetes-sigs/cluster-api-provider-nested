@@ -69,9 +69,9 @@ const (
 	// to apply ClusterVersion updates if VirtualCluster object is requested it
 	ClusterVersionPartialUpgrade = "ClusterVersionPartialUpgrade"
 
-	// TenantScheduler is an experimental feature that allows the tenant
-	// to have dedicated nodes and own scheduler instead of using vc-syncer
-	TenantScheduler = "TenantScheduler"
+	// ResourceNoSync is an experimental feature that gives tenant the capability
+	// of not syncing certain resources to super cluster.
+	ResourceNoSync = "ResourceNoSync"
 )
 
 var defaultFeatures = FeatureList{
@@ -83,7 +83,7 @@ var defaultFeatures = FeatureList{
 	TenantAllowDNSPolicy:         {Default: false},
 	VNodeProviderPodIP:           {Default: false},
 	ClusterVersionPartialUpgrade: {Default: false},
-	TenantScheduler:              {Default: false},
+	ResourceNoSync:               {Default: false},
 }
 
 type Feature string

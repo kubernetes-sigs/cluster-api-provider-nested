@@ -160,7 +160,7 @@ func (c *controller) PatrollerDo() {
 	vSet := differ.NewDiffSet()
 
 	sel := labels.NewSelector()
-	if featuregate.DefaultFeatureGate.Enabled(featuregate.TenantScheduler) {
+	if featuregate.DefaultFeatureGate.Enabled(featuregate.ResourceNoSync) {
 		r, err := labels.NewRequirement(constants.LabelTenantIgnoreSync, selection.NotEquals, []string{"true"})
 		if err == nil {
 			sel = sel.Add(*r)
