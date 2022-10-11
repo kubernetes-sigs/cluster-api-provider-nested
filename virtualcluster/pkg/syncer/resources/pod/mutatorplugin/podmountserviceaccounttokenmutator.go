@@ -26,7 +26,7 @@ import (
 
 func init() {
 	MutatorRegister.Register(&uplugin.Registration{
-		ID: "PodMountServiceAccountTokenMutator",
+		ID: "00_PodMountServiceAccountTokenMutator",
 		InitFn: func(ctx *uplugin.InitContext) (interface{}, error) {
 			return &PodMountServiceAccountTokenMutatorPlugin{disable: ctx.Config.(*config.SyncerConfiguration).DisableServiceAccountToken}, nil
 		},

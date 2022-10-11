@@ -17,6 +17,7 @@ limitations under the License.
 package plugin
 
 import (
+	"sort"
 	"sync"
 
 	pkgerr "github.com/pkg/errors"
@@ -89,7 +90,12 @@ func (reg *ResourceRegister) List() []*Registration {
 	reg.RLock()
 	defer reg.RUnlock()
 	r := make([]*Registration, 0, len(reg.resources))
-	for id := range reg.resources {
+	keys := make([]string, 0, len(reg.resources))
+	for k := range reg.resources {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, id := range keys {
 		r = append(r, reg.resources[id])
 	}
 	return r
