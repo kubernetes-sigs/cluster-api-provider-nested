@@ -26,7 +26,7 @@ import (
 
 func init() {
 	MutatorRegister.Register(&uplugin.Registration{
-		ID: "PodServiceLinkMutator",
+		ID: "00_PodServiceLinkMutator",
 		InitFn: func(ctx *uplugin.InitContext) (interface{}, error) {
 			return &PodServiceLinkMutatorPlugin{disable: ctx.Config.(*config.SyncerConfiguration).DisablePodServiceLinks}, nil
 		},

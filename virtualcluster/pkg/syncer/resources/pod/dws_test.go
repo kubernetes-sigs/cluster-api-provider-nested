@@ -19,6 +19,7 @@ package pod
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -28,12 +29,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/informers"
+	clientset "k8s.io/client-go/kubernetes"
 	core "k8s.io/client-go/testing"
 	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
+	vcclient "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/client/clientset/versioned"
+	vcinformers "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/client/informers/externalversions/tenancy/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/apis/config"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/manager"
 	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
 
@@ -225,6 +232,9 @@ func superService(name, namespace, uid string, clusterIP string) *corev1.Service
 				constants.LabelUID: uid,
 			},
 		},
+		Spec: corev1.ServiceSpec{Ports: []corev1.ServicePort{
+			{Name: "test", Port: int32(80)},
+		}},
 	}
 	if clusterIP != "" {
 		svc.Spec.ClusterIP = clusterIP
@@ -264,6 +274,7 @@ func TestDWPodCreation(t *testing.T) {
 	testcases := map[string]struct {
 		ExistingObjectInSuper  []runtime.Object
 		ExistingObjectInTenant []runtime.Object
+		DisablePodServiceLinks bool
 		ExpectedCreatedPods    []*corev1.Pod
 		ExpectedError          string
 	}{
@@ -278,6 +289,23 @@ func TestDWPodCreation(t *testing.T) {
 				tenantServiceAccount("default", "default", "12345"),
 			},
 			ExpectedCreatedPods: []*corev1.Pod{superPod(defaultClusterKey, defaultVCName, defaultVCNamespace, "pod-1", "default", "12345")},
+		},
+		"new Pod DisablePodServiceLinks": {
+			ExistingObjectInSuper: []runtime.Object{
+				superSecret("default-token-12345", superDefaultNSName, "s12345"),
+				superService("kubernetes", superDefaultNSName, "12345", ""),
+			},
+			ExistingObjectInTenant: []runtime.Object{
+				tenantPod("pod-1", "default", "12345"),
+				tenantSecret(testTenantServiceAccountTokenSecretName, "default", "s12345"),
+				tenantServiceAccount("default", "default", "12345"),
+			},
+			ExpectedCreatedPods: []*corev1.Pod{func() *corev1.Pod {
+				pod := superPod(defaultClusterKey, defaultVCName, defaultVCNamespace, "pod-1", "default", "12345")
+				pod.Spec.EnableServiceLinks = pointer.BoolPtr(false)
+				return pod
+			}()},
+			DisablePodServiceLinks: true,
 		},
 		"load pod which under deletion": {
 			ExistingObjectInSuper: []runtime.Object{},
@@ -358,6 +386,60 @@ func TestDWPodCreation(t *testing.T) {
 			ExpectedCreatedPods: []*corev1.Pod{superPod(defaultClusterKey, defaultVCName, defaultVCNamespace, "pod-1", "kube-system", "12345")},
 			ExpectedError:       "",
 		},
+		"only a dns service with service link disabled": {
+			ExistingObjectInSuper: []runtime.Object{
+				superSecret("default-token-12345", conversion.ToSuperClusterNamespace(defaultClusterKey, "kube-system"), "s12345"),
+				superService(constants.TenantDNSServerServiceName, conversion.ToSuperClusterNamespace(defaultClusterKey, constants.TenantDNSServerNS), "12345", "192.168.0.10"),
+			},
+			ExistingObjectInTenant: []runtime.Object{
+				func() *corev1.Pod {
+					pod := tenantPod("pod-1", "kube-system", "12345")
+					pod.Spec.EnableServiceLinks = pointer.BoolPtr(true)
+					return pod
+				}(),
+				tenantSecret(testTenantServiceAccountTokenSecretName, "kube-system", "s12345"),
+				tenantServiceAccount("default", "kube-system", "12345"),
+			},
+			ExpectedCreatedPods: []*corev1.Pod{func() *corev1.Pod {
+				pod := superPod(defaultClusterKey, defaultVCName, defaultVCNamespace, "pod-1", "kube-system", "12345")
+				pod.Spec.EnableServiceLinks = pointer.BoolPtr(false)
+				return pod
+			}()},
+			ExpectedError:          "",
+			DisablePodServiceLinks: true,
+		},
+		"dns service with service links": {
+			ExistingObjectInSuper: []runtime.Object{
+				superSecret("default-token-12345", conversion.ToSuperClusterNamespace(defaultClusterKey, "kube-system"), "s12345"),
+				superService(constants.TenantDNSServerServiceName, conversion.ToSuperClusterNamespace(defaultClusterKey, constants.TenantDNSServerNS), "12345", "192.168.0.10"),
+			},
+			ExistingObjectInTenant: []runtime.Object{
+				func() *corev1.Pod {
+					pod := tenantPod("pod-1", "kube-system", "12345")
+					pod.Spec.EnableServiceLinks = pointer.BoolPtr(true)
+					return pod
+				}(),
+				tenantSecret(testTenantServiceAccountTokenSecretName, "kube-system", "s12345"),
+				tenantServiceAccount("default", "kube-system", "12345"),
+			},
+			ExpectedCreatedPods: []*corev1.Pod{func() *corev1.Pod {
+				pod := superPod(defaultClusterKey, defaultVCName, defaultVCNamespace, "pod-1", "kube-system", "12345")
+				pod.Spec.EnableServiceLinks = pointer.BoolPtr(true)
+				pod.Spec.Containers[0].Env = []corev1.EnvVar{
+					{Name: "KUBERNETES_SERVICE_HOST", Value: "kubernetes"},
+					{Name: "KUBE_DNS_PORT", Value: "tcp://192.168.0.10:80"},
+					{Name: "KUBE_DNS_PORT_80_TCP", Value: "tcp://192.168.0.10:80"},
+					{Name: "KUBE_DNS_PORT_80_TCP_ADDR", Value: "192.168.0.10"},
+					{Name: "KUBE_DNS_PORT_80_TCP_PORT", Value: "80"},
+					{Name: "KUBE_DNS_PORT_80_TCP_PROTO", Value: "tcp"},
+					{Name: "KUBE_DNS_SERVICE_HOST", Value: "192.168.0.10"},
+					{Name: "KUBE_DNS_SERVICE_PORT", Value: "80"},
+					{Name: "KUBE_DNS_SERVICE_PORT_TEST", Value: "80"},
+				}
+				return pod
+			}()},
+			ExpectedError: "",
+		},
 		"new pod with nodeName": {
 			ExistingObjectInSuper: []runtime.Object{
 				superSecret("default-token-12345", superDefaultNSName, "s12345"),
@@ -391,7 +473,15 @@ func TestDWPodCreation(t *testing.T) {
 
 	for k, tc := range testcases {
 		t.Run(k, func(t *testing.T) {
-			actions, reconcileErr, err := util.RunDownwardSync(NewPodController, testTenant, tc.ExistingObjectInSuper, tc.ExistingObjectInTenant, tc.ExistingObjectInTenant[0], nil)
+			actions, reconcileErr, err := util.RunDownwardSync(func(config *config.SyncerConfiguration,
+				client clientset.Interface,
+				informer informers.SharedInformerFactory,
+				vcClient vcclient.Interface,
+				vcInformer vcinformers.VirtualClusterInformer,
+				options manager.ResourceSyncerOptions) (manager.ResourceSyncer, error) {
+				config.DisablePodServiceLinks = tc.DisablePodServiceLinks
+				return NewPodController(config, client, informer, vcClient, vcInformer, options)
+			}, testTenant, tc.ExistingObjectInSuper, tc.ExistingObjectInTenant, tc.ExistingObjectInTenant[0], nil)
 			if err != nil {
 				t.Errorf("%s: error running downward sync: %v", k, err)
 				return
@@ -420,6 +510,9 @@ func TestDWPodCreation(t *testing.T) {
 					t.Errorf("%s: Unexpected action %s", k, action)
 				}
 				createdPod := action.(core.CreateAction).GetObject().(*corev1.Pod)
+				sort.Slice(createdPod.Spec.Containers[0].Env, func(i, j int) bool {
+					return createdPod.Spec.Containers[0].Env[i].Name < createdPod.Spec.Containers[0].Env[j].Name
+				})
 
 				bb, _ := json.Marshal(createdPod)
 				fmt.Printf("==== %s\n\n\n\n", string(bb))
