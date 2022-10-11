@@ -25,10 +25,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
@@ -155,9 +158,17 @@ func (c *controller) PatrollerDo() {
 
 	knownClusterSet := sets.NewString(clusterNames...)
 	vSet := differ.NewDiffSet()
+
+	sel := labels.NewSelector()
+	if featuregate.DefaultFeatureGate.Enabled(featuregate.TenantAllowResourceNoSync) {
+		r, err := labels.NewRequirement(constants.LabelTenantIgnoreSync, selection.NotEquals, []string{"true"})
+		if err == nil {
+			sel = sel.Add(*r)
+		}
+	}
 	for _, cluster := range clusterNames {
 		vList := &corev1.PodList{}
-		if err := c.MultiClusterController.List(cluster, vList); err != nil {
+		if err := c.MultiClusterController.List(cluster, vList, &client.MatchingLabelsSelector{Selector: sel}); err != nil {
 			klog.Errorf("error listing pod from cluster %s informer cache: %v", cluster, err)
 			knownClusterSet.Delete(cluster)
 			continue
@@ -170,6 +181,7 @@ func (c *controller) PatrollerDo() {
 					continue
 				}
 			}
+
 			vSet.Insert(differ.ClusterObject{
 				Object:       &vList.Items[i],
 				OwnerCluster: cluster,
