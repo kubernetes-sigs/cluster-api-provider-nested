@@ -69,9 +69,9 @@ const (
 	// to apply ClusterVersion updates if VirtualCluster object is requested it
 	ClusterVersionPartialUpgrade = "ClusterVersionPartialUpgrade"
 
-	// ResourceNoSync is an experimental feature that gives tenant the capability
+	// TenantAllowResourceNoSync is an experimental feature that gives tenant the capability
 	// of not syncing certain resources to super cluster.
-	ResourceNoSync = "ResourceNoSync"
+	TenantAllowResourceNoSync = "TenantAllowResourceNoSync"
 )
 
 var defaultFeatures = FeatureList{
@@ -83,7 +83,7 @@ var defaultFeatures = FeatureList{
 	TenantAllowDNSPolicy:         {Default: false},
 	VNodeProviderPodIP:           {Default: false},
 	ClusterVersionPartialUpgrade: {Default: false},
-	ResourceNoSync:               {Default: false},
+	TenantAllowResourceNoSync:    {Default: false},
 }
 
 type Feature string

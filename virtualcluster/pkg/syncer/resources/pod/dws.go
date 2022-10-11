@@ -59,7 +59,7 @@ func (c *controller) Reconcile(request reconciler.Request) (res reconciler.Resul
 	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vPod); err != nil && !apierrors.IsNotFound(err) {
 		return reconciler.Result{Requeue: true}, err
 	}
-	if featuregate.DefaultFeatureGate.Enabled(featuregate.ResourceNoSync) {
+	if featuregate.DefaultFeatureGate.Enabled(featuregate.TenantAllowResourceNoSync) {
 		// if constants.LabelTenantIgnoreSync is true, bypass syncing
 		ignoresynclabel, ok := vPod.GetLabels()[constants.LabelTenantIgnoreSync]
 		if ok && ignoresynclabel == "true" {
