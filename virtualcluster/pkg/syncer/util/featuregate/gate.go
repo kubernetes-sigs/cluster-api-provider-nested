@@ -72,18 +72,23 @@ const (
 	// TenantAllowResourceNoSync is an experimental feature that gives tenant the capability
 	// of not syncing certain resources to super cluster.
 	TenantAllowResourceNoSync = "TenantAllowResourceNoSync"
+
+	// DisableCRDPreserveUnknownFields helps control syncing deprecated(k8s <= 1.20) field on CRD.
+	// Enabling this will set spec.preserveUnknownField to false regardless the value in source CRD spec.
+	DisableCRDPreserveUnknownFields = "DisableCRDPreserveUnknownFields"
 )
 
 var defaultFeatures = FeatureList{
-	SuperClusterPooling:          {Default: false},
-	SuperClusterServiceNetwork:   {Default: false},
-	SuperClusterLabelling:        {Default: false},
-	SuperClusterLabelFilter:      {Default: false},
-	VNodeProviderService:         {Default: false},
-	TenantAllowDNSPolicy:         {Default: false},
-	VNodeProviderPodIP:           {Default: false},
-	ClusterVersionPartialUpgrade: {Default: false},
-	TenantAllowResourceNoSync:    {Default: false},
+	SuperClusterPooling:             {Default: false},
+	SuperClusterServiceNetwork:      {Default: false},
+	SuperClusterLabelling:           {Default: false},
+	SuperClusterLabelFilter:         {Default: false},
+	VNodeProviderService:            {Default: false},
+	TenantAllowDNSPolicy:            {Default: false},
+	VNodeProviderPodIP:              {Default: false},
+	ClusterVersionPartialUpgrade:    {Default: false},
+	TenantAllowResourceNoSync:       {Default: false},
+	DisableCRDPreserveUnknownFields: {Default: false},
 }
 
 type Feature string
