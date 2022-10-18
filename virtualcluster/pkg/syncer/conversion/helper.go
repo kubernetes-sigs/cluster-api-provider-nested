@@ -306,6 +306,14 @@ func BuildVirtualPriorityClass(cluster string, pPriorityClass *v1scheduling.Prio
 func BuildVirtualCRD(cluster string, pCRD *apiextensionsv1.CustomResourceDefinition) *apiextensionsv1.CustomResourceDefinition {
 	vCRD := pCRD.DeepCopy()
 	ResetMetadata(vCRD)
+	if featuregate.DefaultFeatureGate.Enabled(featuregate.DisableCRDPreserveUnknownFields) {
+		// In Kubernetes 1.20 the spec.preserveUnknownFields is not allowed to be set to true
+		// given Kubernetes has already deprecated this any cluster >=1.20 will not be able
+		// sync these resources, instead if a CRD has the field still set this disables that.
+		vCRD.Spec.PreserveUnknownFields = false
+
+	}
+
 	return vCRD
 }
 
