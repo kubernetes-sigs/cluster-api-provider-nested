@@ -720,6 +720,20 @@ func (e vcEquality) CheckPVCEquality(pObj, vObj *v1.PersistentVolumeClaim) *v1.P
 	return updated
 }
 
+func (e vcEquality) CheckUWPVCStatusEquality(pObj, vObj *v1.PersistentVolumeClaim) *v1.PersistentVolumeClaim {
+	var updated *v1.PersistentVolumeClaim
+	if pObj.Status.Capacity != nil && pObj.Status.Capacity["storage"] != vObj.Status.Capacity["storage"] {
+		if updated == nil {
+			updated = vObj.DeepCopy()
+		}
+		if updated.Status.Capacity == nil {
+			updated.Status.Capacity = make(map[v1.ResourceName]resource.Quantity)
+		}
+		updated.Status.Capacity["storage"] = pObj.Status.Capacity["storage"]
+	}
+	return updated
+}
+
 func (e vcEquality) CheckPVSpecEquality(pObj, vObj *v1.PersistentVolumeSpec) *v1.PersistentVolumeSpec {
 	var updatedPVSpec *v1.PersistentVolumeSpec
 	pCopy := pObj.DeepCopy()
