@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	pkgerr "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -62,7 +61,7 @@ func (c *controller) BackPopulate(key string) error {
 
 	tenantClient, err := c.MultiClusterController.GetClusterClient(clusterName)
 	if err != nil {
-		return pkgerr.Wrapf(err, "failed to create client from cluster %s config", clusterName)
+		return fmt.Errorf("failed to create client from cluster %s config: %w", clusterName, err)
 	}
 
 	vPVC := &corev1.PersistentVolumeClaim{}
