@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,12 +17,19 @@ limitations under the License.
 package persistentvolumeclaim
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
+	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	listersv1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
+	uw "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/uwcontroller"
 
 	vcclient "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/client/clientset/versioned"
 	vcinformers "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/client/informers/externalversions/tenancy/v1alpha1"
@@ -49,6 +56,7 @@ type controller struct {
 	// super control plane pvc lister
 	pvcLister listersv1.PersistentVolumeClaimLister
 	pvcSynced cache.InformerSynced
+	informer  coreinformers.Interface
 }
 
 func NewPVCController(config *config.SyncerConfiguration,
@@ -62,6 +70,7 @@ func NewPVCController(config *config.SyncerConfiguration,
 			Config: config,
 		},
 		pvcClient: client.CoreV1(),
+		informer:  informer.Core().V1(),
 	}
 
 	var err error
@@ -77,10 +86,44 @@ func NewPVCController(config *config.SyncerConfiguration,
 		c.pvcSynced = informer.Core().V1().PersistentVolumeClaims().Informer().HasSynced
 	}
 
+	c.UpwardController, err = uw.NewUWController(&corev1.PersistentVolumeClaim{}, c, uw.WithOptions(options.UWOptions))
+	if err != nil {
+		return nil, err
+	}
+
 	c.Patroller, err = pa.NewPatroller(&corev1.PersistentVolumeClaim{}, c, pa.WithOptions(options.PatrolOptions))
 	if err != nil {
 		return nil, err
 	}
 
+	c.informer.PersistentVolumeClaims().Informer().AddEventHandler(
+		cache.ResourceEventHandlerFuncs{
+			UpdateFunc: func(oldObj, newObj interface{}) {
+				pvc := newObj.(*corev1.PersistentVolumeClaim)
+				c.enqueuePersistentVolumeClaim(pvc)
+			},
+		},
+	)
 	return c, nil
+}
+
+func (c *controller) enqueuePersistentVolumeClaim(obj interface{}) {
+	pvc, ok := obj.(*corev1.PersistentVolumeClaim)
+	if !ok {
+		return
+	}
+
+	clusterName, _ := conversion.GetVirtualOwner(pvc)
+	if clusterName == "" {
+		return
+	}
+
+	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("couldn't get key for object %v: %v", obj, err))
+		return
+	}
+
+	klog.V(4).Infof("enqueue PersistentVolumeClaim %s", key)
+	c.UpwardController.AddToQueue(key)
 }

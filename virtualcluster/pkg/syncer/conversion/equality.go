@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -717,6 +717,20 @@ func (e vcEquality) CheckPVCEquality(pObj, vObj *v1.PersistentVolumeClaim) *v1.P
 		updated.Spec.Resources.Requests["storage"] = vObj.Spec.Resources.Requests["storage"]
 	}
 	// We don't check PVC status since it will be managed by tenant/control plane pv binder controller independently.
+	return updated
+}
+
+func (e vcEquality) CheckUWPVCStatusEquality(pObj, vObj *v1.PersistentVolumeClaim) *v1.PersistentVolumeClaim {
+	var updated *v1.PersistentVolumeClaim
+	if pObj.Status.Capacity != nil && pObj.Status.Capacity["storage"] != vObj.Status.Capacity["storage"] {
+		if updated == nil {
+			updated = vObj.DeepCopy()
+		}
+		if updated.Status.Capacity == nil {
+			updated.Status.Capacity = make(map[v1.ResourceName]resource.Quantity)
+		}
+		updated.Status.Capacity["storage"] = pObj.Status.Capacity["storage"]
+	}
 	return updated
 }
 

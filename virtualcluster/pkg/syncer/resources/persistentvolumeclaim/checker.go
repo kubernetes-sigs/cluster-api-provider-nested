@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -110,6 +110,11 @@ func (c *controller) PatrollerDo() {
 		if updatedPVC != nil {
 			atomic.AddUint64(&numMissMatchedPVCs, 1)
 			klog.Warningf("spec of pvc %s diff in super&tenant control plane", pObj.Key)
+		}
+
+		if conversion.Equality(c.Config, vc).CheckUWPVCStatusEquality(p, v) != nil {
+			klog.Warningf("status of pvc %v/%v diff in super&tenant control plane", p.Namespace, p.Name)
+			c.enqueuePersistentVolumeClaim(p)
 		}
 	}
 	d.DeleteFunc = func(pObj differ.ClusterObject) {
