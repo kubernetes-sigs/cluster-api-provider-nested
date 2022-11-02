@@ -325,5 +325,8 @@ func (c *Cluster) SetKey(k string) {
 
 // Stop cancel/close the cache to terminate informers.
 func (c *Cluster) Stop() {
+	if c.cancelContext == nil {
+		return
+	}
 	c.cancelContext()
 }
