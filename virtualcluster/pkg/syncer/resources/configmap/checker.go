@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/metrics"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/patrol/differ"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
 )
 
 var numMissMatchedConfigMaps uint64
@@ -63,6 +64,13 @@ func (c *controller) PatrollerDo() {
 	}
 	pSet := differ.NewDiffSet()
 	for _, pCM := range pConfigMaps {
+		// Ingore both RootCACertConfigMapName and TenantRootCACertConfigMapName from the super.
+		// TenantRootCACertConfigMapName is created from the vRootCACertConfigMap and
+		// RootCACertConfigMapName should be left alone.
+		if featuregate.DefaultFeatureGate.Enabled(featuregate.RootCACertConfigMapSupport) &&
+			(pCM.Name == constants.RootCACertConfigMapName || pCM.Name == constants.TenantRootCACertConfigMapName) {
+			continue
+		}
 		pSet.Insert(differ.ClusterObject{Object: pCM, Key: differ.DefaultClusterObjectKey(pCM, "")})
 	}
 

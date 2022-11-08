@@ -76,6 +76,10 @@ const (
 	// DisableCRDPreserveUnknownFields helps control syncing deprecated(k8s <= 1.20) field on CRD.
 	// Enabling this will set spec.preserveUnknownField to false regardless the value in source CRD spec.
 	DisableCRDPreserveUnknownFields = "DisableCRDPreserveUnknownFields"
+
+	// RootCACertConfigMapSupport is an experimental feature that allows clusters +1.21 to support
+	// the kube-root-ca.crt dropped into each Namespace
+	RootCACertConfigMapSupport = "RootCACertConfigMapSupport"
 )
 
 var defaultFeatures = FeatureList{
@@ -89,6 +93,7 @@ var defaultFeatures = FeatureList{
 	ClusterVersionPartialUpgrade:    {Default: false},
 	TenantAllowResourceNoSync:       {Default: false},
 	DisableCRDPreserveUnknownFields: {Default: false},
+	RootCACertConfigMapSupport:      {Default: false},
 }
 
 type Feature string

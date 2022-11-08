@@ -43,8 +43,10 @@ func (c *controller) StartDWS(stopCh <-chan struct{}) error {
 func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, error) {
 	klog.V(4).Infof("reconcile configmap %s/%s event for cluster %s", request.Namespace, request.Name, request.ClusterName)
 
+	vName, pName := conversion.GetConfigMapName(request.Name)
+
 	targetNamespace := conversion.ToSuperClusterNamespace(request.ClusterName, request.Namespace)
-	pConfigMap, err := c.configMapLister.ConfigMaps(targetNamespace).Get(request.Name)
+	pConfigMap, err := c.configMapLister.ConfigMaps(targetNamespace).Get(pName)
 	pExists := true
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
@@ -54,7 +56,7 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	}
 	vExists := true
 	vConfigMap := &corev1.ConfigMap{}
-	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, request.Name, vConfigMap); err != nil {
+	if err := c.MultiClusterController.Get(request.ClusterName, request.Namespace, vName, vConfigMap); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return reconciler.Result{Requeue: true}, err
 		}
@@ -63,21 +65,21 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 
 	switch {
 	case vExists && !pExists:
-		err := c.reconcileConfigMapCreate(request.ClusterName, targetNamespace, request.UID, vConfigMap)
+		err := c.reconcileConfigMapCreate(request.ClusterName, pName, targetNamespace, request.UID, vConfigMap)
 		if err != nil {
-			klog.Errorf("failed reconcile configmap %s/%s CREATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
+			klog.Errorf("failed reconcile configmap %s/%s CREATE of cluster %s %v", request.Namespace, vName, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
 	case !vExists && pExists:
-		err := c.reconcileConfigMapRemove(request.ClusterName, targetNamespace, request.UID, request.Name, pConfigMap)
+		err := c.reconcileConfigMapRemove(request.ClusterName, targetNamespace, request.UID, pName, pConfigMap)
 		if err != nil {
-			klog.Errorf("failed reconcile configmap %s/%s DELETE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
+			klog.Errorf("failed reconcile configmap %s/%s DELETE of cluster %s %v", request.Namespace, vName, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
 	case vExists && pExists:
 		err := c.reconcileConfigMapUpdate(request.ClusterName, targetNamespace, request.UID, pConfigMap, vConfigMap)
 		if err != nil {
-			klog.Errorf("failed reconcile configmap %s/%s UPDATE of cluster %s %v", request.Namespace, request.Name, request.ClusterName, err)
+			klog.Errorf("failed reconcile configmap %s/%s UPDATE of cluster %s %v", request.Namespace, vName, request.ClusterName, err)
 			return reconciler.Result{Requeue: true}, err
 		}
 	default:
@@ -86,7 +88,10 @@ func (c *controller) Reconcile(request reconciler.Request) (reconciler.Result, e
 	return reconciler.Result{}, nil
 }
 
-func (c *controller) reconcileConfigMapCreate(clusterName, targetNamespace, requestUID string, configMap *corev1.ConfigMap) error {
+func (c *controller) reconcileConfigMapCreate(clusterName, targetName, targetNamespace, requestUID string, configMap *corev1.ConfigMap) error {
+	// This supports setting a different name between tenant and super
+	configMap.SetName(targetName)
+
 	newObj, err := c.Conversion().BuildSuperClusterObject(clusterName, configMap)
 	if err != nil {
 		return err

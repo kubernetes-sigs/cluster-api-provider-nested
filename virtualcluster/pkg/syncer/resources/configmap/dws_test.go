@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
 	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
 
@@ -66,6 +67,8 @@ func superConfigMap(name, namespace, uid, clusterKey string) *corev1.ConfigMap {
 }
 
 func TestDWConfigMapCreation(t *testing.T) {
+	defer util.SetFeatureGateDuringTest(t, featuregate.DefaultFeatureGate, featuregate.RootCACertConfigMapSupport, true)()
+
 	testTenant := &v1alpha1.VirtualCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -94,6 +97,13 @@ func TestDWConfigMapCreation(t *testing.T) {
 				tenantConfigMap("cm-1", "default", "12345"),
 			},
 			ExpectedCreatedPObject: []string{superDefaultNSName + "/cm-1"},
+		},
+		"new root ca cm": {
+			ExistingObjectInSuper: []runtime.Object{},
+			ExistingObjectInTenant: []runtime.Object{
+				tenantConfigMap(constants.RootCACertConfigMapName, "default", "12345"),
+			},
+			ExpectedCreatedPObject: []string{superDefaultNSName + "/" + constants.TenantRootCACertConfigMapName},
 		},
 		"new cm but already exists": {
 			ExistingObjectInSuper: []runtime.Object{

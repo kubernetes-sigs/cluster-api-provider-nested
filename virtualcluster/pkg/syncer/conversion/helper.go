@@ -114,6 +114,14 @@ func GetKubeConfigOfVC(c v1core.CoreV1Interface, vc *v1alpha1.VirtualCluster) ([
 	return adminKubeConfigSecret.Data[secretFieldName], nil
 }
 
+func GetConfigMapName(name string) (string, string) {
+	if featuregate.DefaultFeatureGate.Enabled(featuregate.RootCACertConfigMapSupport) &&
+		name == constants.RootCACertConfigMapName {
+		return name, constants.TenantRootCACertConfigMapName
+	}
+	return name, name
+}
+
 type objectConversion struct {
 	config *config.SyncerConfiguration
 	mcc    mc.MultiClusterInterface
