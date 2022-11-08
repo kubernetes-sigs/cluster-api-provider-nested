@@ -100,6 +100,14 @@ const (
 	LabelSuperClusterIP = "transparency.tenancy.x-k8s.io/clusterIP"
 
 	KubeconfigAdminSecretName = "admin-kubeconfig" // #nosec G101 -- This is a secret name
+
+	// RootCACertConfigMapName is name of the configmap which stores certificates
+	// to access api-server
+	RootCACertConfigMapName = "kube-root-ca.crt"
+
+	// TenantRootCACertConfigMapName is name of the configmap which stores certificates
+	// to access api-server
+	TenantRootCACertConfigMapName = "tenant-kube-root-ca.crt"
 )
 
 const (

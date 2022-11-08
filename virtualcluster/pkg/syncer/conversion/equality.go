@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/apis/config"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
 )
 
 type vcEquality struct {
@@ -447,6 +448,10 @@ func (e vcEquality) checkInt64Equality(pObj, vObj *int64) (*int64, bool) {
 // CheckConfigMapEquality checks whether super control plane ConfigMap and virtual ConfigMap
 // are logically equal. The source of truth is virtual object.
 func (e vcEquality) CheckConfigMapEquality(pObj, vObj *v1.ConfigMap) *v1.ConfigMap {
+	// Before processing Equality on ConfigMaps we need to reset the CM if pObj is used for
+	// RootCACertConfigMaps.
+	_, pObj.Name = GetConfigMapName(vObj.Name)
+
 	var updated *v1.ConfigMap
 	updatedMeta := e.CheckDWObjectMetaEquality(&pObj.ObjectMeta, &vObj.ObjectMeta)
 	if updatedMeta != nil {
@@ -470,6 +475,13 @@ func (e vcEquality) CheckConfigMapEquality(pObj, vObj *v1.ConfigMap) *v1.ConfigM
 			updated = pObj.DeepCopy()
 		}
 		updated.BinaryData = updateBinaryData
+	}
+
+	// After we have processed the equality checks if updated is not nil reupdate to include
+	// super's ConfigMap Name
+	if featuregate.DefaultFeatureGate.Enabled(featuregate.RootCACertConfigMapSupport) &&
+		vObj.Name == constants.RootCACertConfigMapName && updated != nil {
+		updated.Name = constants.TenantRootCACertConfigMapName
 	}
 
 	return updated

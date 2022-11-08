@@ -27,11 +27,15 @@ import (
 	core "k8s.io/client-go/testing"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
 	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
 
 func TestConfigMapPatrol(t *testing.T) {
+	defer util.SetFeatureGateDuringTest(t, featuregate.DefaultFeatureGate, featuregate.RootCACertConfigMapSupport, true)()
+
 	testTenant := &v1alpha1.VirtualCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -65,6 +69,12 @@ func TestConfigMapPatrol(t *testing.T) {
 			},
 			ExpectedNoOperation: true,
 		},
+		"pConfigMap RootCACertConfigMap not created by vc": {
+			ExistingObjectInSuper: []runtime.Object{
+				tenantConfigMap(constants.RootCACertConfigMapName, superDefaultNSName, "12345"),
+			},
+			ExpectedNoOperation: true,
+		},
 		"pConfigMap exists, vConfigMap does not exists": {
 			ExistingObjectInSuper: []runtime.Object{
 				superConfigMap("cm-2", superDefaultNSName, "12345", defaultClusterKey),
@@ -72,6 +82,18 @@ func TestConfigMapPatrol(t *testing.T) {
 			ExpectedDeletedPObject: []string{
 				superDefaultNSName + "/cm-2",
 			},
+		},
+		"pConfigMap RootCACertConfigMap exists, vConfigMap does not exists": {
+			ExistingObjectInSuper: []runtime.Object{
+				superConfigMap(constants.RootCACertConfigMapName, superDefaultNSName, "12345", defaultClusterKey),
+			},
+			ExpectedNoOperation: true,
+		},
+		"pConfigMap TenantRootCACertConfigMap exists, vConfigMap does not exists": {
+			ExistingObjectInSuper: []runtime.Object{
+				superConfigMap(constants.TenantRootCACertConfigMapName, superDefaultNSName, "12345", defaultClusterKey),
+			},
+			ExpectedNoOperation: true,
 		},
 		"pConfigMap exists, vConfigMap exists with different uid": {
 			ExistingObjectInSuper: []runtime.Object{
@@ -83,6 +105,15 @@ func TestConfigMapPatrol(t *testing.T) {
 			ExpectedDeletedPObject: []string{
 				superDefaultNSName + "/cm-3",
 			},
+		},
+		"pConfigMap RootCACertConfigMapName exists, vConfigMap RootCACertConfigMapName exists with different uid": {
+			ExistingObjectInSuper: []runtime.Object{
+				superConfigMap(constants.RootCACertConfigMapName, superDefaultNSName, "12345", defaultClusterKey),
+			},
+			ExistingObjectInTenant: []runtime.Object{
+				tenantConfigMap(constants.RootCACertConfigMapName, "default", "123456"),
+			},
+			ExpectedNoOperation: true,
 		},
 		"pConfigMap exists, vConfigMap exists with different spec": {
 			ExistingObjectInSuper: []runtime.Object{
@@ -100,6 +131,15 @@ func TestConfigMapPatrol(t *testing.T) {
 			},
 			ExpectedCreatedPObject: []string{
 				superDefaultNSName + "/cm-5",
+			},
+			WaitDWS: true,
+		},
+		"vConfigMap RootCACertConfigMapName exists, pConfigMap does not exists": {
+			ExistingObjectInTenant: []runtime.Object{
+				tenantConfigMap(constants.RootCACertConfigMapName, "default", "12345"),
+			},
+			ExpectedCreatedPObject: []string{
+				superDefaultNSName + "/" + constants.TenantRootCACertConfigMapName,
 			},
 			WaitDWS: true,
 		},
