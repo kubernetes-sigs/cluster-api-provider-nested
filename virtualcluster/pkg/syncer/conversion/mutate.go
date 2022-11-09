@@ -428,6 +428,7 @@ func (s *serviceMutator) Mutate(vService *v1.Service) {
 		anno[constants.LabelClusterIP] = vService.Spec.ClusterIP
 		s.pService.SetAnnotations(anno)
 		s.pService.Spec.ClusterIP = ""
+		s.pService.Spec.ClusterIPs = []string{}
 	}
 	s.pService.Spec.HealthCheckNodePort = 0
 	for i := range s.pService.Spec.Ports {

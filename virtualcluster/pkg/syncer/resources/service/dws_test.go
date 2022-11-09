@@ -47,6 +47,15 @@ func tenantService(name, namespace, uid string) *corev1.Service {
 	}
 }
 
+func applyClusterIPToService(service *corev1.Service, clusterIP string) *corev1.Service {
+	service.Spec.ClusterIP = clusterIP
+	if service.Spec.ClusterIPs == nil {
+		service.Spec.ClusterIPs = make([]string, 1)
+	}
+	service.Spec.ClusterIPs[0] = clusterIP
+	return service
+}
+
 func superService(name, namespace, uid, clusterKey string) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -87,6 +96,11 @@ func TestDWServiceCreation(t *testing.T) {
 		"new service": {
 			ExistingObjectInSuper:   []runtime.Object{},
 			ExistingObjectInTenant:  tenantService("svc-1", "default", "12345"),
+			ExpectedCreatedServices: []string{superDefaultNSName + "/svc-1"},
+		},
+		"new service with clusterIP": {
+			ExistingObjectInSuper:   []runtime.Object{},
+			ExistingObjectInTenant:  applyClusterIPToService(tenantService("svc-1", "default", "12345"), "1.1.1.1"),
 			ExpectedCreatedServices: []string{superDefaultNSName + "/svc-1"},
 		},
 		"new service but already exists": {
