@@ -51,6 +51,23 @@ func (pl *PodRootCACertMutatorPlugin) Mutator() conversion.PodMutator {
 			}
 		}
 
+		for c := range p.PPod.Spec.InitContainers {
+			for e := range p.PPod.Spec.InitContainers[c].Env {
+				if p.PPod.Spec.InitContainers[c].Env[e].ValueFrom != nil &&
+					p.PPod.Spec.InitContainers[c].Env[e].ValueFrom.ConfigMapKeyRef != nil &&
+					p.PPod.Spec.InitContainers[c].Env[e].ValueFrom.ConfigMapKeyRef.Name == constants.RootCACertConfigMapName {
+					p.PPod.Spec.InitContainers[c].Env[e].ValueFrom.ConfigMapKeyRef.Name = constants.TenantRootCACertConfigMapName
+				}
+			}
+
+			for e := range p.PPod.Spec.InitContainers[c].EnvFrom {
+				if p.PPod.Spec.InitContainers[c].EnvFrom[e].ConfigMapRef != nil &&
+					p.PPod.Spec.InitContainers[c].EnvFrom[e].ConfigMapRef.Name == constants.RootCACertConfigMapName {
+					p.PPod.Spec.InitContainers[c].EnvFrom[e].ConfigMapRef.Name = constants.TenantRootCACertConfigMapName
+				}
+			}
+		}
+
 		for c := range p.PPod.Spec.Containers {
 			for e := range p.PPod.Spec.Containers[c].Env {
 				if p.PPod.Spec.Containers[c].Env[e].ValueFrom != nil &&

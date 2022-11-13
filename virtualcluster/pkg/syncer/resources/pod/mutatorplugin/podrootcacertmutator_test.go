@@ -38,6 +38,35 @@ func tenantPod(name, namespace, uid string, fns ...func(*corev1.Pod)) *corev1.Po
 		},
 		Spec: corev1.PodSpec{
 			ServiceAccountName: "default",
+			InitContainers: []corev1.Container{
+				{
+					Image: "busybox",
+					VolumeMounts: []corev1.VolumeMount{
+						{
+							Name:      "root-ca-cert",
+							MountPath: "/path",
+						},
+					},
+					Env: []corev1.EnvVar{
+						{
+							Name: "root-ca-crt-env",
+							ValueFrom: &corev1.EnvVarSource{
+								ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{Name: constants.RootCACertConfigMapName},
+									Key:                  "ca.crt",
+								},
+							},
+						},
+					},
+					EnvFrom: []corev1.EnvFromSource{
+						{
+							ConfigMapRef: &corev1.ConfigMapEnvSource{
+								LocalObjectReference: corev1.LocalObjectReference{Name: constants.RootCACertConfigMapName},
+							},
+						},
+					},
+				},
+			},
 			Containers: []corev1.Container{
 				{
 					Image: "busybox",
@@ -123,6 +152,19 @@ func TestPodRootCACertMutatorPlugin_Mutator(t *testing.T) {
 				for e := range tt.pPod.Spec.Containers[c].EnvFrom {
 					if tt.pPod.Spec.Containers[c].EnvFrom[e].ConfigMapRef.Name != constants.TenantRootCACertConfigMapName {
 						t.Errorf("tt.pPod.Spec.Containers[c].EnvFrom[e].ConfigMapRef.Name = %v, want %v", tt.pPod.Spec.Containers[c].EnvFrom[e].ConfigMapRef.Name, constants.TenantRootCACertConfigMapName)
+					}
+				}
+			}
+
+			for c := range tt.pPod.Spec.InitContainers {
+				for e := range tt.pPod.Spec.InitContainers[c].Env {
+					if tt.pPod.Spec.InitContainers[c].Env[e].ValueFrom.ConfigMapKeyRef.Name != constants.TenantRootCACertConfigMapName {
+						t.Errorf("tt.pPod.Spec.Containers[c].Env[e].ValueFrom.ConfigMapKeyRef.Name = %v, want %v", tt.pPod.Spec.InitContainers[c].Env[e].ValueFrom.ConfigMapKeyRef.Name, constants.TenantRootCACertConfigMapName)
+					}
+				}
+				for e := range tt.pPod.Spec.InitContainers[c].EnvFrom {
+					if tt.pPod.Spec.InitContainers[c].EnvFrom[e].ConfigMapRef.Name != constants.TenantRootCACertConfigMapName {
+						t.Errorf("tt.pPod.Spec.Containers[c].EnvFrom[e].ConfigMapRef.Name = %v, want %v", tt.pPod.Spec.InitContainers[c].EnvFrom[e].ConfigMapRef.Name, constants.TenantRootCACertConfigMapName)
 					}
 				}
 			}
