@@ -192,6 +192,13 @@ func complementETCDTemplate(vcns string, etcdBdl *tenancyv1alpha1.StatefulSetSvc
 		etcdBdl.StatefulSet.Name, etcdBdl.Service.Name)
 	args = append(args, "--initial-cluster", icaVal)
 	etcdBdl.StatefulSet.Spec.Template.Spec.Containers[0].Args = args
+
+	labels := etcdBdl.StatefulSet.Spec.Template.GetLabels()
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	labels[constants.LabelCluster] = vcns
+	etcdBdl.StatefulSet.Spec.Template.SetLabels(labels)
 }
 
 // complementAPIServerTemplate complements the apiserver template of the specified clusterversion
@@ -214,6 +221,13 @@ func complementAPIServerTemplate(vcns string, apiserverBdl *tenancyv1alpha1.Stat
 	annotations[secret.FrontProxyCASecretName+"-hash"] = secret.GetHash(clusterCAGroup.FrontProxy)
 	annotations[secret.ServiceAccountSecretName+"-hash"] = secret.GetHash(clusterCAGroup.ServiceAccountPrivateKey)
 	apiserverBdl.StatefulSet.Spec.Template.SetAnnotations(annotations)
+
+	labels := apiserverBdl.StatefulSet.Spec.Template.GetLabels()
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	labels[constants.LabelCluster] = vcns
+	apiserverBdl.StatefulSet.Spec.Template.SetLabels(labels)
 }
 
 // complementCtrlMgrTemplate complements the controller manager template of the specified clusterversion
@@ -228,6 +242,13 @@ func complementCtrlMgrTemplate(vcns string, ctrlMgrBdl *tenancyv1alpha1.Stateful
 	annotations[secret.ServiceAccountSecretName+"-hash"] = secret.GetHash(clusterCAGroup.ServiceAccountPrivateKey)
 	annotations[secret.ControllerManagerSecretName+"-hash"] = secret.GetHash(clusterCAGroup.CtrlMgrKbCfg)
 	ctrlMgrBdl.StatefulSet.Spec.Template.SetAnnotations(annotations)
+
+	labels := ctrlMgrBdl.StatefulSet.Spec.Template.GetLabels()
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	labels[constants.LabelCluster] = vcns
+	ctrlMgrBdl.StatefulSet.Spec.Template.SetLabels(labels)
 }
 
 // deployComponent deploys control plane component in namespace vcName based on the given StatefulSet
