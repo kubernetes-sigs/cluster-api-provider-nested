@@ -692,6 +692,11 @@ func (e vcEquality) CheckServiceEquality(pObj, vObj *v1.Service) *v1.Service {
 	vSpec.IPFamilies = pSpec.IPFamilies
 	vSpec.IPFamilyPolicy = pSpec.IPFamilyPolicy
 
+	if featuregate.DefaultFeatureGate.Enabled(featuregate.VServiceExternalIP) {
+		// Ignore ExternalIPs
+		vSpec.ExternalIPs = pSpec.ExternalIPs
+	}
+
 	if !equality.Semantic.DeepEqual(vSpec, pSpec) {
 		if updated == nil {
 			updated = pObj.DeepCopy()
