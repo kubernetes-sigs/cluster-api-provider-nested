@@ -80,6 +80,11 @@ const (
 	// RootCACertConfigMapSupport is an experimental feature that allows clusters +1.21 to support
 	// the kube-root-ca.crt dropped into each Namespace
 	RootCACertConfigMapSupport = "RootCACertConfigMapSupport"
+
+	// VServiceExternalIP is an experimental feature that allows the syncer to
+	// add clusterIP of pService to vService's externalIPs.
+	// So that vService can be resolved by using the k8s_external plugin in coredns.
+	VServiceExternalIP = "VServiceExternalIP"
 )
 
 var defaultFeatures = FeatureList{
@@ -94,6 +99,7 @@ var defaultFeatures = FeatureList{
 	TenantAllowResourceNoSync:       {Default: false},
 	DisableCRDPreserveUnknownFields: {Default: false},
 	RootCACertConfigMapSupport:      {Default: false},
+	VServiceExternalIP:              {Default: false},
 }
 
 type Feature string

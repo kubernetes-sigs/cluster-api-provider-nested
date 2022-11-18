@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
 )
 
 // StartUWS starts the upward syncer
@@ -105,6 +106,12 @@ func (c *controller) BackPopulate(key string) error {
 	if updatedMeta != nil {
 		newService = vService.DeepCopy()
 		newService.ObjectMeta = *updatedMeta
+		if featuregate.DefaultFeatureGate.Enabled(featuregate.VServiceExternalIP) &&
+			updatedMeta.Annotations[constants.LabelSuperClusterIP] != "" &&
+			len(newService.Spec.ExternalIPs) == 0 {
+			// Add clusterIP to ExternalIPs if it hasn't been set on purpose
+			newService.Spec.ExternalIPs = []string{updatedMeta.Annotations[constants.LabelSuperClusterIP]}
+		}
 		if _, err = tenantClient.CoreV1().Services(vService.Namespace).Update(context.TODO(), newService, metav1.UpdateOptions{}); err != nil {
 			return fmt.Errorf("failed to back populate service %s/%s meta update for cluster %s: %v", vService.Namespace, vService.Name, clusterName, err)
 		}

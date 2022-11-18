@@ -179,6 +179,7 @@ var _ = Describe("VirtualCluster Controller", func() {
 			}, time.Minute*5, interval).Should(BeTrue())
 
 			By("Updating ClusterVersion")
+			Expect(cli.Get(ctx, client.ObjectKeyFromObject(cvInstance), cvInstance)).Should(Succeed())
 			cvInstance.Spec.APIServer.StatefulSet.Spec.Template.Spec.Containers[0].Args = append([]string{"-v=7"}, cvInstance.Spec.APIServer.StatefulSet.Spec.Template.Spec.Containers[0].Args...)
 			if cvInstance.Spec.APIServer.Service.Labels == nil {
 				cvInstance.Spec.APIServer.Service.Labels = map[string]string{}
