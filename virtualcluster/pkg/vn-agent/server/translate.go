@@ -121,7 +121,7 @@ func TranslatePathForSuper(req *restful.Request, tenantName string) error {
 		apiserverPath = path.Join(commonPath, "attach")
 		translateRawQuery(req, containerName)
 	case "portForward":
-		apiserverPath = path.Join(commonPath, "portForward")
+		apiserverPath = path.Join(commonPath, "portforward")
 		translateRawQuery(req, "")
 	default:
 		return fmt.Errorf("unsupport action %s", action)
