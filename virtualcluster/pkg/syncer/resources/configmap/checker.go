@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -64,12 +64,16 @@ func (c *controller) PatrollerDo() {
 	}
 	pSet := differ.NewDiffSet()
 	for _, pCM := range pConfigMaps {
-		// Ingore both RootCACertConfigMapName and TenantRootCACertConfigMapName from the super.
+		// Ingore RootCACertConfigMapName from the super.
 		// TenantRootCACertConfigMapName is created from the vRootCACertConfigMap and
-		// RootCACertConfigMapName should be left alone.
-		if featuregate.DefaultFeatureGate.Enabled(featuregate.RootCACertConfigMapSupport) &&
-			(pCM.Name == constants.RootCACertConfigMapName || pCM.Name == constants.TenantRootCACertConfigMapName) {
-			continue
+		// TenantRootCACertConfigMapName should be renamed.
+		if featuregate.DefaultFeatureGate.Enabled(featuregate.RootCACertConfigMapSupport) {
+			if pCM.Name == constants.RootCACertConfigMapName {
+				continue
+			}
+			if pCM.Name == constants.TenantRootCACertConfigMapName {
+				pCM.Name = constants.RootCACertConfigMapName
+			}
 		}
 		pSet.Insert(differ.ClusterObject{Object: pCM, Key: differ.DefaultClusterObjectKey(pCM, "")})
 	}
@@ -122,9 +126,10 @@ func (c *controller) PatrollerDo() {
 		}
 	}
 	configMapDiffer.DeleteFunc = func(pObj differ.ClusterObject) {
+		_, pName := conversion.GetConfigMapName(pObj.GetName())
 		deleteOptions := &metav1.DeleteOptions{}
 		deleteOptions.Preconditions = metav1.NewUIDPreconditions(string(pObj.GetUID()))
-		if err = c.configMapClient.ConfigMaps(pObj.GetNamespace()).Delete(context.TODO(), pObj.GetName(), *deleteOptions); err != nil {
+		if err = c.configMapClient.ConfigMaps(pObj.GetNamespace()).Delete(context.TODO(), pName, *deleteOptions); err != nil {
 			klog.Errorf("error deleting pConfigMap %s in super control plane: %v", pObj.Key, err)
 		} else {
 			metrics.CheckerRemedyStats.WithLabelValues("DeletedOrphanSuperControlPlaneConfigMaps").Inc()

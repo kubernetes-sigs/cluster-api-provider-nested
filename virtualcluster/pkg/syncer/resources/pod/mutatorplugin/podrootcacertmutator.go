@@ -17,6 +17,7 @@ limitations under the License.
 package mutatorplugin
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
@@ -45,45 +46,44 @@ func (pl *PodRootCACertMutatorPlugin) Mutator() conversion.PodMutator {
 			return nil
 		}
 
-		for i := range p.PPod.Spec.Volumes {
-			if p.PPod.Spec.Volumes[i].ConfigMap != nil && p.PPod.Spec.Volumes[i].ConfigMap.Name == constants.RootCACertConfigMapName {
-				p.PPod.Spec.Volumes[i].ConfigMap.Name = constants.TenantRootCACertConfigMapName
-			}
-		}
-
-		for c := range p.PPod.Spec.InitContainers {
-			for e := range p.PPod.Spec.InitContainers[c].Env {
-				if p.PPod.Spec.InitContainers[c].Env[e].ValueFrom != nil &&
-					p.PPod.Spec.InitContainers[c].Env[e].ValueFrom.ConfigMapKeyRef != nil &&
-					p.PPod.Spec.InitContainers[c].Env[e].ValueFrom.ConfigMapKeyRef.Name == constants.RootCACertConfigMapName {
-					p.PPod.Spec.InitContainers[c].Env[e].ValueFrom.ConfigMapKeyRef.Name = constants.TenantRootCACertConfigMapName
-				}
-			}
-
-			for e := range p.PPod.Spec.InitContainers[c].EnvFrom {
-				if p.PPod.Spec.InitContainers[c].EnvFrom[e].ConfigMapRef != nil &&
-					p.PPod.Spec.InitContainers[c].EnvFrom[e].ConfigMapRef.Name == constants.RootCACertConfigMapName {
-					p.PPod.Spec.InitContainers[c].EnvFrom[e].ConfigMapRef.Name = constants.TenantRootCACertConfigMapName
-				}
-			}
-		}
-
-		for c := range p.PPod.Spec.Containers {
-			for e := range p.PPod.Spec.Containers[c].Env {
-				if p.PPod.Spec.Containers[c].Env[e].ValueFrom != nil &&
-					p.PPod.Spec.Containers[c].Env[e].ValueFrom.ConfigMapKeyRef != nil &&
-					p.PPod.Spec.Containers[c].Env[e].ValueFrom.ConfigMapKeyRef.Name == constants.RootCACertConfigMapName {
-					p.PPod.Spec.Containers[c].Env[e].ValueFrom.ConfigMapKeyRef.Name = constants.TenantRootCACertConfigMapName
-				}
-			}
-
-			for e := range p.PPod.Spec.Containers[c].EnvFrom {
-				if p.PPod.Spec.Containers[c].EnvFrom[e].ConfigMapRef != nil &&
-					p.PPod.Spec.Containers[c].EnvFrom[e].ConfigMapRef.Name == constants.RootCACertConfigMapName {
-					p.PPod.Spec.Containers[c].EnvFrom[e].ConfigMapRef.Name = constants.TenantRootCACertConfigMapName
-				}
-			}
-		}
+		p.PPod.Spec.Containers = pl.containersMutator(p.PPod.Spec.Containers)
+		p.PPod.Spec.InitContainers = pl.containersMutator(p.PPod.Spec.InitContainers)
+		p.PPod.Spec.Volumes = pl.volumesMutator(p.PPod.Spec.Volumes)
 		return nil
 	}
+}
+
+func (pl *PodRootCACertMutatorPlugin) containersMutator(containers []corev1.Container) []corev1.Container {
+	for i, container := range containers {
+		for j, env := range container.Env {
+			if env.ValueFrom != nil && env.ValueFrom.ConfigMapKeyRef != nil &&
+				env.ValueFrom.ConfigMapKeyRef.Name == constants.RootCACertConfigMapName {
+				containers[i].Env[j].ValueFrom.ConfigMapKeyRef.Name = constants.TenantRootCACertConfigMapName
+			}
+		}
+
+		for j, envFrom := range container.EnvFrom {
+			if envFrom.ConfigMapRef != nil && envFrom.ConfigMapRef.Name == constants.RootCACertConfigMapName {
+				containers[i].EnvFrom[j].ConfigMapRef.Name = constants.TenantRootCACertConfigMapName
+			}
+		}
+	}
+	return containers
+}
+
+func (pl *PodRootCACertMutatorPlugin) volumesMutator(volumes []corev1.Volume) []corev1.Volume {
+	for i, volume := range volumes {
+		if volume.ConfigMap != nil && volume.ConfigMap.Name == constants.RootCACertConfigMapName {
+			volumes[i].ConfigMap.Name = constants.TenantRootCACertConfigMapName
+		}
+
+		if volume.Projected != nil {
+			for j, source := range volume.Projected.Sources {
+				if source.ConfigMap != nil && source.ConfigMap.Name == constants.RootCACertConfigMapName {
+					volumes[i].Projected.Sources[j].ConfigMap.Name = constants.TenantRootCACertConfigMapName
+				}
+			}
+		}
+	}
+	return volumes
 }

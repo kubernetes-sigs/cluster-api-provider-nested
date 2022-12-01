@@ -105,6 +105,20 @@ func tenantPod(name, namespace, uid string, fns ...func(*corev1.Pod)) *corev1.Po
 						},
 					},
 				},
+				{
+					Name: "projected-volume-source",
+					VolumeSource: corev1.VolumeSource{
+						Projected: &corev1.ProjectedVolumeSource{
+							Sources: []corev1.VolumeProjection{
+								{
+									ConfigMap: &corev1.ConfigMapProjection{
+										LocalObjectReference: corev1.LocalObjectReference{Name: constants.RootCACertConfigMapName},
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -137,9 +151,17 @@ func TestPodRootCACertMutatorPlugin_Mutator(t *testing.T) {
 				t.Errorf("mutator failed processing the pod")
 			}
 
-			for i := range tt.pPod.Spec.Volumes {
-				if tt.pPod.Spec.Volumes[i].ConfigMap.Name != constants.TenantRootCACertConfigMapName {
-					t.Errorf("tt.pPod.Spec.Volumes[i].ConfigMap.Name = %v, want %v", tt.pPod.Spec.Volumes[i].ConfigMap.Name, constants.TenantRootCACertConfigMapName)
+			for _, volume := range tt.pPod.Spec.Volumes {
+				if volume.ConfigMap != nil && volume.ConfigMap.Name != constants.TenantRootCACertConfigMapName {
+					t.Errorf("tt.pPod.Spec.Volumes[*].ConfigMap.Name = %v, want %v", volume.ConfigMap.Name, constants.TenantRootCACertConfigMapName)
+				}
+
+				if volume.Projected != nil {
+					for _, source := range volume.Projected.Sources {
+						if source.ConfigMap != nil && source.ConfigMap.Name != constants.TenantRootCACertConfigMapName {
+							t.Errorf("tt.pPod.Spec.Volumes[*].Projected.Sources[*].ConfigMap.Name = %v, want %v", source.ConfigMap.Name, constants.TenantRootCACertConfigMapName)
+						}
+					}
 				}
 			}
 
