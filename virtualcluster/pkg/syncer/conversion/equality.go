@@ -477,13 +477,6 @@ func (e vcEquality) CheckConfigMapEquality(pObj, vObj *v1.ConfigMap) *v1.ConfigM
 		updated.BinaryData = updateBinaryData
 	}
 
-	// After we have processed the equality checks if updated is not nil reupdate to include
-	// super's ConfigMap Name
-	if featuregate.DefaultFeatureGate.Enabled(featuregate.RootCACertConfigMapSupport) &&
-		vObj.Name == constants.RootCACertConfigMapName && updated != nil {
-		updated.Name = constants.TenantRootCACertConfigMapName
-	}
-
 	return updated
 }
 
