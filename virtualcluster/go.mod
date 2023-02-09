@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/aliyun/alibaba-cloud-sdk-go v1.60.324
-	github.com/emicklei/go-restful v2.9.6+incompatible
+	github.com/emicklei/go-restful v2.16.0+incompatible
 	github.com/go-logr/logr v0.4.0
 	github.com/go-logr/zapr v0.4.0
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
