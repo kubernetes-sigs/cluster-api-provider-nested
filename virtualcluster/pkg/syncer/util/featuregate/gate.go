@@ -18,6 +18,7 @@ package featuregate
 
 import (
 	"fmt"
+	"sort"
 	"sync"
 	"sync/atomic"
 )
@@ -28,6 +29,8 @@ var DefaultFeatureGate, _ = NewFeatureGate(nil)
 type FeatureGate interface {
 	// Enabled returns true if the key is enabled.
 	Enabled(key Feature) bool
+	// KnownFeatures returns a slice of strings describing the FeatureGate's known features.
+	KnownFeatures() []string
 	// Set feature gate for known features.
 	Set(key Feature, value bool) error
 }
@@ -132,16 +135,16 @@ type featureGate struct {
 
 // NewFeatureGate stores flag gates for known features from a map[string]bool or returns an error
 func NewFeatureGate(m map[string]bool) (FeatureGate, error) {
-	known := make(map[Feature]bool)
+	known := make(map[Feature]FeatureSpec)
 	for k, v := range defaultFeatures {
-		known[k] = v.Default
+		known[k] = v
 	}
 
 	for k, v := range m {
 		if !Supports(defaultFeatures, k) {
 			return nil, fmt.Errorf("unrecognized feature-gate key: %s", k)
 		}
-		known[Feature(k)] = v
+		known[Feature(k)] = FeatureSpec{Default: v}
 	}
 
 	enabledValue := &atomic.Value{}
@@ -154,11 +157,22 @@ func NewFeatureGate(m map[string]bool) (FeatureGate, error) {
 
 // Enabled indicates whether a feature name has been enabled
 func (f *featureGate) Enabled(key Feature) bool {
-	if v, ok := f.enabled.Load().(map[Feature]bool)[key]; ok {
-		return v
+	if v, ok := f.enabled.Load().(map[Feature]FeatureSpec)[key]; ok {
+		return v.Default
 	}
 
 	panic(fmt.Errorf("feature %q is not registered in FeatureGate", key))
+}
+
+// KnownFeatures returns a slice of strings describing the FeatureGate's known features.
+// Deprecated and GA features are hidden from the list.
+func (f *featureGate) KnownFeatures() []string {
+	known := make([]string, 0)
+	for k, v := range f.enabled.Load().(map[Feature]FeatureSpec) {
+		known = append(known, fmt.Sprintf("%s=true|false (default=%t)", k, v.Default))
+	}
+	sort.Strings(known)
+	return known
 }
 
 // Set feature gate for known features.
@@ -170,11 +184,11 @@ func (f *featureGate) Set(key Feature, value bool) error {
 		return fmt.Errorf("unrecognized feature gate: %s", key)
 	}
 
-	enabled := map[Feature]bool{}
-	for k, v := range f.enabled.Load().(map[Feature]bool) {
+	enabled := map[Feature]FeatureSpec{}
+	for k, v := range f.enabled.Load().(map[Feature]FeatureSpec) {
 		enabled[k] = v
 	}
-	enabled[key] = value
+	enabled[key] = FeatureSpec{Default: value}
 
 	f.enabled.Store(enabled)
 
