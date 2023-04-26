@@ -69,12 +69,12 @@ func main() {
 	flag.StringVar(&controlPlaneProvisioner, "provisioner", "native",
 		"The underlying platform that will provision control plane for virtualcluster.")
 	flag.BoolVar(&leaderElection, "leader-election", true, "If enable leaderelection for vc-manager")
-	// Deprecated: the flag used resource type as part of the name. Replaced by le-name.
-	flag.StringVar(&leaderElectionCmName, "le-cm-name", "", "DEPRECATED. Use --le-name instead")
-	flag.StringVar(&leaderElectionID, "le-name", "vc-manager-leaderelection-lock",
+	// Deprecated: the flag used resource type as part of the name. Replaced by leader-elect-resource-name.
+	flag.StringVar(&leaderElectionCmName, "le-cm-name", "", "DEPRECATED. Use --leader-elect-resource-name instead")
+	flag.StringVar(&leaderElectionID, "leader-elect-resource-name", "vc-manager-leaderelection-lock",
 		"The name of the resource that will be used as the resourcelock for leaderelection")
-	flag.StringVar(&leaderElectionResourceLock, "le-resource", "configmapsleases",
-		"The type of the resource that will be used as the resourcelock for leaderelection [configmaps, leases, configmapsleases]")
+	flag.StringVar(&leaderElectionResourceLock, "leader-elect-resource-lock", "configmapsleases",
+		"The type of the resource that will be used as the resourcelock for leader election [configmaps, leases, configmapsleases]")
 	flag.IntVar(&maxConcurrentReconciles, "num-reconciles", 10,
 		"The max number reconcilers of virtualcluster controller")
 	flag.StringVar(&logFile, "log-file", "", "The path of the logfile, if not set, only log to the stderr")
