@@ -52,6 +52,8 @@ func main() {
 		controlPlaneProvisionerDeprecated string
 		leaderElection                    bool
 		leaderElectionCmName              string
+		leaderElectionID                  string
+		leaderElectionResourceLock        string
 		maxConcurrentReconciles           int
 		versionOpt                        bool
 		disableStacktrace                 bool
@@ -67,8 +69,12 @@ func main() {
 	flag.StringVar(&controlPlaneProvisioner, "provisioner", "native",
 		"The underlying platform that will provision control plane for virtualcluster.")
 	flag.BoolVar(&leaderElection, "leader-election", true, "If enable leaderelection for vc-manager")
-	flag.StringVar(&leaderElectionCmName, "le-cm-name", "vc-manager-leaderelection-lock",
-		"The name of the configmap that will be used as the resourcelook for leaderelection")
+	// Deprecated: the flag used resource type as part of the name. Replaced by leader-elect-resource-name.
+	flag.StringVar(&leaderElectionCmName, "le-cm-name", "", "DEPRECATED. Use --leader-elect-resource-name instead")
+	flag.StringVar(&leaderElectionID, "leader-elect-resource-name", "vc-manager-leaderelection-lock",
+		"The name of the resource that will be used as the resourcelock for leaderelection")
+	flag.StringVar(&leaderElectionResourceLock, "leader-elect-resource-lock", "configmapsleases",
+		"The type of the resource that will be used as the resourcelock for leader election [configmaps, leases, configmapsleases]")
 	flag.IntVar(&maxConcurrentReconciles, "num-reconciles", 10,
 		"The max number reconcilers of virtualcluster controller")
 	flag.StringVar(&logFile, "log-file", "", "The path of the logfile, if not set, only log to the stderr")
@@ -110,13 +116,19 @@ func main() {
 
 	// Create a new Cmd to provide shared dependencies and start components
 	log.Info("setting up manager")
+
+	if leaderElectionCmName != "" {
+		leaderElectionID = leaderElectionCmName
+	}
+
 	mgrOpt := manager.Options{
-		MetricsBindAddress:     metricsAddr,
-		LeaderElection:         leaderElection,
-		LeaderElectionID:       leaderElectionCmName,
-		CertDir:                constants.VirtualClusterWebhookCertDir,
-		Port:                   constants.VirtualClusterWebhookPort,
-		HealthProbeBindAddress: healthAddr,
+		MetricsBindAddress:         metricsAddr,
+		LeaderElection:             leaderElection,
+		LeaderElectionID:           leaderElectionID,
+		LeaderElectionResourceLock: leaderElectionResourceLock,
+		CertDir:                    constants.VirtualClusterWebhookCertDir,
+		Port:                       constants.VirtualClusterWebhookPort,
+		HealthProbeBindAddress:     healthAddr,
 	}
 	mgr, err := ctrl.NewManager(cfg, mgrOpt)
 	if err != nil {
