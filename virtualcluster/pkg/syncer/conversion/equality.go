@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
@@ -741,6 +742,19 @@ func (e vcEquality) CheckUWPVCStatusEquality(pObj, vObj *v1.PersistentVolumeClai
 		}
 		updated.Status.Capacity["storage"] = pObj.Status.Capacity["storage"]
 	}
+
+	// Check if a tenant cluster's PVC(vPVC) is bound but a super cluster's PVC (pPVC) is not bound.
+	// In this case, update the vPVC's Status.Phase.
+	if featuregate.DefaultFeatureGate.Enabled(featuregate.SyncTenantPVCStatusPhase) {
+		if vObj.Status.Phase == v1.ClaimBound && pObj.Status.Phase != v1.ClaimBound {
+			if updated == nil {
+				updated = vObj.DeepCopy()
+			}
+			klog.Warningf("Virtual cluster's PVC %s in %s is %v while the super cluster's PVC %s is not", vObj.Name, vObj.ClusterName, v1.ClaimBound, pObj.Name)
+			updated.Status.Phase = pObj.Status.Phase
+		}
+	}
+
 	return updated
 }
 
