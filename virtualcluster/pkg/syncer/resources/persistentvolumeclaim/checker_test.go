@@ -29,10 +29,29 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
 	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
 
+var (
+	statusPending = &corev1.PersistentVolumeClaimStatus{
+		Phase: corev1.ClaimPending,
+	}
+	statusBound = &corev1.PersistentVolumeClaimStatus{
+		Phase: corev1.ClaimBound,
+	}
+	statusLost = &corev1.PersistentVolumeClaimStatus{
+		Phase: corev1.ClaimLost,
+	}
+)
+
+func applyStatusToPVC(pvc *corev1.PersistentVolumeClaim, pvs *corev1.PersistentVolumeClaimStatus) *corev1.PersistentVolumeClaim {
+	pvc.Status.Phase = pvs.Phase
+	return pvc
+}
+
 func TestPVCPatrol(t *testing.T) {
+	defer util.SetFeatureGateDuringTest(t, featuregate.DefaultFeatureGate, featuregate.SyncTenantPVCStatusPhase, true)()
 	testTenant := &v1alpha1.VirtualCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -129,6 +148,37 @@ func TestPVCPatrol(t *testing.T) {
 				superDefaultNSName + "/pvc-4",
 			},
 			WaitDWS: true,
+		},
+		"pPVC is lost, vPVC is bound": {
+			ExistingObjectInSuper: []runtime.Object{
+				applyStatusToPVC(superPVC("pvc-3", superDefaultNSName, "12345", defaultClusterKey), statusLost),
+			},
+			ExistingObjectInTenant: []runtime.Object{
+				applyStatusToPVC(tenantPVC("pvc-3", "default", "12345"), statusBound),
+			},
+			// TODO: Set ExpectedUpdatedVObject with Status.Phase="Lost"
+			ExpectedNoOperation: false,
+			WaitUWS:             true,
+		},
+		"pPVC is bound, vPVC is pending": {
+			ExistingObjectInSuper: []runtime.Object{
+				applyStatusToPVC(superPVC("pvc-3", superDefaultNSName, "12345", defaultClusterKey), statusBound),
+			},
+			ExistingObjectInTenant: []runtime.Object{
+				applyStatusToPVC(tenantPVC("pvc-3", "default", "12345"), statusPending),
+			},
+			ExpectedUpdatedVObject: []runtime.Object{},
+			ExpectedNoOperation:    true,
+		},
+		"pPVC is pending, vPVC is pending": {
+			ExistingObjectInSuper: []runtime.Object{
+				applyStatusToPVC(superPVC("pvc-3", superDefaultNSName, "12345", defaultClusterKey), statusPending),
+			},
+			ExistingObjectInTenant: []runtime.Object{
+				applyStatusToPVC(tenantPVC("pvc-3", "default", "12345"), statusPending),
+			},
+			ExpectedUpdatedVObject: []runtime.Object{},
+			ExpectedNoOperation:    true,
 		},
 	}
 

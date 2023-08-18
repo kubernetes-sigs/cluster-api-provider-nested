@@ -88,6 +88,13 @@ const (
 	// add clusterIP of pService to vService's externalIPs.
 	// So that vService can be resolved by using the k8s_external plugin in coredns.
 	VServiceExternalIP = "VServiceExternalIP"
+
+	// SyncTenantPVCStatusPhase is an experimental feature that enables the syncer to
+	// update the Status.Phase of a tenant cluster's PVC if it is Bound,
+	// but the corresponding PVC in the super cluster is not Bound, e.g., Lost.
+	// Although rare, this situation can arise due to potential bugs and race conditions.
+	// This feature allows users to perform separate investigation and resolution.
+	SyncTenantPVCStatusPhase = "SyncTenantPVCStatusPhase"
 )
 
 var defaultFeatures = FeatureList{
@@ -103,6 +110,7 @@ var defaultFeatures = FeatureList{
 	DisableCRDPreserveUnknownFields: {Default: false},
 	RootCACertConfigMapSupport:      {Default: false},
 	VServiceExternalIP:              {Default: false},
+	SyncTenantPVCStatusPhase:        {Default: false},
 }
 
 type Feature string

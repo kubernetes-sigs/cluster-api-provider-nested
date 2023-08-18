@@ -28,6 +28,7 @@ import (
 	core "k8s.io/client-go/testing"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
 	util "sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/test"
 )
 
@@ -51,6 +52,7 @@ func TestUWPVCUpdate(t *testing.T) {
 		},
 	}
 
+	defer util.SetFeatureGateDuringTest(t, featuregate.DefaultFeatureGate, featuregate.SyncTenantPVCStatusPhase, true)()
 	defaultClusterKey := conversion.ToClusterKey(testTenant)
 	superDefaultNSName := conversion.ToSuperClusterNamespace(defaultClusterKey, "default")
 
@@ -98,6 +100,41 @@ func TestUWPVCUpdate(t *testing.T) {
 			ExpectedUpdatedObject: []string{
 				"default/pvc-1",
 			},
+		},
+		"pPVC is lost, vPVC is bound": {
+			ExistingObjectInSuper: []runtime.Object{
+				applyStatusToPVC(superPVC("pvc-1", superDefaultNSName, "12345", defaultClusterKey), statusLost),
+			},
+			ExistingObjectInTenant: []runtime.Object{
+				applyStatusToPVC(tenantPVC("pvc-1", "default", "12345"), statusBound),
+			},
+			EnqueuedKey:   superDefaultNSName + "/pvc-1",
+			ExpectedError: "",
+			ExpectedUpdatedObject: []string{
+				"default/pvc-1",
+			},
+		},
+		"pPVC is bound, vPVC is pending": {
+			ExistingObjectInSuper: []runtime.Object{
+				applyStatusToPVC(superPVC("pvc-1", superDefaultNSName, "12345", defaultClusterKey), statusBound),
+			},
+			ExistingObjectInTenant: []runtime.Object{
+				applyStatusToPVC(tenantPVC("pvc-1", "default", "12345"), statusPending),
+			},
+			EnqueuedKey:           superDefaultNSName + "/pvc-1",
+			ExpectedError:         "",
+			ExpectedUpdatedObject: []string{},
+		},
+		"pPVC is pending, vPVC is pending": {
+			ExistingObjectInSuper: []runtime.Object{
+				applyStatusToPVC(superPVC("pvc-1", superDefaultNSName, "12345", defaultClusterKey), statusPending),
+			},
+			ExistingObjectInTenant: []runtime.Object{
+				applyStatusToPVC(tenantPVC("pvc-1", "default", "12345"), statusPending),
+			},
+			EnqueuedKey:           superDefaultNSName + "/pvc-1",
+			ExpectedError:         "",
+			ExpectedUpdatedObject: []string{},
 		},
 	}
 
