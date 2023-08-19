@@ -19,17 +19,13 @@ package mutatorplugin
 import (
 	"context"
 	"fmt"
-	"math/rand"
-	"strings"
-	"time"
-
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
+	"strings"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/constants"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/conversion"
@@ -47,8 +43,6 @@ const (
 	// DefaultAPITokenMountPath is the path that ServiceAccountToken secrets are automounted to.
 	// The token file would then be accessible at /var/run/secrets/kubernetes.io/serviceaccount
 	DefaultAPITokenMountPath = "/var/run/secrets/kubernetes.io/serviceaccount" // #nosec G101
-
-	defaultAttemptTimes = 10
 )
 
 func init() {
@@ -92,7 +86,7 @@ func (pl *PodKubeAPIAccessMutatorPlugin) Mutator() conversion.PodMutator {
 		}
 
 		targetNamespace := conversion.ToSuperClusterNamespace(p.ClusterName, p.PPod.Namespace)
-		serviceAccount, err := pl.getServiceAccount(targetNamespace, p.PPod.Spec.ServiceAccountName)
+		serviceAccount, err := pl.client.CoreV1().ServiceAccounts(targetNamespace).Get(context.TODO(), p.PPod.Spec.ServiceAccountName, metav1.GetOptions{})
 		if err != nil {
 			return fmt.Errorf("error looking up serviceAccount %s/%s: %v", targetNamespace, p.PPod.Spec.ServiceAccountName, err)
 		}
@@ -108,37 +102,6 @@ func (pl *PodKubeAPIAccessMutatorPlugin) Mutator() conversion.PodMutator {
 		}
 		return nil
 	}
-}
-
-// getServiceAccount returns the ServiceAccount for the given namespace and name if it exists
-func (pl *PodKubeAPIAccessMutatorPlugin) getServiceAccount(namespace string, name string) (*corev1.ServiceAccount, error) {
-	serviceAccount, err := pl.client.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if err == nil {
-		return serviceAccount, nil
-	}
-	if !apierrors.IsNotFound(err) {
-		return nil, err
-	}
-
-	// Could not find in cache, attempt to look up directly
-	numAttempts := 1
-	if name == DefaultServiceAccountName {
-		// If this is the default serviceaccount, attempt more times, since it should be auto-created by the controller
-		numAttempts = defaultAttemptTimes
-	}
-	retryInterval := time.Duration(rand.Int63n(100)+int64(100)) * time.Millisecond // #nosec G404
-	for i := 0; i < numAttempts; i++ {
-		serviceAccount, err := pl.client.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), name, metav1.GetOptions{})
-		if err == nil {
-			return serviceAccount, nil
-		}
-		if !apierrors.IsNotFound(err) {
-			return nil, err
-		}
-		time.Sleep(retryInterval)
-	}
-
-	return nil, apierrors.NewNotFound(corev1.Resource("serviceaccount"), name)
 }
 
 func (pl *PodKubeAPIAccessMutatorPlugin) getSecret(cluster, namespace string, sa *corev1.ServiceAccount) (*corev1.Secret, error) {
