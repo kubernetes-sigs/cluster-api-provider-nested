@@ -92,6 +92,13 @@ const (
 	// KubeAPIAccessSupport is an experimental feature that allows clusters +1.21 to support
 	// kube-api-access volume mount
 	KubeAPIAccessSupport = "KubeAPIAccessSupport"
+
+	// SyncTenantPVCStatusPhase is an experimental feature that enables the syncer to
+	// update the Status.Phase of a tenant cluster's PVC if it is Bound,
+	// but the corresponding PVC in the super cluster is not Bound, e.g., Lost.
+	// Although rare, this situation can arise due to potential bugs and race conditions.
+	// This feature allows users to perform separate investigation and resolution.
+	SyncTenantPVCStatusPhase = "SyncTenantPVCStatusPhase"
 )
 
 var defaultFeatures = FeatureList{
@@ -108,6 +115,7 @@ var defaultFeatures = FeatureList{
 	RootCACertConfigMapSupport:      {Default: false},
 	VServiceExternalIP:              {Default: false},
 	KubeAPIAccessSupport:            {Default: false},
+	SyncTenantPVCStatusPhase:        {Default: false},
 }
 
 type Feature string

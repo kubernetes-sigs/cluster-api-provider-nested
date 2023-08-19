@@ -21,10 +21,12 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/apis/tenancy/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/apis/config"
+	"sigs.k8s.io/cluster-api-provider-nested/virtualcluster/pkg/syncer/util/featuregate"
 )
 
 func TestCheckDWKVEquality(t *testing.T) {
@@ -975,6 +977,140 @@ func TestCheckDWPodConditionEquality(t *testing.T) {
 			val := CheckDWPodConditionEquality(tt.pObj, tt.vObj)
 			if !equality.Semantic.DeepEqual(val, tt.updatedVal) {
 				tc.Errorf("expected val %v, got %v", tt.updatedVal, val)
+			}
+		})
+	}
+}
+
+func TestCheckUWPVCStatusEquality(t *testing.T) {
+	featuregate.DefaultFeatureGate.Set(featuregate.SyncTenantPVCStatusPhase, true)
+	for _, tt := range []struct {
+		name       string
+		pObj       *v1.PersistentVolumeClaim
+		vObj       *v1.PersistentVolumeClaim
+		updatedObj *v1.PersistentVolumeClaim
+	}{
+		{
+			name: "pPVC is pending and vPVC is pending",
+			pObj: &v1.PersistentVolumeClaim{
+				Status: v1.PersistentVolumeClaimStatus{
+					Phase: v1.ClaimPending,
+				},
+			},
+			vObj: &v1.PersistentVolumeClaim{
+				Status: v1.PersistentVolumeClaimStatus{
+					Phase: v1.ClaimPending,
+				},
+			},
+			updatedObj: nil,
+		},
+		{
+			name: "pPVC is bound and vPVC is bound",
+			pObj: &v1.PersistentVolumeClaim{
+				Status: v1.PersistentVolumeClaimStatus{
+					Phase: v1.ClaimBound,
+				},
+			},
+			vObj: &v1.PersistentVolumeClaim{
+				Status: v1.PersistentVolumeClaimStatus{
+					Phase: v1.ClaimBound,
+				},
+			},
+			updatedObj: nil,
+		},
+		{
+			name: "pPVC is lost and vPVC is lost",
+			pObj: &v1.PersistentVolumeClaim{
+				Status: v1.PersistentVolumeClaimStatus{
+					Phase: v1.ClaimLost,
+				},
+			},
+			vObj: &v1.PersistentVolumeClaim{
+				Status: v1.PersistentVolumeClaimStatus{
+					Phase: v1.ClaimLost,
+				},
+			},
+			updatedObj: nil,
+		},
+		{
+			name: "pPVC is lost and vPVC is bound",
+			pObj: &v1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "pPVC",
+				},
+				Status: v1.PersistentVolumeClaimStatus{
+					Phase: v1.ClaimLost,
+				},
+			},
+			vObj: &v1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "vPVC",
+				},
+				Status: v1.PersistentVolumeClaimStatus{
+					Phase: v1.ClaimBound,
+				},
+			},
+			updatedObj: &v1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "vPVC",
+				},
+				Status: v1.PersistentVolumeClaimStatus{
+					Phase: v1.ClaimLost,
+				},
+			},
+		},
+		{
+			name: "pPVC is pending and vPVC is bound",
+			pObj: &v1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "pPVC",
+				},
+				Status: v1.PersistentVolumeClaimStatus{
+					Phase: v1.ClaimPending,
+				},
+			},
+			vObj: &v1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "vPVC",
+				},
+				Status: v1.PersistentVolumeClaimStatus{
+					Phase: v1.ClaimBound,
+				},
+			},
+			updatedObj: &v1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "vPVC",
+				},
+				Status: v1.PersistentVolumeClaimStatus{
+					Phase: v1.ClaimPending,
+				},
+			},
+		},
+		{
+			name: "pPVC is bound and vPVC is pending",
+			pObj: &v1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "pPVC",
+				},
+				Status: v1.PersistentVolumeClaimStatus{
+					Phase: v1.ClaimBound,
+				},
+			},
+			vObj: &v1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "vPVC",
+				},
+				Status: v1.PersistentVolumeClaimStatus{
+					Phase: v1.ClaimPending,
+				},
+			},
+			updatedObj: nil,
+		},
+	} {
+		t.Run(tt.name, func(tc *testing.T) {
+			obj := Equality(nil, nil).CheckUWPVCStatusEquality(tt.pObj, tt.vObj)
+			if obj != nil && obj.Status.Phase != tt.updatedObj.Status.Phase {
+				tc.Errorf("expected vPVC's Status.Phase: %v, got: %v", tt.updatedObj.Status.Phase, obj.Status.Phase)
 			}
 		})
 	}

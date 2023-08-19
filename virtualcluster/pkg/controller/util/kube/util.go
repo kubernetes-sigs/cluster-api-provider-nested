@@ -171,11 +171,13 @@ func SetVCStatus(vc *tenancyv1alpha1.VirtualCluster, phase tenancyv1alpha1.Clust
 	vc.Status.Phase = phase
 	vc.Status.Message = message
 	vc.Status.Reason = reason
-	vc.Status.Conditions = append(vc.Status.Conditions, tenancyv1alpha1.ClusterCondition{
+	condition := tenancyv1alpha1.ClusterCondition{
 		LastTransitionTime: metav1.NewTime(time.Now()),
 		Reason:             reason,
 		Message:            message,
-	})
+		Status:             corev1.ConditionTrue,
+	}
+	addOrUpdateCondition(&vc.Status.Conditions, &condition)
 }
 
 // IsObjExist check if object with 'key' exist
@@ -207,4 +209,21 @@ func NewInClusterClient() (client.Client, error) {
 		return nil, err
 	}
 	return cli, nil
+}
+
+// addOrUpdateCondition checks whether a new condition exits in vc.Status.Conditions by Reason and Status.
+// If the condition exists, update the existing condition's timestamp.
+// Otherwise, add the new condition to vc.Status.Conditions.
+func addOrUpdateCondition(conts *[]tenancyv1alpha1.ClusterCondition, cont *tenancyv1alpha1.ClusterCondition) {
+	exist := false
+	for i := 0; i < len(*conts); i++ {
+		if (*conts)[i].Reason == cont.Reason && (*conts)[i].Status == cont.Status {
+			(*conts)[i].LastTransitionTime = cont.LastTransitionTime
+			exist = true
+			break
+		}
+	}
+	if !exist {
+		*conts = append(*conts, *cont)
+	}
 }
