@@ -59,7 +59,7 @@ func GetNodeIP(cli client.Client) (string, error) {
 		// Check if the node has the ready status condition
 		for _, condition := range node.Status.Conditions {
 			if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
-				//Look for internal IP
+				// Look for internal IP
 				for _, addr := range node.Status.Addresses {
 					if addr.Type == corev1.NodeInternalIP {
 						return addr.Address, nil
