@@ -89,6 +89,10 @@ const (
 	// So that vService can be resolved by using the k8s_external plugin in coredns.
 	VServiceExternalIP = "VServiceExternalIP"
 
+	// KubeAPIAccessSupport is an experimental feature that allows clusters +1.21 to support
+	// kube-api-access volume mount
+	KubeAPIAccessSupport = "KubeAPIAccessSupport"
+
 	// SyncTenantPVCStatusPhase is an experimental feature that enables the syncer to
 	// update the Status.Phase of a tenant cluster's PVC if it is Bound,
 	// but the corresponding PVC in the super cluster is not Bound, e.g., Lost.
@@ -110,6 +114,7 @@ var defaultFeatures = FeatureList{
 	DisableCRDPreserveUnknownFields: {Default: false},
 	RootCACertConfigMapSupport:      {Default: false},
 	VServiceExternalIP:              {Default: false},
+	KubeAPIAccessSupport:            {Default: false},
 	SyncTenantPVCStatusPhase:        {Default: false},
 }
 
