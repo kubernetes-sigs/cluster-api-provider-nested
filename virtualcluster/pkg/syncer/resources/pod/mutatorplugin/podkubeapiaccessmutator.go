@@ -86,7 +86,7 @@ func (pl *PodKubeAPIAccessMutatorPlugin) Mutator() conversion.PodMutator {
 			p.PPod.Spec.ServiceAccountName = DefaultServiceAccountName
 		}
 
-		targetNamespace := conversion.ToSuperClusterNamespace(p.ClusterName, p.PPod.Namespace)
+		targetNamespace := conversion.ToSuperClusterNamespace(p.ClusterName, p.VPod.Namespace)
 		serviceAccount, err := pl.client.CoreV1().ServiceAccounts(targetNamespace).Get(context.TODO(), p.PPod.Spec.ServiceAccountName, metav1.GetOptions{})
 		if err != nil {
 			return fmt.Errorf("error looking up serviceAccount %s/%s: %v", targetNamespace, p.PPod.Spec.ServiceAccountName, err)

@@ -114,11 +114,13 @@ func TestPodKubeAPIAccessMutatorPlugin_Mutator(t *testing.T) {
 	tests := []struct {
 		name                  string
 		pPod                  *corev1.Pod
+		vPod                  *corev1.Pod
 		existingObjectInSuper []runtime.Object
 	}{
 		{
 			"Test RootCACert Mutator",
-			tenantKubeAPIAccessPod("test", "default", "123-456-789"),
+			tenantKubeAPIAccessPod("test", "cluster1-default", "123-456-789"),
+			tenantKubeAPIAccessPod("test", "default", "000-456-789"),
 			[]runtime.Object{
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
@@ -161,7 +163,7 @@ func TestPodKubeAPIAccessMutatorPlugin_Mutator(t *testing.T) {
 			}
 			mutator := pl.Mutator()
 
-			if err := mutator(&conversion.PodMutateCtx{ClusterName: "cluster1", PPod: tt.pPod}); err != nil {
+			if err := mutator(&conversion.PodMutateCtx{ClusterName: "cluster1", PPod: tt.pPod, VPod: tt.vPod}); err != nil {
 				t.Errorf("mutator failed processing the pod, %v", err)
 			}
 
