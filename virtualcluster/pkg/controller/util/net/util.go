@@ -54,12 +54,22 @@ func GetNodeIP(cli client.Client) (string, error) {
 	if len(nodeLst.Items) == 0 {
 		return "", errors.New("there is no available nodes")
 	}
-	for _, addr := range nodeLst.Items[0].Status.Addresses {
-		if addr.Type == corev1.NodeInternalIP {
-			return addr.Address, nil
+
+	for _, node := range nodeLst.Items {
+		// Check if the node has the ready status condition
+		for _, condition := range node.Status.Conditions {
+			if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
+				// Look for internal IP
+				for _, addr := range node.Status.Addresses {
+					if addr.Type == corev1.NodeInternalIP {
+						return addr.Address, nil
+					}
+				}
+			}
 		}
 	}
-	return "", errors.New("there is no 'NodeInternalIP' type address")
+
+	return "", errors.New("there is no 'NodeInternalIP' type address with Ready status")
 }
 
 // GetLBIP returns the external ip address assigned to Loadbalancer by
